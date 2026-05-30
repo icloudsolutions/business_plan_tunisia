@@ -25,7 +25,7 @@ docker compose up --build -d
 
 **Sécurité** : voir [docs/SECURITY.md](docs/SECURITY.md). En production : `RUN_SEED=false`, `APP_ENV=production`, secrets forts obligatoires.
 
-**Migrations** : `RUN_MIGRATIONS=true` pour appliquer Alembic au démarrage API.
+**Migrations** : `RUN_MIGRATIONS=true` (default in Docker) applies Alembic at API startup. Set `RUN_MIGRATIONS=false` only for local dev without Alembic.
 
 **Exports** : après validation, `GET /api/plans/{id}/exports/{jobId}/download` (JWT requis).
 
@@ -40,6 +40,8 @@ docker compose up --build -d
 **Revenus multi-produits** : `GET/POST/PATCH/DELETE /api/plans/{id}/products`, `PUT /api/plans/{id}/revenue-assumptions`, `GET /api/plans/{id}/revenue-projection` (aperçu sync ou Celery via `POST`). Migration `008_plan_products_revenue`. Étape Liasse « Produits & Prix ».
 
 **Bilan prévisionnel** : `GET /api/plans/{id}/balance-sheet?scenario=base|pessimistic|optimistic`. Onglet « Bilan prévisionnel » du cockpit finance (ACTIFS / PASSIFS Y1–Y7, ratios BFR, composition empilée).
+
+**Flux de trésorerie** : `GET /api/plans/{id}/cash-flow?scenario=…&bfr_client_days=20|33|45`. Tableau Y0–Y7 (exploitation, ΔBFR, investissement, dettes), waterfall + BFR empilé, point d’équilibre cumul, sensibilité délai clients (onglet Trésorerie).
 
 **Emprunts & amortissement** : `GET/POST/PATCH/DELETE /api/plans/{id}/loans`, `GET /api/plans/{id}/loan-projection`, `POST /api/plans/{id}/loans/sync-liasse`. Migration `013_plan_loans`. Étape Financement : tranches (max 3), tableau trimestriel, pivot annuel, graphique dual-axis. Moteur `bp_calc.loan` alimente P&L / trésorerie (intérêts, principal, encours).
 

@@ -27,6 +27,7 @@ from app.routers import (
     tva_router,
     loans_router,
     balance_sheet_router,
+    cash_flow_router,
     ws_router,
 )
 
@@ -40,31 +41,52 @@ logger = logging.getLogger("bp.api")
 
 
 async def _run_migrations() -> None:
-    if os.getenv("RUN_MIGRATIONS", "").lower() not in ("1", "true", "yes"):
+    if os.getenv("RUN_MIGRATIONS", "true").lower() not in ("1", "true", "yes"):
         return
     try:
         from alembic import command
         from alembic.config import Config
 
+        from app.config import settings
+
         alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
-        await engine.dispose()
-        command.upgrade(alembic_cfg, "head")
+        alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
+
+        def upgrade(connection) -> None:
+            alembic_cfg.attributes["connection"] = connection
+            command.upgrade(alembic_cfg, "head")
+
+        async with engine.connect() as conn:
+            await conn.run_sync(upgrade)
         logger.info("Alembic migrations applied")
     except Exception as e:
-        logger.warning("Alembic migration skipped or failed: %s", e)
+        logger.exception("Alembic migration failed: %s", e)
+        raise
+
+
+async def _ensure_schema() -> None:
+    """Fallback for dev when migrations are disabled; migrations are preferred in Docker."""
+    if os.getenv("RUN_MIGRATIONS", "true").lower() in ("1", "true", "yes"):
+        return
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("SQLAlchemy create_all applied (RUN_MIGRATIONS=false)")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     install_log_buffer()
     validate_security_settings()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await _run_migrations()
-    if os.getenv("RUN_SEED", "").lower() in ("1", "true", "yes"):
-        from app.init_seed import seed
+    try:
+        await _run_migrations()
+        await _ensure_schema()
+        if os.getenv("RUN_SEED", "").lower() in ("1", "true", "yes"):
+            from app.init_seed import seed
 
-        await seed()
+            await seed()
+    except Exception:
+        logger.exception("API startup failed")
+        raise
     yield
 
 
@@ -94,6 +116,7 @@ app.include_router(other_charges_router.router, prefix="/api")
 app.include_router(tva_router.router, prefix="/api")
 app.include_router(loans_router.router, prefix="/api")
 app.include_router(balance_sheet_router.router, prefix="/api")
+app.include_router(cash_flow_router.router, prefix="/api")
 app.include_router(ai_router.router, prefix="/api")
 app.include_router(email_router.router, prefix="/api")
 app.include_router(collaboration_router.router, prefix="/api")

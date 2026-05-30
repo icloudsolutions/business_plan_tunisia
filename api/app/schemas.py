@@ -843,4 +843,10 @@ class BalanceSheetResponse(BaseModel):
     projection: dict
 
 
+class CashFlowProjectionResponse(BaseModel):
+    scenario: str = "base"
+    bfr_client_days: int = 30
+    projection: dict
+
+
 PlanPatchResponse.model_rebuild()

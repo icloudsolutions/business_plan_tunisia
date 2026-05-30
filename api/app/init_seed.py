@@ -5,14 +5,11 @@ import uuid
 from sqlalchemy import select
 
 from app.auth import hash_password
-from app.database import async_session, engine, Base
+from app.database import async_session
 from app.models import User
 
 
 async def seed():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
     async with async_session() as db:
         for email, role in [
             ("client@demo.tn", "client"),

@@ -314,6 +314,8 @@ export default function FinanceLiveDashboard({ planId }: Props) {
 
         {tab === "balance" ? (
           <BalanceSheetTab planId={planId} scenario={scenario} />
+        ) : tab === "treasury" ? (
+          <TreasuryTab planId={planId} scenario={scenario} />
         ) : loading || calcStatus ? (
           <ChartSkeleton height={320} />
         ) : !active ? (
@@ -329,7 +331,6 @@ export default function FinanceLiveDashboard({ planId }: Props) {
                 overlayLabel={showOverlay ? overlayLabel : undefined}
               />
             )}
-            {tab === "treasury" && <TreasuryTab data={active} />}
             {tab === "investments" && <InvestmentsTab data={active} />}
             {tab === "kpis" && <KpiCards data={active} />}
           </>

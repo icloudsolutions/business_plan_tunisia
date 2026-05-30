@@ -27,14 +27,16 @@ services:
     build:
       context: .
       dockerfile: api/Dockerfile
+    env_file:
+      - .env
     volumes:
       - exports_data:/app/exports
     environment:
       EXPORT_STORAGE_PATH: /app/exports
-      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
       APP_ENV: ${APP_ENV:-development}
       RUN_SEED: ${RUN_SEED:-false}
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://bp_user:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-business_plan}}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       JWT_SECRET: ${JWT_SECRET}
@@ -72,10 +74,12 @@ services:
     build:
       context: .
       dockerfile: worker/Dockerfile
+    env_file:
+      - .env
     volumes:
       - exports_data:/app/exports
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://bp_user:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-business_plan}}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
