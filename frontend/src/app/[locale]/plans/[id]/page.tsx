@@ -144,12 +144,16 @@ function PlanContent() {
         />
       </div>
 
-      <div className="card mb-8 !overflow-visible">
+      <div className="card mb-6 !overflow-visible">
         <ScenarioManager
           planId={id}
           readOnly={readOnly}
           onOfficialSet={load}
         />
+      </div>
+
+      <div className="card mb-8">
+        <ResultsPanel results={plan.results as never} />
       </div>
 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
@@ -185,35 +189,24 @@ function PlanContent() {
         }
       >
         <div className={collabEnabled ? "min-w-0 flex-1 space-y-6" : "space-y-6"}>
-          <div
-            className={
-              collabEnabled
-                ? "grid grid-cols-1 gap-5 xl:grid-cols-2"
-                : "plan-grid"
-            }
-          >
-            <div className="card !overflow-visible !p-0 sm:!p-0">
-              <LiasseWizard
-                planId={id}
-                inputs={inputs}
-                onChange={setInputs}
-                missingFields={missingFields}
-                completion={completion}
-                onRegisterNavigator={(fn) => {
-                  jumpToFieldRef.current = fn;
-                }}
-                onSave={async (inp) => {
-                  const res = await saveInputs(id, inp);
-                  setPlan(res.plan);
-                  setMissingFields(res.missingFields || []);
-                  setCompletionKey((k) => k + 1);
-                }}
-                readOnly={readOnly}
-              />
-            </div>
-            <div className="card">
-              <ResultsPanel results={plan.results as never} />
-            </div>
+          <div className="card !overflow-visible !p-0 sm:!p-0">
+            <LiasseWizard
+              planId={id}
+              inputs={inputs}
+              onChange={setInputs}
+              missingFields={missingFields}
+              completion={completion}
+              onRegisterNavigator={(fn) => {
+                jumpToFieldRef.current = fn;
+              }}
+              onSave={async (inp) => {
+                const res = await saveInputs(id, inp);
+                setPlan(res.plan);
+                setMissingFields(res.missingFields || []);
+                setCompletionKey((k) => k + 1);
+              }}
+              readOnly={readOnly}
+            />
           </div>
 
           {collabEnabled && (

@@ -1,5 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import ResponsiveScroll from "@/components/ui/ResponsiveScroll";
+
 interface Results {
   revenue?: { years: number[] };
   netProfit?: { years: number[] };
@@ -8,70 +12,197 @@ interface Results {
   marketingExpense?: { years: number[] };
   indicators?: { van: number; tri?: number; drciYears?: number };
   cashRunwayBreakYear?: number | null;
+  bfrCoherent?: boolean;
+  balanceSheetBalanced?: boolean;
 }
 
-export default function ResultsPanel({ results }: { results: Results | null }) {
+function fmtNum(n: number | null | undefined) {
+  if (n == null || Number.isNaN(n)) return "—";
+  return n.toLocaleString("fr-TN", { maximumFractionDigits: 0 });
+}
+
+function fmtPct(n: number | null | undefined) {
+  if (n == null || Number.isNaN(n)) return "N/A";
+  return `${(n * 100).toFixed(2)} %`;
+}
+
+type Props = {
+  results: Results | null;
+  defaultExpanded?: boolean;
+};
+
+export default function ResultsPanel({ results, defaultExpanded = false }: Props) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
   if (!results) {
-    return <p className="empty-state" style={{ padding: "1rem 0" }}>Aucun résultat — lancez un calcul.</p>;
+    return (
+      <p className="text-sm text-navy-500">
+        Aucun résultat — lancez un calcul depuis les actions du plan.
+      </p>
+    );
   }
 
   const ind = results.indicators;
+  const van = ind?.van;
+  const tri = ind?.tri;
+  const drci = ind?.drciYears;
+  const runway = results.cashRunwayBreakYear;
+  const years = results.netProfit?.years ?? [];
 
   return (
-    <div>
-      <h3 className="card-title">Indicateurs de rentabilité</h3>
-      <ul style={{ margin: 0, paddingLeft: "1.25rem" }}>
-        <li><strong>VAN (10%):</strong> {ind?.van?.toLocaleString("fr-TN")} TND</li>
-        <li><strong>TRI:</strong> {ind?.tri != null ? `${(ind.tri * 100).toFixed(2)}%` : "N/A"}</li>
-        <li><strong>DRCI:</strong> {ind?.drciYears?.toFixed(1) ?? "N/A"} ans</li>
-        {results.cashRunwayBreakYear && (
-          <li style={{ color: "var(--color-danger)" }}>
-            Alerte trésorerie — année {results.cashRunwayBreakYear}
-          </li>
-        )}
-        {"bfrCoherent" in results && (
-          <li>BFR cohérent : {(results as { bfrCoherent?: boolean }).bfrCoherent ? "Oui" : "Non"}</li>
-        )}
-        {"balanceSheetBalanced" in results && (
-          <li>
-            Bilan équilibré : {(results as { balanceSheetBalanced?: boolean }).balanceSheetBalanced ? "Oui" : "Non"}
-          </li>
-        )}
-        {results.distributionExpense?.years?.[0] != null && (
-          <li>
-            Distribution (an 1) : {results.distributionExpense.years[0].toLocaleString("fr-TN")} TND
-          </li>
-        )}
-        {results.marketingExpense?.years?.[0] != null && (
-          <li>
-            Marketing (an 1) : {results.marketingExpense.years[0].toLocaleString("fr-TN")} TND
-          </li>
-        )}
-      </ul>
+    <div className="space-y-0">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-start justify-between gap-3 text-start"
+        aria-expanded={expanded}
+      >
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display text-lg font-semibold text-navy-900">
+            Indicateurs de rentabilité
+          </h3>
+          <p className="mt-0.5 text-sm text-navy-600">
+            VAN, TRI, DRCI et projection 7 ans —{" "}
+            {expanded ? "réduire" : "cliquer pour déplier"}
+          </p>
+          {!expanded && (
+            <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-navy-700 sm:gap-x-6">
+              <div className="flex gap-1.5">
+                <dt className="text-navy-500">VAN</dt>
+                <dd className="font-semibold tabular-nums">{fmtNum(van)} TND</dd>
+              </div>
+              <div className="flex gap-1.5">
+                <dt className="text-navy-500">TRI</dt>
+                <dd className="font-semibold tabular-nums">{fmtPct(tri)}</dd>
+              </div>
+              <div className="flex gap-1.5">
+                <dt className="text-navy-500">DRCI</dt>
+                <dd className="font-semibold tabular-nums">
+                  {drci != null ? `${drci.toFixed(1)} ans` : "N/A"}
+                </dd>
+              </div>
+              {runway != null && runway > 0 && (
+                <div className="flex gap-1.5 text-red-600">
+                  <dt>Trésorerie</dt>
+                  <dd className="font-semibold">alerte an {runway}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+        </div>
+        <span className="mt-1 shrink-0 rounded-lg border border-navy-100 p-1.5 text-navy-600">
+          {expanded ? (
+            <ChevronUp className="h-5 w-5" aria-hidden />
+          ) : (
+            <ChevronDown className="h-5 w-5" aria-hidden />
+          )}
+        </span>
+      </button>
 
-      <h4 style={{ marginTop: "1.25rem", marginBottom: "0.5rem" }}>Projection 7 ans</h4>
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Année</th>
-              <th className="num">CA</th>
-              <th className="num">Résultat net</th>
-              <th className="num">Trésorerie cum.</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(results.netProfit?.years ?? []).map((_, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                <td className="num">{results.revenue?.years?.[i]?.toLocaleString("fr-TN")}</td>
-                <td className="num">{results.netProfit?.years?.[i]?.toLocaleString("fr-TN")}</td>
-                <td className="num">{results.cumulativeTreasury?.years?.[i]?.toLocaleString("fr-TN")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {expanded && (
+        <div className="mt-5 space-y-5 border-t border-navy-100 pt-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Metric label="VAN (10 %)" value={`${fmtNum(van)} TND`} />
+            <Metric label="TRI" value={fmtPct(tri)} />
+            <Metric
+              label="DRCI"
+              value={drci != null ? `${drci.toFixed(1)} ans` : "N/A"}
+            />
+            {runway != null && runway > 0 && (
+              <Metric
+                label="Trésorerie"
+                value={`Alerte année ${runway}`}
+                variant="danger"
+              />
+            )}
+            {results.bfrCoherent != null && (
+              <Metric
+                label="BFR cohérent"
+                value={results.bfrCoherent ? "Oui" : "Non"}
+              />
+            )}
+            {results.balanceSheetBalanced != null && (
+              <Metric
+                label="Bilan équilibré"
+                value={results.balanceSheetBalanced ? "Oui" : "Non"}
+              />
+            )}
+            {results.distributionExpense?.years?.[0] != null && (
+              <Metric
+                label="Distribution (an 1)"
+                value={`${fmtNum(results.distributionExpense.years[0])} TND`}
+              />
+            )}
+            {results.marketingExpense?.years?.[0] != null && (
+              <Metric
+                label="Marketing (an 1)"
+                value={`${fmtNum(results.marketingExpense.years[0])} TND`}
+              />
+            )}
+          </div>
+
+          <div>
+            <h4 className="mb-2 text-sm font-semibold text-navy-800">
+              Projection 7 ans
+            </h4>
+            <ResponsiveScroll minWidth={480}>
+              <table className="data-table w-full min-w-[480px] text-sm">
+                <thead>
+                  <tr>
+                    <th>Année</th>
+                    <th className="num">CA</th>
+                    <th className="num">Résultat net</th>
+                    <th className="num">Trésorerie cum.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {years.map((_, i) => (
+                    <tr key={i}>
+                      <td>{i + 1}</td>
+                      <td className="num">{fmtNum(results.revenue?.years?.[i])}</td>
+                      <td className="num">{fmtNum(results.netProfit?.years?.[i])}</td>
+                      <td className="num">
+                        {fmtNum(results.cumulativeTreasury?.years?.[i])}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ResponsiveScroll>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value: string;
+  variant?: "danger";
+}) {
+  return (
+    <div
+      className={`rounded-lg border px-3 py-2 ${
+        variant === "danger"
+          ? "border-red-200 bg-red-50/80"
+          : "border-navy-100 bg-navy-50/50"
+      }`}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-navy-500">
+        {label}
+      </p>
+      <p
+        className={`mt-0.5 text-sm font-semibold tabular-nums ${
+          variant === "danger" ? "text-red-700" : "text-navy-900"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
