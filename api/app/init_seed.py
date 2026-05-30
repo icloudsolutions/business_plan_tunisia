@@ -14,14 +14,18 @@ async def seed():
         await conn.run_sync(Base.metadata.create_all)
 
     async with async_session() as db:
-        for email, role in [("client@demo.tn", "client"), ("expert@demo.tn", "expert")]:
+        for email, role in [
+            ("client@demo.tn", "client"),
+            ("expert@demo.tn", "expert"),
+            ("admin@demo.tn", "admin"),
+        ]:
             r = await db.execute(select(User).where(User.email == email))
             if r.scalar_one_or_none():
                 continue
             db.add(User(id=uuid.uuid4(), email=email, hashed_password=hash_password("demo1234"), role=role))
         await db.commit()
     print(
-        "Seed OK (DEV ONLY): client@demo.tn / expert@demo.tn — password demo1234. "
+        "Seed OK (DEV ONLY): client@demo.tn / expert@demo.tn / admin@demo.tn — password demo1234. "
         "Set RUN_SEED=false in production."
     )
 

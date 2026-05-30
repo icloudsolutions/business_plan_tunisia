@@ -78,59 +78,54 @@ export default function LiasseForm({
   };
 
   const field = (label: string, path: string, type = "text") => (
-    <label style={{ display: "block", marginBottom: 12 }}>
-      <span style={{ fontSize: 13, color: "#444" }}>{label}</span>
+    <div className="form-group" key={path}>
+      <label htmlFor={path}>{label}</label>
       <input
+        id={path}
         type={type}
+        className="form-input"
         value={get(local, path)}
         onChange={(e) => update(path, e.target.value)}
         disabled={readOnly}
-        style={{
-          display: "block",
-          width: "100%",
-          marginTop: 4,
-          padding: "8px 10px",
-          border: "1px solid #ccc",
-          borderRadius: 6,
-        }}
       />
-    </label>
+    </div>
   );
 
   return (
     <div>
-      {saving && <p style={{ color: "#0066cc", fontSize: 13 }}>Enregistrement...</p>}
+      {saving && <p className="save-hint saving">Enregistrement…</p>}
       {savedAt && !saving && (
-        <p style={{ color: "#22863a", fontSize: 13 }}>
+        <p className="save-hint saved">
           Sauvegardé à {savedAt.toLocaleTimeString("fr-TN")}
         </p>
       )}
 
-      <section style={{ marginBottom: 24 }}>
+      <section className="form-section">
         <h3>Informations société (Liasse Unique)</h3>
         {field("Raison sociale", "company.name")}
-        <label style={{ display: "block", marginBottom: 12 }}>
-          <span style={{ fontSize: 13 }}>Forme juridique</span>
+        <div className="form-group">
+          <label htmlFor="company.legalForm">Forme juridique</label>
           <select
+            id="company.legalForm"
+            className="form-select"
             value={get(local, "company.legalForm", "SARL")}
             onChange={(e) => update("company.legalForm", e.target.value)}
             disabled={readOnly}
-            style={{ display: "block", width: "100%", marginTop: 4, padding: 8 }}
           >
             <option value="SARL">SARL</option>
             <option value="SUARL">SUARL</option>
             <option value="SA">SA</option>
           </select>
-        </label>
+        </div>
       </section>
 
-      <section style={{ marginBottom: 24 }}>
+      <section className="form-section">
         <h3>Investissements initiaux</h3>
         {field("Incorporel — Logiciels (TND)", "investments.intangible.0.amount", "number")}
         {field("Corporel — Matériel industriel (TND)", "investments.tangible.0.amount", "number")}
       </section>
 
-      <section style={{ marginBottom: 24 }}>
+      <section className="form-section">
         <h3>Hypothèses d&apos;exploitation</h3>
         {field("Capacité (unités/min)", "operations.capacityPerMinute", "number")}
         {field("Jours ouvrés / an", "operations.workingDaysPerYear", "number")}
@@ -140,14 +135,14 @@ export default function LiasseForm({
         {field("Taux de déchet (max 1%)", "operations.wasteRate.value", "number")}
       </section>
 
-      <section style={{ marginBottom: 24 }}>
+      <section className="form-section">
         <h3>Financement</h3>
         {field("Fonds propres (%)", "financing.equityRatio", "number")}
         {field("Dette (%)", "financing.debtRatio", "number")}
         {field("Taux d'intérêt emprunt", "financing.loan.rate", "number")}
       </section>
 
-      <section>
+      <section className="form-section">
         <h3>BFR — Délais de règlement</h3>
         {field("Créances clients (jours)", "workingCapital.clientPaymentDays", "number")}
         {field("Dettes fournisseurs (jours)", "workingCapital.supplierPaymentDays", "number")}

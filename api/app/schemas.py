@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -13,8 +13,6 @@ class TokenResponse(BaseModel):
 
 
 class UserRegister(BaseModel):
-    """Public registration — clients only (no role field)."""
-
     email: str
     password: str
 
@@ -43,10 +41,24 @@ class ExpertCreate(BaseModel):
         return v
 
 
+class AdminUserCreate(BaseModel):
+    email: str
+    password: str
+    role: Literal["client", "expert"] = "client"
+
+    @field_validator("password")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Le mot de passe doit contenir au moins 8 caractères")
+        return v
+
+
 class UserResponse(BaseModel):
     id: UUID
     email: str
     role: str
+    created_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -59,23 +71,6 @@ class PlanCreate(BaseModel):
 
 class PlanUpdateInputs(BaseModel):
     inputs: dict
-
-
-class PlanPatchResponse(BaseModel):
-    plan: "PlanResponse"
-    missingFields: list[str] = Field(default_factory=list)
-
-
-class PlanVersionResponse(BaseModel):
-    id: UUID
-    plan_id: UUID
-    version_number: int
-    status_at_snapshot: str
-    reason: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class PlanResponse(BaseModel):
@@ -138,6 +133,23 @@ class CopilotRequest(BaseModel):
     action: str
     input_data: dict
     plan_id: UUID | None = None
+
+
+class PlanPatchResponse(BaseModel):
+    plan: PlanResponse
+    missingFields: list[str] = Field(default_factory=list)
+
+
+class PlanVersionResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    version_number: int
+    status_at_snapshot: str
+    reason: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 PlanPatchResponse.model_rebuild()

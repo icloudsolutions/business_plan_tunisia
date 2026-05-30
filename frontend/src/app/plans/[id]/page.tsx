@@ -3,14 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import AuthGuard from "@/components/AuthGuard";
 import LiasseForm from "@/components/LiasseForm";
 import ResultsPanel from "@/components/ResultsPanel";
 import SimulationPanel from "@/components/SimulationPanel";
+import StatusBadge from "@/components/StatusBadge";
+import { useAuth } from "@/context/AuthContext";
 import {
   auditPlan,
   downloadExport,
   exportPlan,
-  fetchMe,
   getPlan,
   listSimulations,
   pollJob,
@@ -22,20 +24,19 @@ import {
   type AuditResult,
   type Plan,
   type SimulationItem,
-  type User,
 } from "@/lib/api";
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "Brouillon (Client)",
-  UNDER_REVIEW: "En revue (Expert)",
-  ADJUSTMENT: "Ajustement (Collaboratif)",
-  VALIDATED: "Validé (Verrouillé)",
+const STATUS_HINTS: Record<string, string> = {
+  DRAFT: "Saisie et calcul — soumission à l'expert",
+  UNDER_REVIEW: "Revue expert — simulations et audit",
+  ADJUSTMENT: "Corrections collaboratives",
+  VALIDATED: "Plan verrouillé — exports PDF / Excel",
 };
 
-export default function PlanPage() {
+function PlanContent() {
   const params = useParams();
   const id = params.id as string;
-  const [user, setUser] = useState<User | null>(null);
+  const { isExpert } = useAuth();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [inputs, setInputs] = useState<Record<string, unknown>>({});
   const [missingFields, setMissingFields] = useState<string[]>([]);
@@ -44,8 +45,10 @@ export default function PlanPage() {
   const [jobStatus, setJobStatus] = useState("");
   const [exportJobId, setExportJobId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    setError("");
     try {
       const p = await getPlan(id);
       setPlan(p);
@@ -54,15 +57,15 @@ export default function PlanPage() {
       setSimulations(sims);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
-    fetchMe().then(setUser).catch(() => {});
     load();
   }, [load]);
 
-  const isExpert = user?.role === "expert";
   const readOnly =
     plan?.status === "VALIDATED" ||
     (plan?.status === "UNDER_REVIEW" && !isExpert);
@@ -88,42 +91,46 @@ export default function PlanPage() {
     else await load();
   };
 
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner" aria-hidden />
+        <p>Chargement du plan…</p>
+      </div>
+    );
+  }
+
   if (!plan) {
-    return <main style={{ padding: 32 }}>{error || "Chargement..."}</main>;
+    return <p className="form-error">{error || "Plan introuvable"}</p>;
   }
 
   return (
-    <main style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>
-      <Link href="/">← Retour</Link>
-      <h1 style={{ marginTop: 16 }}>{plan.title}</h1>
-      <p>
-        État : <strong>{STATUS_LABELS[plan.status] || plan.status}</strong>
-        {user && (
-          <span style={{ marginLeft: 12, color: "#666", fontSize: 14 }}>
-            ({user.role})
-          </span>
-        )}
+    <>
+      <p className="breadcrumb">
+        <Link href="/">← Tableau de bord</Link>
       </p>
 
+      <header className="page-header">
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem" }}>
+          <h1 style={{ margin: 0, flex: "1 1 auto" }}>{plan.title}</h1>
+          <StatusBadge status={plan.status} />
+        </div>
+        <p>{STATUS_HINTS[plan.status] || plan.status}</p>
+      </header>
+
       {missingFields.length > 0 && (
-        <div
-          style={{
-            marginTop: 12,
-            padding: 12,
-            background: "#fff8e6",
-            borderRadius: 8,
-            fontSize: 13,
-          }}
-        >
+        <div className="alert alert-warning">
           <strong>Champs à compléter :</strong> {missingFields.join(", ")}
         </div>
       )}
 
-      {error && <p style={{ color: "red", marginTop: 12 }}>{error}</p>}
-      {jobStatus && <p style={{ color: "#0066cc" }}>Job : {jobStatus}</p>}
+      {error && <p className="form-error">{error}</p>}
+      {jobStatus && (
+        <p className="alert alert-info">Traitement : {jobStatus}</p>
+      )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginTop: 24 }}>
-        <div style={{ background: "#fff", padding: 20, borderRadius: 8 }}>
+      <div className="plan-grid">
+        <div className="card">
           <LiasseForm
             inputs={inputs}
             onChange={setInputs}
@@ -135,31 +142,31 @@ export default function PlanPage() {
             readOnly={readOnly}
           />
         </div>
-        <div style={{ background: "#fff", padding: 20, borderRadius: 8 }}>
+        <div className="card">
           <ResultsPanel results={plan.results as never} />
         </div>
       </div>
 
       {(plan.status === "UNDER_REVIEW" || plan.status === "ADJUSTMENT") && (
-        <div style={{ marginTop: 24, background: "#fff", padding: 20, borderRadius: 8 }}>
-          <h3>Comparatif simulations</h3>
+        <div className="card" style={{ marginTop: "1.25rem" }}>
+          <h3 className="card-title">Comparatif simulations</h3>
           <SimulationPanel simulations={simulations} />
         </div>
       )}
 
-      <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div className="plan-actions btn-group">
         {!isExpert && plan.status === "DRAFT" && (
           <>
-            <button type="button" onClick={handleRecalc} style={{ padding: "8px 16px" }}>
+            <button type="button" className="btn btn-primary" onClick={handleRecalc}>
               Calculer (7 ans)
             </button>
             <button
               type="button"
+              className="btn btn-secondary"
               onClick={async () => {
                 await submitPlan(id);
                 load();
               }}
-              style={{ padding: "8px 16px" }}
             >
               Soumettre à l&apos;expert
             </button>
@@ -167,38 +174,38 @@ export default function PlanPage() {
         )}
         {(plan.status === "UNDER_REVIEW" || plan.status === "ADJUSTMENT") && (
           <>
-            <button type="button" onClick={handleRecalc} style={{ padding: "8px 16px" }}>
+            <button type="button" className="btn btn-secondary" onClick={handleRecalc}>
               Recalculer
             </button>
-            <button type="button" onClick={handleSimulate} style={{ padding: "8px 16px" }}>
+            <button type="button" className="btn btn-secondary" onClick={handleSimulate}>
               Simuler (+15% matières)
             </button>
             {isExpert && (
               <>
                 <button
                   type="button"
+                  className="btn btn-secondary"
                   onClick={async () => setAudit(await auditPlan(id))}
-                  style={{ padding: "8px 16px" }}
                 >
                   Audit financier
                 </button>
                 <button
                   type="button"
+                  className="btn btn-secondary"
                   onClick={async () => {
                     await transitionPlan(id, "NEEDS_ADJUSTMENT");
                     load();
                   }}
-                  style={{ padding: "8px 16px" }}
                 >
                   Demander ajustement
                 </button>
                 <button
                   type="button"
+                  className="btn btn-success"
                   onClick={async () => {
                     await transitionPlan(id, "VALIDATE");
                     load();
                   }}
-                  style={{ padding: "8px 16px", background: "#22863a", color: "#fff", border: 0 }}
                 >
                   Valider
                 </button>
@@ -210,27 +217,21 @@ export default function PlanPage() {
           <>
             <button
               type="button"
+              className="btn btn-primary"
               onClick={async () => {
                 const job = await exportPlan(id);
                 setExportJobId(job.id);
                 const result = await pollJob(job.id, setJobStatus);
                 if (result.status === "COMPLETED") setExportJobId(job.id);
               }}
-              style={{ padding: "8px 16px" }}
             >
               Générer PDF / Excel
             </button>
             {exportJobId && (
               <button
                 type="button"
+                className="btn btn-secondary"
                 onClick={() => downloadExport(id, exportJobId)}
-                style={{
-                  padding: "8px 16px",
-                  background: "#0969da",
-                  color: "#fff",
-                  border: 0,
-                  borderRadius: 6,
-                }}
               >
                 Télécharger export
               </button>
@@ -241,18 +242,24 @@ export default function PlanPage() {
 
       {audit && (
         <pre
+          className="card"
           style={{
-            marginTop: 24,
-            background: "#fff",
-            padding: 16,
-            borderRadius: 8,
+            marginTop: "1.25rem",
             overflow: "auto",
-            fontSize: 13,
+            fontSize: "0.8rem",
           }}
         >
           {JSON.stringify(audit, null, 2)}
         </pre>
       )}
-    </main>
+    </>
+  );
+}
+
+export default function PlanPage() {
+  return (
+    <AuthGuard>
+      <PlanContent />
+    </AuthGuard>
   );
 }

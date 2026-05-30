@@ -1,9 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { clearToken, getToken } from "./auth-storage";
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("bp_token");
-}
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
@@ -14,6 +11,14 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+
+  if (res.status === 401 && typeof window !== "undefined") {
+    clearToken();
+    const onLogin = window.location.pathname.startsWith("/login");
+    if (!onLogin) window.location.href = "/login";
+    throw new Error("Session expirée — reconnectez-vous");
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(typeof err.detail === "string" ? err.detail : JSON.stringify(err));
@@ -26,6 +31,7 @@ export interface User {
   id: string;
   email: string;
   role: string;
+  created_at?: string;
 }
 
 export interface Plan {
@@ -77,9 +83,24 @@ export async function login(email: string, password: string) {
 }
 
 export async function register(email: string, password: string) {
-  return api("/auth/register", {
+  return api<User>("/auth/register", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function listUsers(): Promise<User[]> {
+  return api("/auth/admin/users");
+}
+
+export async function adminCreateUser(
+  email: string,
+  password: string,
+  role: "client" | "expert"
+): Promise<User> {
+  return api("/auth/admin/users", {
+    method: "POST",
+    body: JSON.stringify({ email, password, role }),
   });
 }
 
@@ -98,7 +119,10 @@ export async function getPlan(id: string): Promise<Plan> {
   return api(`/plans/${id}`);
 }
 
-export async function saveInputs(id: string, inputs: Record<string, unknown>): Promise<PlanPatchResult> {
+export async function saveInputs(
+  id: string,
+  inputs: Record<string, unknown>
+): Promise<PlanPatchResult> {
   return api(`/plans/${id}/inputs`, {
     method: "PATCH",
     body: JSON.stringify({ inputs }),
@@ -110,18 +134,22 @@ export async function submitPlan(id: string): Promise<Plan> {
 }
 
 export async function recalculate(id: string) {
-  return api<{ id: string; status: string }>(`/plans/${id}/recalculate`, { method: "POST" });
+  return api<{ id: string; status: string }>(`/plans/${id}/recalculate`, {
+    method: "POST",
+  });
 }
 
 export async function getJob(id: string) {
-  return api<{ id: string; status: string; result?: unknown; error?: string }>(`/jobs/${id}`);
+  return api<{ id: string; status: string; result?: unknown; error?: string }>(
+    `/jobs/${id}`
+  );
 }
 
 export async function pollJob(
   id: string,
   onStatus?: (status: string) => void,
   maxAttempts = 60
-): Promise<{ id: string; status: string; result?: unknown; error?: string }> {
+) {
   for (let i = 0; i < maxAttempts; i++) {
     const j = await getJob(id);
     onStatus?.(j.status);
@@ -147,7 +175,7 @@ export async function listSimulations(id: string): Promise<SimulationItem[]> {
 }
 
 export async function auditPlan(id: string): Promise<AuditResult> {
-  return api<AuditResult>(`/plans/${id}/audit`, { method: "POST" });
+  return api(`/plans/${id}/audit`, { method: "POST" });
 }
 
 export async function transitionPlan(id: string, action: string) {

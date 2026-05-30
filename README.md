@@ -29,7 +29,7 @@ docker compose up --build -d
 
 **Exports** : après validation, `GET /api/plans/{id}/exports/{jobId}/download` (JWT requis).
 
-**Comptes démo** (si `RUN_SEED=true`) : `client@demo.tn` / `expert@demo.tn` — mot de passe `demo1234`. Les experts se créent via `POST /api/auth/admin/experts` + header `X-Admin-Key`.
+**Comptes démo** (si `RUN_SEED=true`) : `client@demo.tn`, `expert@demo.tn`, `admin@demo.tn` — mot de passe `demo1234`. L’administrateur gère les utilisateurs depuis **Administration** (`/admin`) ou via `GET/POST /api/auth/admin/users` (JWT admin). Création expert legacy : `POST /api/auth/admin/experts` + header `X-Admin-Key`.
 
 Application : http://localhost:8088
 
