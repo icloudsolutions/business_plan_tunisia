@@ -56,6 +56,8 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      # Set true if Celery worker is not running (scenario calc runs inside API)
+      SCENARIO_CALC_SYNC: ${SCENARIO_CALC_SYNC:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,6 +101,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A worker.celery_app inspect ping -d celery@$$HOSTNAME | grep -q OK || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 40s
     networks:
       - bp_network
 

@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     smtp_user: str | None = None
     smtp_password: str | None = None
     smtp_use_tls: bool = True
+    # Run scenario calc in API process (no Celery worker required)
+    scenario_calc_sync: bool = False
 
     class Config:
         env_file = ".env"

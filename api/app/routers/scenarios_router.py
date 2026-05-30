@@ -1,5 +1,6 @@
 """CRUD and comparison for plan scenarios (pessimiste / base / optimiste)."""
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +17,7 @@ from app.collaboration import log_activity
 from app.config import settings
 from app.database import get_db
 from app.models import BusinessPlan, CalcJob, PlanScenario, User
+from app.scenario_calc import apply_scenario_results, fail_scenario_job
 from app.scenario_services import ensure_default_scenarios, scenario_response
 from app.schemas import (
     JobResponse,
@@ -27,6 +29,7 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/plans", tags=["scenarios"])
+logger = logging.getLogger(__name__)
 
 
 async def _get_scenario(db: AsyncSession, plan_id: UUID, scenario_id: UUID) -> PlanScenario:
@@ -55,13 +58,32 @@ async def _queue_calc(db: AsyncSession, plan: BusinessPlan, scenario: PlanScenar
     await db.flush()
     scenario.calc_job_id = job.id
     scenario.calc_status = "PENDING"
-    task = celery_app.send_task(
-        "worker.tasks.calculate_plan_scenario",
-        args=[str(plan.id), str(scenario.id), str(job.id)],
-        queue="calc",
-    )
-    job.celery_task_id = task.id
-    return job
+
+    async def _run_sync() -> None:
+        try:
+            await apply_scenario_results(db, plan, scenario, job)
+        except Exception as exc:
+            await fail_scenario_job(db, scenario, job, str(exc))
+            raise HTTPException(
+                status_code=500, detail=f"Calcul scénario échoué: {exc}"
+            ) from exc
+
+    if settings.scenario_calc_sync:
+        await _run_sync()
+        return job
+
+    try:
+        task = celery_app.send_task(
+            "worker.tasks.calculate_plan_scenario",
+            args=[str(plan.id), str(scenario.id), str(job.id)],
+            queue="calc",
+        )
+        job.celery_task_id = task.id
+        return job
+    except Exception as exc:
+        logger.warning("Celery unavailable for scenario calc, using sync fallback: %s", exc)
+        await _run_sync()
+        return job
 
 
 @router.get("/{plan_id}/scenarios", response_model=list[PlanScenarioResponse])

@@ -98,12 +98,27 @@ export async function setOfficialScenario(planId: string, scenarioId: string) {
   });
 }
 
+/** ~6 min at 1.5s — aligns with Celery task_time_limit (300s) + buffer */
+const SCENARIO_POLL_ATTEMPTS = 240;
+const SCENARIO_POLL_INTERVAL_MS = 1500;
+
 export async function pollScenarioJob(jobId: string, onStatus?: (s: string) => void) {
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < SCENARIO_POLL_ATTEMPTS; i++) {
     const j: JobStatus = await getJob(jobId);
     onStatus?.(j.status);
-    if (j.status === "COMPLETED" || j.status === "FAILED") return j;
-    await new Promise((r) => setTimeout(r, 1500));
+    if (j.status === "COMPLETED") return j;
+    if (j.status === "FAILED") {
+      throw new Error(j.error || "Calcul scénario échoué");
+    }
+    await new Promise((r) => setTimeout(r, SCENARIO_POLL_INTERVAL_MS));
   }
-  throw new Error("Calcul scénario expiré");
+  const last = await getJob(jobId);
+  if (last.status === "FAILED") {
+    throw new Error(last.error || "Calcul scénario échoué");
+  }
+  if (last.status === "COMPLETED") return last;
+  throw new Error(
+    "Calcul scénario expiré (délai dépassé). Vérifiez le service worker : docker compose ps worker. " +
+      "Sinon activez SCENARIO_CALC_SYNC=true sur l'API."
+  );
 }
