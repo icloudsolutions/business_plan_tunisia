@@ -16,6 +16,10 @@
       "title": "Exploitation",
       "explainer": "Hypothèses de production et de coûts unitaires. Elles déterminent le chiffre d'affaires et la marge brute année par année."
     },
+    "products": {
+      "title": "Produits & Prix",
+      "explainer": "Catalogue multi-produits, ristournes, croissance Y2–Y7 et taux d'utilisation de la capacité nominale."
+    },
     "hr": {
       "title": "Ressources humaines",
       "explainer": "Effectifs et masse salariale. Les charges sociales sont calculées automatiquement selon les barèmes tunisiens du modèle."

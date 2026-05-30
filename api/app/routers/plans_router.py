@@ -213,6 +213,8 @@ async def delete_plan(
     pid = plan.id
     from app.models import PlanAuditLog
 
+    from app.models import PlanProduct, PlanRevenueAssumptions
+
     for model in (
         PlanComment,
         PlanActivity,
@@ -221,6 +223,8 @@ async def delete_plan(
         ExportJob,
         PlanVersion,
         PlanAuditLog,
+        PlanProduct,
+        PlanRevenueAssumptions,
         CalcJob,
     ):
         await db.execute(sql_delete(model).where(model.plan_id == pid))

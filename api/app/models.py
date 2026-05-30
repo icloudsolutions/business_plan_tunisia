@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -57,6 +57,50 @@ class BusinessPlan(Base):
     export_jobs: Mapped[list["ExportJob"]] = relationship(back_populates="plan")
     versions: Mapped[list["PlanVersion"]] = relationship(back_populates="plan")
     scenarios: Mapped[list["PlanScenario"]] = relationship(back_populates="plan")
+    products: Mapped[list["PlanProduct"]] = relationship(back_populates="plan")
+    revenue_assumptions: Mapped["PlanRevenueAssumptions | None"] = relationship(
+        back_populates="plan", uselist=False
+    )
+
+
+class PlanProduct(Base):
+    __tablename__ = "plan_products"
+    __table_args__ = (Index("ix_plan_products_plan_id", "plan_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    name: Mapped[str] = mapped_column(String(255), default="")
+    unit: Mapped[str] = mapped_column(String(32), default="unit")
+    unit_price_sell: Mapped[float] = mapped_column(Float, default=0.0)
+    ristourne_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    monthly_qty_y1: Mapped[float] = mapped_column(Float, default=0.0)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="products")
+
+
+class PlanRevenueAssumptions(Base):
+    __tablename__ = "plan_revenue_assumptions"
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("business_plans.id"), primary_key=True
+    )
+    nominal_capacity: Mapped[float] = mapped_column(Float, default=0.0)
+    capacity_basis: Mapped[str] = mapped_column(String(32), default="units_per_day")
+    production_days: Mapped[float] = mapped_column(Float, default=250.0)
+    growth_rate_y2: Mapped[float] = mapped_column(Float, default=0.15)
+    growth_rate_y3: Mapped[float] = mapped_column(Float, default=0.15)
+    growth_rate_y4: Mapped[float] = mapped_column(Float, default=0.15)
+    growth_rate_y5: Mapped[float] = mapped_column(Float, default=0.15)
+    growth_rate_y6: Mapped[float] = mapped_column(Float, default=0.15)
+    growth_rate_y7: Mapped[float] = mapped_column(Float, default=0.15)
+    projection_cache: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="revenue_assumptions")
 
 
 class PlanScenario(Base):

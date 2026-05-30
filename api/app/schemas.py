@@ -439,4 +439,114 @@ class AuditLogEntryResponse(BaseModel):
         from_attributes = True
 
 
+class PlanProductCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    unit: str = Field(default="unit", pattern="^(kg|sachet|unit|L|other)$")
+    unit_price_sell: float = Field(ge=0, default=0)
+    ristourne_pct: float = Field(ge=0, le=1, default=0)
+    monthly_qty_y1: float = Field(ge=0, default=0)
+    sort_order: int | None = None
+
+
+class PlanProductUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=255)
+    unit: str | None = Field(None, pattern="^(kg|sachet|unit|L|other)$")
+    unit_price_sell: float | None = Field(None, ge=0)
+    ristourne_pct: float | None = Field(None, ge=0, le=1)
+    monthly_qty_y1: float | None = Field(None, ge=0)
+    sort_order: int | None = None
+
+
+class PlanProductResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    name: str
+    unit: str
+    unit_price_sell: float
+    ristourne_pct: float
+    monthly_qty_y1: float
+    sort_order: int
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class RevenueAssumptionsUpdate(BaseModel):
+    nominal_capacity: float | None = Field(None, ge=0)
+    capacity_basis: str | None = Field(None, pattern="^(units_per_day|kg_per_month)$")
+    production_days: float | None = Field(None, gt=0)
+    growth_rate_y2: float | None = None
+    growth_rate_y3: float | None = None
+    growth_rate_y4: float | None = None
+    growth_rate_y5: float | None = None
+    growth_rate_y6: float | None = None
+    growth_rate_y7: float | None = None
+
+
+class RevenueAssumptionsResponse(BaseModel):
+    plan_id: UUID
+    nominal_capacity: float
+    capacity_basis: str
+    production_days: float
+    growth_rate_y2: float
+    growth_rate_y3: float
+    growth_rate_y4: float
+    growth_rate_y5: float
+    growth_rate_y6: float
+    growth_rate_y7: float
+    projection_cache: dict | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class ProductYearRevenueResponse(BaseModel):
+    year: int
+    quantity: float
+    revenue_gross: float
+    ristourne: float
+    revenue_net: float
+
+
+class ProductRevenueSeriesResponse(BaseModel):
+    product_id: str
+    name: str
+    unit: str
+    years: list[ProductYearRevenueResponse]
+
+
+class RevenueProjectionResponse(BaseModel):
+    plan_id: UUID | None = None
+    products: list[ProductRevenueSeriesResponse]
+    total_revenue_gross: list[float]
+    total_revenue_net: list[float]
+    total_quantity: list[float]
+    capacity_utilization_pct: list[float]
+    nominal_capacity_annual: float
+
+    @classmethod
+    def from_projection(cls, p: "RevenueProjection") -> "RevenueProjectionResponse":
+        from bp_schema.revenue import RevenueProjection
+
+        return cls(
+            plan_id=p.plan_id,
+            products=[
+                {
+                    "product_id": s.product_id,
+                    "name": s.name,
+                    "unit": s.unit,
+                    "years": [y.model_dump() for y in s.years],
+                }
+                for s in p.products
+            ],
+            total_revenue_gross=p.total_revenue_gross,
+            total_revenue_net=p.total_revenue_net,
+            total_quantity=p.total_quantity,
+            capacity_utilization_pct=p.capacity_utilization_pct,
+            nominal_capacity_annual=p.nominal_capacity_annual,
+        )
+
+
 PlanPatchResponse.model_rebuild()

@@ -90,6 +90,7 @@ export const WIZARD_STEPS = [
   "investments",
   "financing",
   "operations",
+  "products",
   "hr",
   "financial",
 ] as const;
@@ -101,6 +102,7 @@ const stepFields: Record<WizardStepId, (keyof LiasseFormValues | string)[]> = {
   investments: ["investments"],
   financing: ["financing"],
   operations: ["operations"],
+  products: [],
   hr: ["plAssumptions.personnel"],
   financial: ["workingCapital", "plAssumptions"],
 };
@@ -131,6 +133,8 @@ export function getStepFieldPaths(step: WizardStepId): string[] {
         "operations.wasteRate.maxAllowed",
         ...Array.from({ length: 7 }, (_, i) => `operations.wasteRateByYear.${i}`),
       ];
+    case "products":
+      return [];
     case "hr":
       return ["plAssumptions.personnel"];
     case "financial":

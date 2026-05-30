@@ -298,6 +298,102 @@ def calculate_plan_scenario(self, plan_id: str, scenario_id: str, job_id: str):
             raise
 
 
+def _sync_revenue_projection(db: Session, plan_id: UUID) -> dict:
+    from bp_calc.revenue import calculate_revenue_projection as calc_rev
+    from bp_schema.liasse import PlanInputs
+    from bp_schema.revenue import PlanProduct, RevenueAssumptions
+
+    BusinessPlan, _, _, _, _, _ = _import_models()
+    import sys
+
+    sys.path.insert(0, "/app/api")
+    from app.models import PlanProduct as PlanProductORM
+    from app.models import PlanRevenueAssumptions as PlanRevenueAssumptionsORM
+
+    plan = db.get(BusinessPlan, plan_id)
+    products_orm = (
+        db.query(PlanProductORM)
+        .filter(PlanProductORM.plan_id == plan_id)
+        .order_by(PlanProductORM.sort_order)
+        .all()
+    )
+    assump_orm = db.get(PlanRevenueAssumptionsORM, plan_id)
+    products = [
+        PlanProduct(
+            id=p.id,
+            plan_id=p.plan_id,
+            name=p.name,
+            unit=p.unit,
+            unit_price_sell=p.unit_price_sell,
+            ristourne_pct=p.ristourne_pct,
+            monthly_qty_y1=p.monthly_qty_y1,
+        )
+        for p in products_orm
+    ]
+    if assump_orm:
+        assumptions = RevenueAssumptions(
+            plan_id=assump_orm.plan_id,
+            nominal_capacity=assump_orm.nominal_capacity,
+            capacity_basis=assump_orm.capacity_basis,
+            production_days=assump_orm.production_days,
+            growth_rate_y2=assump_orm.growth_rate_y2,
+            growth_rate_y3=assump_orm.growth_rate_y3,
+            growth_rate_y4=assump_orm.growth_rate_y4,
+            growth_rate_y5=assump_orm.growth_rate_y5,
+            growth_rate_y6=assump_orm.growth_rate_y6,
+            growth_rate_y7=assump_orm.growth_rate_y7,
+        )
+    else:
+        assumptions = RevenueAssumptions(plan_id=plan_id)
+        if plan and plan.inputs:
+            try:
+                assumptions.production_days = float(
+                    PlanInputs.model_validate(plan.inputs).operations.workingDaysPerYear or 250
+                )
+            except Exception:
+                pass
+    proj = calc_rev(products, assumptions, plan_id=plan_id)
+    return proj.model_dump()
+
+
+@celery_app.task(
+    name="worker.tasks.calculate_revenue_projection",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def calculate_revenue_projection(self, plan_id: str, job_id: str):
+    _, CalcJob, _, _, _, _ = _import_models()
+    import sys
+
+    sys.path.insert(0, "/app/api")
+    from app.models import PlanRevenueAssumptions as PlanRevenueAssumptionsORM
+
+    with _get_sync_session() as db:
+        job = db.get(CalcJob, UUID(job_id))
+        pid = UUID(plan_id)
+        try:
+            if job:
+                job.status = "STARTED"
+                db.commit()
+            dump = _sync_revenue_projection(db, pid)
+            assump = db.get(PlanRevenueAssumptionsORM, pid)
+            if not assump:
+                assump = PlanRevenueAssumptionsORM(plan_id=pid)
+                db.add(assump)
+            assump.projection_cache = dump
+            if job:
+                job.status = "COMPLETED"
+                job.result = dump
+                job.completed_at = datetime.now(timezone.utc)
+            db.commit()
+            return dump
+        except Exception as e:
+            _fail_job(db, job, str(e))
+            raise
+
+
 @celery_app.task(
     name="worker.tasks.generate_export",
     bind=True,

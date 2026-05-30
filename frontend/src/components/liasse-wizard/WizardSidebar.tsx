@@ -15,6 +15,7 @@ const STEP_ORDER: WizardStepId[] = [
   "investments",
   "financing",
   "operations",
+  "products",
   "hr",
   "financial",
 ];

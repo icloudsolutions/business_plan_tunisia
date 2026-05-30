@@ -43,6 +43,7 @@ import StepGeneral from "./steps/StepGeneral";
 import StepInvestments from "./steps/StepInvestments";
 import StepFinancing from "./steps/StepFinancing";
 import StepOperations from "./steps/StepOperations";
+import StepProducts from "./steps/StepProducts";
 import StepHr from "./steps/StepHr";
 import StepFinancial from "./steps/StepFinancial";
 
@@ -262,14 +263,18 @@ export default function LiasseWizard({
                 style={{ transform: `translateX(-${stepIndex * 100}%)` }}
               >
                 {WIZARD_STEPS.map((id) => {
-                  const Body = STEP_COMPONENTS[id];
+                  const Body = id === "products" ? null : STEP_COMPONENTS[id as Exclude<WizardStepId, "products">];
                   return (
                     <div
                       key={id}
                       className="w-full shrink-0 p-5 sm:p-6"
                       aria-hidden={id !== currentStep}
                     >
-                      <Body readOnly={readOnly} />
+                      {id === "products" ? (
+                        <StepProducts planId={planId} readOnly={readOnly} />
+                      ) : Body ? (
+                        <Body readOnly={readOnly} />
+                      ) : null}
                       {id === "financial" && (
                         <PreflightCheck items={preflight} />
                       )}
