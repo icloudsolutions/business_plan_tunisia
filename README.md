@@ -6,7 +6,7 @@ Plateforme collaborative de business plan sur 7 ans, conforme à la Liasse Uniqu
 
 | Service | Rôle | Exposition |
 |---------|------|------------|
-| **nginx** | Reverse proxy, SSL-ready | Ports 80, 443 |
+| **nginx** | Reverse proxy, SSL-ready | Host ports **8088** (HTTP), **8443** (HTTPS) — configurable via `.env` |
 | **frontend** | Next.js — formulaires Liasse | Réseau interne |
 | **api** | FastAPI — state machine, REST | Réseau interne |
 | **worker** | Celery — calculs 7 ans, exports | Réseau interne |
@@ -31,9 +31,11 @@ docker compose up --build -d
 
 **Comptes démo** (si `RUN_SEED=true`) : `client@demo.tn` / `expert@demo.tn` — mot de passe `demo1234`. Les experts se créent via `POST /api/auth/admin/experts` + header `X-Admin-Key`.
 
-Application : http://localhost
+Application : http://localhost:8088
 
-API directe (debug, si nginx actif) : http://localhost/api/health
+API health : http://localhost:8088/api/health
+
+Override ports in `.env`: `NGINX_HTTP_PORT`, `NGINX_HTTPS_PORT`.
 
 ## Workflow (State Machine)
 
