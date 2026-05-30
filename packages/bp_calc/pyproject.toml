@@ -1,0 +1,17 @@
+[project]
+name = "bp-calc"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "bp-schema",
+    "numpy>=1.26.0",
+    "numpy-financial>=1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bp_calc*"]

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanInputsLiasse",
+  "type": "object",
+  "required": ["company", "investments", "operations", "financing", "workingCapital", "plAssumptions"],
+  "properties": {
+    "company": {
+      "type": "object",
+      "required": ["legalForm", "name"],
+      "properties": {
+        "name": { "type": "string" },
+        "legalForm": { "enum": ["SARL", "SUARL", "SA"] },
+        "taxRegime": {
+          "type": "object",
+          "properties": {
+            "tvaRates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["label", "rate"],
+                "properties": {
+                  "label": { "type": "string" },
+                  "rate": { "type": "number", "enum": [0.06, 0.07, 0.13, 0.18, 0.19] }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "investments": {
+      "type": "object",
+      "properties": {
+        "intangible": { "type": "array" },
+        "tangible": { "type": "array" }
+      }
+    },
+    "operations": { "type": "object" },
+    "financing": { "type": "object" },
+    "workingCapital": { "type": "object" },
+    "plAssumptions": { "type": "object" }
+  }
+}

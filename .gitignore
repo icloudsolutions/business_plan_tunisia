@@ -1,0 +1,14 @@
+.env
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+dist/
+*.egg-info/
+postgres_data/
+redis_data/
+~$*.xlsx
+.DS_Store

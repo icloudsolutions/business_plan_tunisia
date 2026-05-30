@@ -1,0 +1,19 @@
+# Copy to ssl.conf and mount with certificates in docker-compose nginx service:
+# volumes:
+#   - ./nginx/ssl.conf:/etc/nginx/ssl.conf:ro
+#   - ./certs:/etc/nginx/certs:ro
+
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers on;
+add_header Strict-Transport-Security "max-age=31536000" always;
+
+location /api/ {
+    proxy_pass http://api/api/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+}
+
+location / {
+    proxy_pass http://frontend;
+    proxy_set_header Host $host;
+}
