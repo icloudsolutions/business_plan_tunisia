@@ -1,4 +1,4 @@
-"""Alembic startup with legacy DB detection (create_all → Alembic transition)."""
+"""Alembic startup with legacy / existing DB detection."""
 
 from __future__ import annotations
 
@@ -16,14 +16,6 @@ from app.database import Base, engine
 import app.models  # noqa: F401 — register metadata for create_all
 
 logger = logging.getLogger("bp.api.migrations")
-
-_LEGACY_UPGRADE_SKIP_MARKERS = (
-    "already exists",
-    "duplicate",
-    "duplicate column",
-    "42701",  # PostgreSQL duplicate_column
-    "42p07",  # PostgreSQL duplicate_table
-)
 
 
 def _migrations_enabled() -> bool:
@@ -48,8 +40,15 @@ def _with_connection(connection, cfg: Config, fn) -> None:
     fn(cfg)
 
 
+def _read_current_revision(sync_conn) -> str | None:
+    if not inspect(sync_conn).has_table("alembic_version"):
+        return None
+    row = sync_conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).fetchone()
+    return str(row[0]) if row else None
+
+
 def _stamp_head_sql(sync_conn, revision: str) -> None:
-    """Insert alembic_version without Alembic env (avoids async txn conflicts)."""
+    """Set alembic_version without invoking Alembic env (async-safe)."""
     if not inspect(sync_conn).has_table("alembic_version"):
         sync_conn.execute(
             text(
@@ -65,13 +64,6 @@ def _stamp_head_sql(sync_conn, revision: str) -> None:
     )
 
 
-def _upgrade_error_recoverable(exc: Exception, *, has_existing_data: bool) -> bool:
-    if not has_existing_data:
-        return False
-    err = str(exc).lower()
-    return any(marker in err for marker in _LEGACY_UPGRADE_SKIP_MARKERS)
-
-
 async def _stamp_head_direct(cfg: Config) -> str:
     revision = _alembic_head(cfg)
     async with engine.begin() as conn:
@@ -79,50 +71,47 @@ async def _stamp_head_direct(cfg: Config) -> str:
     return revision
 
 
+async def _sync_existing_database(cfg: Config, current: str | None) -> None:
+    """Existing data: do not run upgrade (tables already present); stamp + create_all."""
+    head = _alembic_head(cfg)
+    if current != head:
+        logger.warning(
+            "Existing database (revision=%s, head=%s). "
+            "Stamping head via SQL; create_all will add missing tables.",
+            current,
+            head,
+        )
+        await _stamp_head_direct(cfg)
+        logger.info("Database stamped at Alembic head (%s)", head)
+    else:
+        logger.info("Existing database already at Alembic head (%s)", head)
+
+
 async def run_startup_migrations() -> None:
     if not _migrations_enabled():
         return
 
     cfg = _alembic_config()
+    head = _alembic_head(cfg)
 
     async with engine.connect() as conn:
-        has_alembic = await conn.run_sync(
-            lambda sync_conn: inspect(sync_conn).has_table("alembic_version")
-        )
         has_users = await conn.run_sync(
             lambda sync_conn: inspect(sync_conn).has_table("users")
         )
+        current = await conn.run_sync(lambda sync_conn: _read_current_revision(sync_conn))
 
-    legacy = has_users and not has_alembic
-
-    if legacy:
-        logger.warning(
-            "Legacy database detected (tables present, alembic_version missing). "
-            "Stamping head via SQL; create_all will add any missing tables."
-        )
-        rev = await _stamp_head_direct(cfg)
-        logger.info("Legacy database stamped at Alembic head (%s)", rev)
+    if has_users:
+        await _sync_existing_database(cfg, current)
         return
 
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(
-                lambda sync_conn: _with_connection(
-                    sync_conn, cfg, lambda c: command.upgrade(c, "head")
-                )
+    logger.info("Empty database detected — running Alembic upgrade to %s", head)
+    async with engine.begin() as conn:
+        await conn.run_sync(
+            lambda sync_conn: _with_connection(
+                sync_conn, cfg, lambda c: command.upgrade(c, "head")
             )
-        logger.info("Alembic migrations applied (upgrade head)")
-    except Exception as exc:
-        if _upgrade_error_recoverable(exc, has_existing_data=has_users):
-            logger.warning(
-                "Alembic upgrade skipped (%s). Stamping head via SQL; create_all will fill gaps.",
-                exc,
-            )
-            rev = await _stamp_head_direct(cfg)
-            logger.info("Database stamped at head after recoverable upgrade error (%s)", rev)
-        else:
-            logger.exception("Alembic upgrade failed")
-            raise
+        )
+    logger.info("Alembic migrations applied (upgrade head)")
 
 
 async def ensure_orm_tables() -> None:
