@@ -849,4 +849,9 @@ class CashFlowProjectionResponse(BaseModel):
     projection: dict
 
 
+class KpiDashboardResponse(BaseModel):
+    scenario: str = "base"
+    projection: dict
+
+
 PlanPatchResponse.model_rebuild()

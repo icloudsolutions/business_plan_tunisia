@@ -28,6 +28,7 @@ from app.routers import (
     loans_router,
     balance_sheet_router,
     cash_flow_router,
+    kpi_router,
     ws_router,
 )
 
@@ -117,6 +118,7 @@ app.include_router(tva_router.router, prefix="/api")
 app.include_router(loans_router.router, prefix="/api")
 app.include_router(balance_sheet_router.router, prefix="/api")
 app.include_router(cash_flow_router.router, prefix="/api")
+app.include_router(kpi_router.router, prefix="/api")
 app.include_router(ai_router.router, prefix="/api")
 app.include_router(email_router.router, prefix="/api")
 app.include_router(collaboration_router.router, prefix="/api")

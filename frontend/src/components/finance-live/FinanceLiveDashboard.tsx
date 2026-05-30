@@ -21,7 +21,7 @@ import {
   type ScenarioKey,
 } from "@/lib/finance/projections-api";
 import ChartSkeleton from "./ChartSkeleton";
-import KpiCards from "./KpiCards";
+import KpiDashboard from "./KpiDashboard";
 import ResultsTab from "./tabs/ResultsTab";
 import TreasuryTab from "./tabs/TreasuryTab";
 import InvestmentsTab from "./tabs/InvestmentsTab";
@@ -30,11 +30,11 @@ import BalanceSheetTab from "./tabs/BalanceSheetTab";
 type TabId = "results" | "treasury" | "investments" | "balance" | "kpis";
 
 const TABS: { id: TabId; label: string }[] = [
+  { id: "kpis", label: "Synthèse" },
   { id: "results", label: "Résultats" },
   { id: "treasury", label: "Trésorerie" },
   { id: "investments", label: "Investissements" },
   { id: "balance", label: "Bilan prévisionnel" },
-  { id: "kpis", label: "Indicateurs clés" },
 ];
 
 const SCENARIOS: { id: ScenarioKey; label: string }[] = [
@@ -49,7 +49,7 @@ type Props = {
 
 export default function FinanceLiveDashboard({ planId }: Props) {
   const { user, logout } = useAuth();
-  const [tab, setTab] = useState<TabId>("results");
+  const [tab, setTab] = useState<TabId>("kpis");
   const [scenario, setScenario] = useState<ScenarioKey>("base");
   const [loading, setLoading] = useState(true);
   const [calcStatus, setCalcStatus] = useState("");
@@ -94,6 +94,8 @@ export default function FinanceLiveDashboard({ planId }: Props) {
   }, [load]);
 
   const active = scenarios?.[scenario] ?? scenarios?.base ?? null;
+  const presetScenario =
+    scenario === "custom" ? "base" : scenario;
   const overlay = useMemo(() => {
     if (!scenarios) return null;
     if (scenario === "base") return scenarios.pessimistic ?? null;
@@ -312,10 +314,12 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           ))}
         </nav>
 
-        {tab === "balance" ? (
-          <BalanceSheetTab planId={planId} scenario={scenario} />
+        {tab === "kpis" ? (
+          <KpiDashboard planId={planId} scenario={presetScenario} />
+        ) : tab === "balance" ? (
+          <BalanceSheetTab planId={planId} scenario={presetScenario} />
         ) : tab === "treasury" ? (
-          <TreasuryTab planId={planId} scenario={scenario} />
+          <TreasuryTab planId={planId} scenario={presetScenario} />
         ) : loading || calcStatus ? (
           <ChartSkeleton height={320} />
         ) : !active ? (
@@ -332,7 +336,6 @@ export default function FinanceLiveDashboard({ planId }: Props) {
               />
             )}
             {tab === "investments" && <InvestmentsTab data={active} />}
-            {tab === "kpis" && <KpiCards data={active} />}
           </>
         )}
 

@@ -43,6 +43,8 @@ docker compose up --build -d
 
 **Flux de trésorerie** : `GET /api/plans/{id}/cash-flow?scenario=…&bfr_client_days=20|33|45`. Tableau Y0–Y7 (exploitation, ΔBFR, investissement, dettes), waterfall + BFR empilé, point d’équilibre cumul, sensibilité délai clients (onglet Trésorerie).
 
+**Indicateurs clés** : `GET /api/plans/{id}/kpis?scenario=base|pessimistic|optimistic`. VAN, TRI, DRCI, IP, TRC, performances Y1–Y7, capacité, DSCR, badge finançable (onglet Indicateurs / accueil cockpit).
+
 **Emprunts & amortissement** : `GET/POST/PATCH/DELETE /api/plans/{id}/loans`, `GET /api/plans/{id}/loan-projection`, `POST /api/plans/{id}/loans/sync-liasse`. Migration `013_plan_loans`. Étape Financement : tranches (max 3), tableau trimestriel, pivot annuel, graphique dual-axis. Moteur `bp_calc.loan` alimente P&L / trésorerie (intérêts, principal, encours).
 
 **TVA & fiscalité** : `GET/PUT /api/plans/{id}/tva/config`, `GET/PUT /api/plans/{id}/tva/settings`, `GET /api/plans/{id}/tva/projection`, `GET /api/plans/{id}/tva/export?format=csv|html`. Migration `012_plan_tva`. Étape « TVA & Fiscalité » (taux par produit/poste, solde annuel, waterfall, créances/dettes 1 mois TTC).
