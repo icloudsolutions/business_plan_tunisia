@@ -16,6 +16,14 @@ import app.models  # noqa: F401 — register metadata for create_all
 
 logger = logging.getLogger("bp.api.migrations")
 
+_LEGACY_UPGRADE_SKIP_MARKERS = (
+    "already exists",
+    "duplicate",
+    "duplicate column",
+    "42701",  # PostgreSQL duplicate_column
+    "42p07",  # PostgreSQL duplicate_table
+)
+
 
 def _migrations_enabled() -> bool:
     return os.getenv("RUN_MIGRATIONS", "true").lower() in ("1", "true", "yes")
@@ -32,6 +40,13 @@ def _with_connection(connection, cfg: Config, fn) -> None:
     fn(cfg)
 
 
+def _upgrade_error_recoverable(exc: Exception, *, has_existing_data: bool) -> bool:
+    if not has_existing_data:
+        return False
+    err = str(exc).lower()
+    return any(marker in err for marker in _LEGACY_UPGRADE_SKIP_MARKERS)
+
+
 async def run_startup_migrations() -> None:
     if not _migrations_enabled():
         return
@@ -45,41 +60,53 @@ async def run_startup_migrations() -> None:
         has_users = await conn.run_sync(
             lambda sync_conn: inspect(sync_conn).has_table("users")
         )
+        legacy = has_users and not has_alembic
 
-        if has_users and not has_alembic:
+        if legacy:
             logger.warning(
                 "Legacy database detected (tables present, alembic_version missing). "
-                "Stamping head before upgrade."
+                "Stamping head; create_all will add any missing tables."
             )
-            await conn.run_sync(
-                lambda sync_conn: _with_connection(sync_conn, cfg, lambda c: command.stamp(c, "head"))
-            )
-
-        try:
             await conn.run_sync(
                 lambda sync_conn: _with_connection(
-                    sync_conn, cfg, lambda c: command.upgrade(c, "head")
+                    sync_conn, cfg, lambda c: command.stamp(c, "head")
                 )
             )
-            logger.info("Alembic migrations applied")
-        except Exception as exc:
-            err = str(exc).lower()
-            if has_users and ("already exists" in err or "duplicate" in err):
-                logger.warning(
-                    "Alembic upgrade skipped (%s). Stamping head; create_all will fill gaps.",
-                    exc,
-                )
+            await conn.commit()
+            logger.info("Legacy database stamped at Alembic head")
+        else:
+            try:
                 await conn.run_sync(
                     lambda sync_conn: _with_connection(
-                        sync_conn, cfg, lambda c: command.stamp(c, "head")
+                        sync_conn, cfg, lambda c: command.upgrade(c, "head")
                     )
                 )
-            else:
-                raise
+                await conn.commit()
+                logger.info("Alembic migrations applied (upgrade head)")
+            except Exception as exc:
+                if _upgrade_error_recoverable(exc, has_existing_data=has_users):
+                    logger.warning(
+                        "Alembic upgrade skipped (%s). Stamping head; create_all will fill gaps.",
+                        exc,
+                    )
+                    await conn.run_sync(
+                        lambda sync_conn: _with_connection(
+                            sync_conn, cfg, lambda c: command.stamp(c, "head")
+                        )
+                    )
+                    await conn.commit()
+                    logger.info("Alembic stamped at head after recoverable upgrade error")
+                else:
+                    logger.exception("Alembic upgrade failed")
+                    raise
 
 
 async def ensure_orm_tables() -> None:
     """Create any ORM tables missing from the DB (checkfirst; safe after Alembic)."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("ORM tables verified (create_all checkfirst)")
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("ORM tables verified (create_all checkfirst)")
+    except Exception:
+        logger.exception("create_all failed during startup")
+        raise

@@ -64,10 +64,12 @@ async def lifespan(app: FastAPI):
     try:
         await run_startup_migrations()
         await _ensure_schema()
+        logger.info("Database schema ready")
         if os.getenv("RUN_SEED", "").lower() in ("1", "true", "yes"):
             from app.init_seed import seed
 
             await seed()
+            logger.info("Seed completed")
     except Exception:
         logger.exception("API startup failed")
         raise
