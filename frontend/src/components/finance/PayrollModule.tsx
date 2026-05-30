@@ -37,7 +37,13 @@ export default function PayrollModule() {
           title="Calcul des coûts salariaux"
           subtitle="Saisissez l'effectif et le salaire net désiré — brut, charges et coût employeur sont calculés automatiquement (taux CNSS mock)."
           action={
-            <Btn onClick={addEmployee}>
+            <Btn
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                addEmployee();
+              }}
+            >
               <Plus className="h-4 w-4" />
               Ajouter un poste
             </Btn>

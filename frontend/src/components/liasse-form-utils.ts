@@ -44,10 +44,25 @@ export function setArray(obj: Inputs, path: string, arr: unknown[]): Inputs {
   let cur: Record<string, unknown> = out;
   for (let i = 0; i < parts.length - 1; i++) {
     const p = parts[i];
-    if (!cur[p] || typeof cur[p] !== "object") cur[p] = {};
+    const next = cur[p];
+    if (next == null || typeof next !== "object" || Array.isArray(next)) {
+      cur[p] = {};
+    }
     cur = cur[p] as Record<string, unknown>;
   }
   cur[parts[parts.length - 1]] = arr;
+  return out;
+}
+
+export function ensureInvestmentsEquipment(obj: Inputs): Inputs {
+  const inv = obj.investments;
+  if (inv && typeof inv === "object" && !Array.isArray(inv)) {
+    const record = inv as Record<string, unknown>;
+    if (Array.isArray(record.equipment)) return obj;
+    return setArray(obj, "investments.equipment", []);
+  }
+  const out = JSON.parse(JSON.stringify(obj)) as Inputs;
+  out.investments = { equipment: [], intangible: [], tangible: [] };
   return out;
 }
 

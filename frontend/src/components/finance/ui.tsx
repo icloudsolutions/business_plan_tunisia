@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 export function Card({
   children,
@@ -97,11 +97,13 @@ export function Btn({
   onClick,
   variant = "primary",
   className = "",
+  disabled = false,
 }: {
   children: ReactNode;
-  onClick?: () => void;
+  onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   variant?: "primary" | "secondary" | "danger" | "ghost";
   className?: string;
+  disabled?: boolean;
 }) {
   const styles = {
     primary:
@@ -114,8 +116,9 @@ export function Btn({
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${styles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${styles[variant]} ${className} disabled:cursor-not-allowed disabled:opacity-50`}
     >
       {children}
     </button>

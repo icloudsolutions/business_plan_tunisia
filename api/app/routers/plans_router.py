@@ -3,13 +3,16 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bp_schema.completion import compute_plan_completion
 from bp_schema.enums import BusinessPlanStatus
 from bp_schema.liasse import PlanInputs
 from bp_schema.validation import validate_draft_inputs
+
+from app.completion_report import build_completeness_report_pdf
 
 from app.access_control import apply_plans_list_filter, get_plan_for_user, resolve_default_expert
 from app.audit import run_financial_audit
@@ -17,15 +20,27 @@ from app.auth import get_current_user, require_role
 from app.celery_client import celery_app
 from app.config import settings
 from app.database import get_db
-from app.models import BusinessPlan, CalcJob, ExpertComment, ExportJob, PlanVersion, Simulation, User
+from app.collaboration import log_activity
+from app.models import (
+    BusinessPlan,
+    CalcJob,
+    ExportJob,
+    PlanActivity,
+    PlanComment,
+    PlanSectionReview,
+    PlanVersion,
+    Simulation,
+    User,
+)
+from app.realtime import broadcast_plan_event
 from app.export_files import parse_export_files
+from app.audit_log import log_inputs_patch, log_meta_patch
 from app.plan_versions import create_plan_snapshot
 from app.schemas import (
-    CommentCreate,
-    CommentResponse,
     ExportRequest,
     JobResponse,
     PlanCreate,
+    PlanCompletionResponse,
     PlanPatchResponse,
     PlanResponse,
     PlanUpdate,
@@ -33,6 +48,12 @@ from app.schemas import (
     PlanVersionResponse,
     SimulateRequest,
     TransitionRequest,
+)
+from app.email_triggers import (
+    notify_client_resubmitted,
+    notify_corrections_required,
+    notify_plan_submitted,
+    notify_plan_validated,
 )
 from app.state_machine import next_status
 from app.workflow_policy import PlanAction, assert_plan_action
@@ -101,6 +122,10 @@ async def create_plan(
         status=BusinessPlanStatus.DRAFT.value,
     )
     db.add(plan)
+    await db.flush()
+    from app.scenario_services import ensure_default_scenarios
+
+    await ensure_default_scenarios(db, plan.id)
     await db.commit()
     await db.refresh(plan)
     return plan
@@ -115,6 +140,44 @@ async def get_plan(
     return await get_plan_for_user(plan_id, user, db)
 
 
+@router.get("/{plan_id}/completion", response_model=PlanCompletionResponse)
+async def get_plan_completion(
+    plan_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    plan = await get_plan_for_user(plan_id, user, db)
+    inputs = PlanInputs.model_validate(plan.inputs or {})
+    return PlanCompletionResponse.model_validate(compute_plan_completion(inputs))
+
+
+@router.get("/{plan_id}/completion/report.pdf")
+async def download_completeness_report(
+    plan_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if user.role not in ("expert", "admin"):
+        raise HTTPException(status_code=403, detail="Rapport réservé aux experts")
+    plan = await get_plan_for_user(plan_id, user, db)
+    owner = await db.get(User, plan.owner_id)
+    inputs = PlanInputs.model_validate(plan.inputs or {})
+    pdf_bytes = build_completeness_report_pdf(
+        plan_title=plan.title,
+        plan_status=plan.status,
+        owner_email=owner.email if owner else "—",
+        inputs=inputs,
+    )
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in plan.title)[:40]
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="completude_{safe_name}.pdf"'
+        },
+    )
+
+
 @router.patch("/{plan_id}", response_model=PlanResponse)
 async def update_plan(
     plan_id: UUID,
@@ -124,7 +187,15 @@ async def update_plan(
 ):
     plan = await get_plan_for_user(plan_id, user, db)
     assert_plan_action(plan, user, PlanAction.UPDATE_META)
-    if body.title is not None:
+    if body.title is not None and body.title != plan.title:
+        await log_meta_patch(
+            db,
+            plan_id=plan.id,
+            user_id=user.id,
+            field_path="meta.title",
+            old_value=plan.title,
+            new_value=body.title,
+        )
         plan.title = body.title
     await db.commit()
     await db.refresh(plan)
@@ -140,25 +211,21 @@ async def delete_plan(
     plan = await get_plan_for_user(plan_id, user, db)
     assert_plan_action(plan, user, PlanAction.DELETE)
     pid = plan.id
-    for model in (ExpertComment, Simulation, ExportJob, PlanVersion, CalcJob):
+    from app.models import PlanAuditLog
+
+    for model in (
+        PlanComment,
+        PlanActivity,
+        PlanSectionReview,
+        Simulation,
+        ExportJob,
+        PlanVersion,
+        PlanAuditLog,
+        CalcJob,
+    ):
         await db.execute(sql_delete(model).where(model.plan_id == pid))
     await db.delete(plan)
     await db.commit()
-
-
-@router.get("/{plan_id}/versions", response_model=list[PlanVersionResponse])
-async def list_versions(
-    plan_id: UUID,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    await get_plan_for_user(plan_id, user, db)
-    result = await db.execute(
-        select(PlanVersion)
-        .where(PlanVersion.plan_id == plan_id)
-        .order_by(PlanVersion.version_number.desc())
-    )
-    return result.scalars().all()
 
 
 @router.patch("/{plan_id}/inputs", response_model=PlanPatchResponse)
@@ -177,8 +244,16 @@ async def update_inputs(
         raise HTTPException(status_code=422, detail=str(e)) from e
 
     missing = validate_draft_inputs(validated)
+    old_inputs = dict(plan.inputs or {})
     try:
         plan.inputs = validated.model_dump()
+        await log_inputs_patch(
+            db,
+            plan_id=plan.id,
+            user_id=user.id,
+            old_inputs=old_inputs,
+            new_inputs=plan.inputs,
+        )
         await db.commit()
         await db.refresh(plan)
     except ValueError as e:
@@ -206,11 +281,63 @@ async def submit_plan(
     plan.assigned_expert_id = expert.id
     plan.status = next_status(BusinessPlanStatus.DRAFT, "submit").value
 
+    await log_activity(
+        db,
+        plan.id,
+        user.id,
+        "status_change",
+        "DRAFT → UNDER_REVIEW (soumission client)",
+        {"action": "submit"},
+        broadcast=False,
+    )
+
     version = await create_plan_snapshot(db, plan, reason="submit", created_by_id=user.id)
     plan.baseline_version_id = version.id
 
     await db.commit()
     await db.refresh(plan)
+    await notify_plan_submitted(db, plan)
+    await db.commit()
+    return plan
+
+
+@router.post("/{plan_id}/resubmit", response_model=PlanResponse)
+async def resubmit_plan(
+    plan_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    plan = await get_plan_for_user(plan_id, user, db)
+    assert_plan_action(plan, user, PlanAction.RESUBMIT)
+
+    old_status = plan.status
+    plan.status = next_status(BusinessPlanStatus.ADJUSTMENT, "resubmit").value
+
+    await log_activity(
+        db,
+        plan.id,
+        user.id,
+        "status_change",
+        f"{old_status} → {plan.status} (resoumission client)",
+        {"action": "resubmit"},
+        broadcast=False,
+    )
+    await create_plan_snapshot(
+        db,
+        plan,
+        reason=f"status:{old_status}_to_{plan.status}",
+        created_by_id=user.id,
+    )
+    await db.commit()
+    await db.refresh(plan)
+    await notify_client_resubmitted(db, plan)
+    await db.commit()
+
+    await broadcast_plan_event(
+        plan.id,
+        "plan.status_changed",
+        {"status": plan.status, "action": "resubmit"},
+    )
     return plan
 
 
@@ -244,11 +371,53 @@ async def transition_plan(
             )
         await create_plan_snapshot(db, plan, reason="pre_validate", created_by_id=user.id)
 
+    old_status = plan.status
     plan.status = new_status.value
     if new_status == BusinessPlanStatus.VALIDATED:
         plan.locked_at = datetime.now(timezone.utc)
+
+    msg = (body.message or "").strip()
+    if msg and body.action == "NEEDS_ADJUSTMENT":
+        db.add(
+            PlanComment(
+                plan_id=plan.id,
+                field_key="_global",
+                user_id=user.id,
+                content=msg,
+            )
+        )
+
+    await log_activity(
+        db,
+        plan.id,
+        user.id,
+        "status_change",
+        f"{old_status} → {new_status.value}",
+        {"action": body.action, "message": msg or None},
+        broadcast=False,
+    )
+    await create_plan_snapshot(
+        db,
+        plan,
+        reason=f"status:{old_status}_to_{plan.status}",
+        created_by_id=user.id,
+    )
     await db.commit()
     await db.refresh(plan)
+
+    if old_status == BusinessPlanStatus.UNDER_REVIEW.value and plan.status == BusinessPlanStatus.ADJUSTMENT.value:
+        await notify_corrections_required(db, plan, expert_message=msg or None)
+    elif old_status == BusinessPlanStatus.ADJUSTMENT.value and plan.status == BusinessPlanStatus.UNDER_REVIEW.value:
+        await notify_client_resubmitted(db, plan)
+    elif plan.status == BusinessPlanStatus.VALIDATED.value:
+        await notify_plan_validated(db, plan)
+    await db.commit()
+
+    await broadcast_plan_event(
+        plan.id,
+        "plan.status_changed",
+        {"status": plan.status, "action": body.action, "message": msg or None},
+    )
     return plan
 
 
@@ -319,40 +488,6 @@ async def audit_plan(
     inputs = PlanInputs.model_validate(plan.inputs)
     results = PlanResults.model_validate(plan.results) if plan.results else None
     return run_financial_audit(inputs, results)
-
-
-@router.post("/{plan_id}/comments", response_model=CommentResponse)
-async def add_comment(
-    plan_id: UUID,
-    body: CommentCreate,
-    user: User = Depends(require_role("expert")),
-    db: AsyncSession = Depends(get_db),
-):
-    plan = await get_plan_for_user(plan_id, user, db)
-    assert_plan_action(plan, user, PlanAction.COMMENT)
-    comment = ExpertComment(
-        plan_id=plan.id,
-        field_path=body.field_path,
-        body=body.body,
-        author_id=user.id,
-    )
-    db.add(comment)
-    await db.commit()
-    await db.refresh(comment)
-    return comment
-
-
-@router.get("/{plan_id}/comments", response_model=list[CommentResponse])
-async def list_comments(
-    plan_id: UUID,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    await get_plan_for_user(plan_id, user, db)
-    result = await db.execute(
-        select(ExpertComment).where(ExpertComment.plan_id == plan_id).order_by(ExpertComment.created_at)
-    )
-    return result.scalars().all()
 
 
 @router.get("/{plan_id}/simulations")

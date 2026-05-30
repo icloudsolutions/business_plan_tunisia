@@ -16,6 +16,7 @@ from bp_calc.patch import PatchError
 from bp_schema.liasse import PlanInputs, PlanResults
 
 from worker.celery_app import celery_app
+from worker.email_send import send_email
 
 def _sync_database_url() -> str:
     url = os.getenv(
@@ -48,9 +49,19 @@ def _import_models():
     import sys
 
     sys.path.insert(0, "/app/api")
-    from app.models import BusinessPlan, CalcJob, ExportJob, Simulation
+    from app.models import BusinessPlan, CalcJob, EmailNotification, ExportJob, PlanScenario, Simulation
 
-    return BusinessPlan, CalcJob, ExportJob, Simulation
+    return BusinessPlan, CalcJob, EmailNotification, ExportJob, PlanScenario, Simulation
+
+
+def _import_email_builder():
+    import sys
+
+    sys.path.insert(0, "/app/api")
+    from app.email_queue import tracking_pixel_url
+    from app.emails.content import build_email_html
+
+    return build_email_html, tracking_pixel_url
 
 
 def _fail_job(db: Session, job, error: str) -> None:
@@ -71,14 +82,54 @@ def _fail_export_job(db: Session, job, error: str) -> None:
 
 
 @celery_app.task(
+    name="worker.tasks.send_transactional_email",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def send_transactional_email(self, notification_id: str):
+    _, _, EmailNotification, _, _, _ = _import_models()
+    build_email_html, tracking_pixel_url = _import_email_builder()
+
+    with _get_sync_session() as db:
+        row = db.get(EmailNotification, UUID(notification_id))
+        if not row:
+            logger.warning("EmailNotification %s introuvable", notification_id)
+            return {"error": "not found"}
+        if row.sent_at:
+            return {"status": "already_sent"}
+
+        try:
+            pixel = tracking_pixel_url(row.id)
+            subject, html = build_email_html(
+                row.type,
+                context=row.context or {},
+                tracking_pixel_url=pixel,
+            )
+            if row.subject:
+                subject = row.subject
+            send_email(to=row.recipient_email, subject=subject, html=html)
+            row.sent_at = datetime.now(timezone.utc)
+            row.error = None
+            db.commit()
+            return {"status": "sent", "id": notification_id}
+        except Exception as e:
+            row.error = str(e)[:2000]
+            db.commit()
+            logger.exception("Email send failed %s", notification_id)
+            raise
+
+
+@celery_app.task(
     name="worker.tasks.recalculate_plan",
     bind=True,
     autoretry_for=(Exception,),
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def recalculate_plan(self, plan_id: str, job_id: str):
-    BusinessPlan, CalcJob, _, _ = _import_models()
+def recalculate_plan(self, plan_id: str, job_id: str, overrides: dict | None = None):
+    BusinessPlan, CalcJob, _, _, _, _ = _import_models()
     discount = float(os.getenv("DISCOUNT_RATE", "0.10"))
 
     with _get_sync_session() as db:
@@ -87,7 +138,7 @@ def recalculate_plan(self, plan_id: str, job_id: str):
         if not plan:
             _fail_job(db, job, "Plan introuvable")
             return {"error": "plan not found"}
-        if plan.status == "VALIDATED":
+        if plan.status == "VALIDATED" and not (overrides or {}).get("allow_locked"):
             _fail_job(db, job, "Plan verrouillé")
             return {"error": "locked"}
 
@@ -96,19 +147,36 @@ def recalculate_plan(self, plan_id: str, job_id: str):
                 job.status = "STARTED"
                 db.commit()
 
+            ov = overrides or (job.payload if job and job.payload else {}) or {}
             inputs = PlanInputs.model_validate(plan.inputs)
-            results = calculate_plan(inputs, discount_rate=discount)
-            plan.results = results.model_dump()
+            revenue_growth = 0.03
 
-            r = redis.from_url(REDIS_URL)
-            r.setex(_cache_key(plan_id, plan.inputs), 3600, json.dumps(plan.results))
+            if ov:
+                from bp_calc.projections import apply_scenario_to_inputs
+
+                growth_mult = float(ov.get("growth_mult", 1.0))
+                revenue_growth = 0.03 * growth_mult
+                inputs = apply_scenario_to_inputs(
+                    inputs,
+                    revenue_scale=float(ov.get("revenue_scale", 1.0)),
+                    loan_rate_scale=float(ov.get("loan_rate_mult", 1.0)),
+                )
+
+            results = calculate_plan(inputs, discount_rate=discount, revenue_growth=revenue_growth)
+            result_dump = results.model_dump()
+
+            persist = ov.get("persist", True)
+            if persist:
+                plan.results = result_dump
+                r = redis.from_url(REDIS_URL)
+                r.setex(_cache_key(plan_id, plan.inputs), 3600, json.dumps(plan.results))
 
             if job:
                 job.status = "COMPLETED"
-                job.result = plan.results
+                job.result = result_dump
                 job.completed_at = datetime.now(timezone.utc)
             db.commit()
-            return plan.results
+            return result_dump
         except Exception as e:
             _fail_job(db, job, str(e))
             raise
@@ -122,7 +190,7 @@ def recalculate_plan(self, plan_id: str, job_id: str):
     retry_kwargs={"max_retries": 3},
 )
 def run_simulation(self, plan_id: str, job_id: str, spec: dict):
-    BusinessPlan, CalcJob, _, Simulation = _import_models()
+    BusinessPlan, CalcJob, _, _, _, Simulation = _import_models()
     discount = float(os.getenv("DISCOUNT_RATE", "0.10"))
 
     with _get_sync_session() as db:
@@ -182,6 +250,55 @@ def run_simulation(self, plan_id: str, job_id: str, spec: dict):
 
 
 @celery_app.task(
+    name="worker.tasks.calculate_plan_scenario",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def calculate_plan_scenario(self, plan_id: str, scenario_id: str, job_id: str):
+    from bp_calc.scenarios import calculate_scenario as run_scenario_calc
+
+    BusinessPlan, CalcJob, _, _, PlanScenario, _ = _import_models()
+    discount = float(os.getenv("DISCOUNT_RATE", "0.10"))
+
+    with _get_sync_session() as db:
+        job = db.get(CalcJob, UUID(job_id))
+        plan = db.get(BusinessPlan, UUID(plan_id))
+        scenario = db.get(PlanScenario, UUID(scenario_id))
+        if not plan or not scenario or scenario.plan_id != plan.id:
+            _fail_job(db, job, "Scénario introuvable")
+            return {"error": "not found"}
+
+        try:
+            if job:
+                job.status = "STARTED"
+            scenario.calc_status = "STARTED"
+            db.commit()
+
+            inputs = PlanInputs.model_validate(plan.inputs)
+            results, _ = run_scenario_calc(
+                inputs, scenario.multipliers or {}, discount_rate=discount
+            )
+            result_dump = results.model_dump()
+            scenario.results = result_dump
+            scenario.calc_status = "COMPLETED"
+            if scenario.is_official:
+                plan.results = result_dump
+
+            if job:
+                job.status = "COMPLETED"
+                job.result = result_dump
+                job.completed_at = datetime.now(timezone.utc)
+            db.commit()
+            return result_dump
+        except Exception as e:
+            scenario.calc_status = "FAILED"
+            _fail_job(db, job, str(e))
+            raise
+
+
+@celery_app.task(
     name="worker.tasks.generate_export",
     bind=True,
     autoretry_for=(Exception,),
@@ -189,12 +306,21 @@ def run_simulation(self, plan_id: str, job_id: str, spec: dict):
     retry_kwargs={"max_retries": 2},
 )
 def generate_export(self, plan_id: str, job_id: str, formats: list):
-    BusinessPlan, _, ExportJob, _ = _import_models()
+    BusinessPlan, _, _, ExportJob, PlanScenario, _ = _import_models()
 
     with _get_sync_session() as db:
         job = db.get(ExportJob, UUID(job_id))
         plan = db.get(BusinessPlan, UUID(plan_id))
-        if not plan or not plan.results:
+        if not plan:
+            _fail_export_job(db, job, "Plan introuvable")
+            return {"error": "no plan"}
+
+        results_data = plan.results
+        if plan.official_scenario_id:
+            official = db.get(PlanScenario, plan.official_scenario_id)
+            if official and official.results:
+                results_data = official.results
+        if not results_data:
             _fail_export_job(db, job, "Résultats manquants")
             return {"error": "no results"}
 
@@ -204,7 +330,7 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                 db.commit()
 
             inputs = PlanInputs.model_validate(plan.inputs)
-            results = PlanResults.model_validate(plan.results)
+            results = PlanResults.model_validate(results_data)
             files: dict[str, str] = {}
             if "pdf" in formats:
                 files["pdf"] = _export_pdf(plan_id, inputs, results)

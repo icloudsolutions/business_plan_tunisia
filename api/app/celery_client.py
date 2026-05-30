@@ -16,5 +16,7 @@ celery_app.conf.update(
         "worker.tasks.recalculate_plan": {"queue": "calc"},
         "worker.tasks.run_simulation": {"queue": "calc"},
         "worker.tasks.generate_export": {"queue": "export"},
+        "worker.tasks.send_transactional_email": {"queue": "email"},
+        "worker.tasks.calculate_plan_scenario": {"queue": "calc"},
     },
 )

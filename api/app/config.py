@@ -24,6 +24,19 @@ class Settings(BaseSettings):
     db_max_overflow: int = 20
     run_migrations: bool = False
     export_storage_path: str = "/app/exports"
+    anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-sonnet-4-20250514"
+
+    # Transactional email (smtp | resend | log)
+    email_provider: str = "log"
+    email_from: str = "Business Plan Tunisie <noreply@businessplan.tn>"
+    app_base_url: str = "http://localhost:8088"
+    resend_api_key: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
 
     class Config:
         env_file = ".env"

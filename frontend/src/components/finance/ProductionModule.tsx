@@ -19,7 +19,13 @@ export default function ProductionModule() {
           title="Composantes de production — Produits finis"
           subtitle="Saisissez les coûts unitaires : eau, énergie, main-d'œuvre directe, additifs et matières premières."
           action={
-            <Btn onClick={addProduct}>
+            <Btn
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                addProduct();
+              }}
+            >
               <Plus className="h-4 w-4" />
               Ajouter un produit
             </Btn>

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block body_fr %}
+<p>Bonjour,</p>
+<p><strong>{{ author_name }}</strong> a commenté le champ <em>{{ field_label }}</em> sur <strong>{{ plan_title }}</strong>&nbsp;:</p>
+<p style="background:#f8fafc;border-radius:8px;padding:14px;font-size:14px;color:#334155;">{{ comment_preview }}</p>
+{% endblock %}
+{% block body_ar %}
+<p>مرحباً،</p>
+<p>علّق <strong>{{ author_name }}</strong> على الحقل <em>{{ field_label_ar }}</em>:</p>
+<p style="background:#f8fafc;border-radius:8px;padding:14px;font-size:14px;">{{ comment_preview }}</p>
+{% endblock %}

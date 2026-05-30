@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block body_fr %}
+<p>Bonjour,</p>
+<p>Le client a soumis les corrections pour le plan <strong>{{ plan_title }}</strong>.</p>
+<p>Le dossier est de nouveau en statut <strong>En revue</strong>. Merci de reprendre l'examen.</p>
+{% endblock %}
+{% block body_ar %}
+<p>مرحباً،</p>
+<p>أرسل العميل التصحيحات لخطة <strong>{{ plan_title }}</strong>.</p>
+<p>الملف عاد إلى حالة <strong>قيد المراجعة</strong>.</p>
+{% endblock %}

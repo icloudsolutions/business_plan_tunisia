@@ -15,7 +15,13 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (res.status === 401 && typeof window !== "undefined") {
     clearToken();
     const onLogin = window.location.pathname.startsWith("/login");
-    if (!onLogin) window.location.href = "/login";
+    if (!onLogin) {
+      const loc =
+        typeof localStorage !== "undefined"
+          ? localStorage.getItem("bp_locale") || "fr"
+          : "fr";
+      window.location.href = `/${loc === "ar" ? "ar" : "fr"}/login`;
+    }
     throw new Error("Session expirée — reconnectez-vous");
   }
 
@@ -38,9 +44,12 @@ export interface Plan {
   id: string;
   title: string;
   status: string;
+  owner_id?: string;
   inputs: Record<string, unknown>;
   results: Record<string, unknown> | null;
   locked_at: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface PlanPatchResult {
@@ -144,6 +153,10 @@ export async function submitPlan(id: string): Promise<Plan> {
   return api(`/plans/${id}/submit`, { method: "POST" });
 }
 
+export async function resubmitPlan(id: string): Promise<Plan> {
+  return api(`/plans/${id}/resubmit`, { method: "POST" });
+}
+
 export async function recalculate(id: string) {
   return api<{ id: string; status: string }>(`/plans/${id}/recalculate`, {
     method: "POST",
@@ -202,10 +215,10 @@ export async function auditPlan(id: string): Promise<AuditResult> {
   return api(`/plans/${id}/audit`, { method: "POST" });
 }
 
-export async function transitionPlan(id: string, action: string) {
+export async function transitionPlan(id: string, action: string, message?: string) {
   return api<Plan>(`/plans/${id}/transition`, {
     method: "POST",
-    body: JSON.stringify({ action }),
+    body: JSON.stringify({ action, message: message ?? null }),
   });
 }
 

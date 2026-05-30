@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createSafeId } from "@/lib/safe-id";
 import {
   DEFAULT_EQUIPMENT,
+  ensureInvestmentsEquipment,
   get,
   getArray,
   set,
@@ -24,6 +26,7 @@ type EquipmentRow = {
   usefulLifeYears: number;
   acquisitionYear: number;
   assetType: string;
+  _clientId?: string;
 };
 
 const YEAR_LABELS = ["An 1", "An 2", "An 3", "An 4", "An 5", "An 6", "An 7"];
@@ -35,26 +38,31 @@ export default function LiasseForm({
   readOnly = false,
   debounceMs = 2500,
 }: Props) {
-  const [local, setLocal] = useState(inputs);
+  const [local, setLocal] = useState(() => ensureInvestmentsEquipment(inputs));
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [formError, setFormError] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setLocal(inputs);
+    setLocal(ensureInvestmentsEquipment(inputs));
   }, [inputs]);
 
   const push = useCallback(
     (next: Inputs) => {
-      setLocal(next);
-      onChange(next);
+      const normalized = ensureInvestmentsEquipment(next);
+      setLocal(normalized);
+      onChange(normalized);
       if (readOnly) return;
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(async () => {
         setSaving(true);
+        setFormError("");
         try {
-          await onSave(next);
+          await onSave(normalized);
           setSavedAt(new Date());
+        } catch (err) {
+          setFormError(err instanceof Error ? err.message : "Erreur de sauvegarde");
         } finally {
           setSaving(false);
         }
@@ -83,7 +91,13 @@ export default function LiasseForm({
   };
 
   const addEquipment = () => {
-    push(setArray(local, "investments.equipment", [...equipment, { ...DEFAULT_EQUIPMENT }]));
+    const row = {
+      ...DEFAULT_EQUIPMENT,
+      _clientId: createSafeId("eq"),
+    };
+    push(
+      setArray(local, "investments.equipment", [...equipment, row])
+    );
   };
 
   const removeEquipment = (index: number) => {
@@ -139,6 +153,7 @@ export default function LiasseForm({
           Sauvegardé à {savedAt.toLocaleTimeString("fr-TN")}
         </p>
       )}
+      {formError && <p className="form-error">{formError}</p>}
 
       <section className="form-section">
         <h3>Informations société (Liasse Unique)</h3>
@@ -163,7 +178,14 @@ export default function LiasseForm({
         <div className="form-section-header">
           <h3>CAPEX — Équipements détaillés</h3>
           {!readOnly && (
-            <button type="button" className="btn btn-secondary" onClick={addEquipment}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={(e) => {
+                e.preventDefault();
+                addEquipment();
+              }}
+            >
               + Équipement
             </button>
           )}
@@ -189,7 +211,7 @@ export default function LiasseForm({
               </thead>
               <tbody>
                 {equipment.map((row, i) => (
-                  <tr key={i}>
+                  <tr key={row._clientId ?? `equipment-row-${i}`}>
                     <td>
                       <input
                         className="form-input form-input-inline"

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title_ar }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Tahoma,'IBM Plex Sans Arabic',sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e3a5f,#0f2744);padding:20px 24px;text-align:right;">
+              <p style="margin:0;font-size:11px;letter-spacing:0.06em;color:#d4a853;">خطة الأعمال تونس</p>
+              <h1 style="margin:8px 0 0;font-size:20px;font-weight:600;color:#ffffff;line-height:1.4;">{{ title_ar }}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px;color:#334155;font-size:15px;line-height:1.8;text-align:right;">
+              {% block body %}{% endblock %}
+              {% if cta_url %}
+              <p style="margin:28px 0 8px;text-align:right;">
+                <a href="{{ cta_url }}" style="display:inline-block;background:#d4a853;color:#0f2744;text-decoration:none;font-weight:600;font-size:14px;padding:12px 24px;border-radius:8px;">{{ cta_label_ar }}</a>
+              </p>
+              {% endif %}
+              <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;">{{ footer_ar }}</p>
+            </td>
+          </tr>
+        </table>
+        {% if tracking_pixel_url %}
+        <img src="{{ tracking_pixel_url }}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;" />
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

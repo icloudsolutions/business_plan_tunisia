@@ -1,15 +1,19 @@
-const LABELS: Record<string, string> = {
-  DRAFT: "Brouillon",
-  UNDER_REVIEW: "En revue",
-  ADJUSTMENT: "Ajustement",
-  VALIDATED: "Validé",
-};
+"use client";
+
+import { useTranslations } from "next-intl";
 
 export default function StatusBadge({ status }: { status: string }) {
+  const t = useTranslations("status");
   const key = status.toLowerCase().replace(/_/g, "-");
+  let label = status;
+  try {
+    label = t(status as "DRAFT");
+  } catch {
+    label = status;
+  }
   return (
     <span className={`status-badge status-${key}`}>
-      {LABELS[status] || status}
+      {label}
     </span>
   );
 }

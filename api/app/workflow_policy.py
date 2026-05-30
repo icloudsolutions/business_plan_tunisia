@@ -13,12 +13,25 @@ class PlanAction:
     UPDATE_META = "update_meta"
     DELETE = "delete"
     SUBMIT = "submit"
+    RESUBMIT = "resubmit"
     TRANSITION = "transition"
     RECALCULATE = "recalculate"
     SIMULATE = "simulate"
     AUDIT = "audit"
     COMMENT = "comment"
+    SECTION_REVIEW = "section_review"
     EXPORT = "export"
+
+
+def assert_collaboration_state(plan: BusinessPlan) -> None:
+    if plan.status not in (
+        BusinessPlanStatus.UNDER_REVIEW.value,
+        BusinessPlanStatus.ADJUSTMENT.value,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Collaboration disponible uniquement en revue ou ajustement",
+        )
 
 
 def assert_plan_action(plan: BusinessPlan, user: User, action: str) -> None:
@@ -64,6 +77,13 @@ def assert_plan_action(plan: BusinessPlan, user: User, action: str) -> None:
             raise HTTPException(status_code=400, detail="Soumission uniquement depuis DRAFT")
         return
 
+    if action == PlanAction.RESUBMIT:
+        if user.role != "client" or plan.owner_id != user.id:
+            raise HTTPException(status_code=403, detail="Seul le client propriétaire peut resoumettre")
+        if plan.status != BusinessPlanStatus.ADJUSTMENT.value:
+            raise HTTPException(status_code=400, detail="Resoumission uniquement depuis ADJUSTMENT")
+        return
+
     if action == PlanAction.TRANSITION:
         if user.role != "expert":
             raise HTTPException(status_code=403, detail="Rôle expert requis")
@@ -87,8 +107,13 @@ def assert_plan_action(plan: BusinessPlan, user: User, action: str) -> None:
         return
 
     if action == PlanAction.COMMENT:
+        assert_collaboration_state(plan)
+        return
+
+    if action == PlanAction.SECTION_REVIEW:
         if user.role != "expert":
-            raise HTTPException(status_code=403, detail="Rôle expert requis")
+            raise HTTPException(status_code=403, detail="Annotations expert uniquement")
+        assert_collaboration_state(plan)
         return
 
     if action == PlanAction.EXPORT:

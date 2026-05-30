@@ -29,9 +29,21 @@ docker compose up --build -d
 
 **Exports** : après validation, `GET /api/plans/{id}/exports/{jobId}/download` (JWT requis).
 
+**Scénarios** : `GET/POST /api/plans/{id}/scenarios` — pessimiste / base / optimiste + scénarios personnalisés ; calcul Celery ; comparaison VAN/TRI/DRCI ; expert « Recommander » pour export PDF/Excel. Migration `006_plan_scenarios`.
+
+**Complétion Liasse** : `GET /api/plans/{id}/completion` (scores par section, champs requis/recommandés) ; rapport PDF expert : `GET /api/plans/{id}/completion/report.pdf`.
+
+**Emails transactionnels** : transitions de workflow et commentaires déclenchent l’envoi via Celery (`queue: email`). `EMAIL_PROVIDER=log|smtp|resend`, `APP_BASE_URL` pour les liens. Stats dans **Administration → Analytics**. Migration `005_email_notifications`.
+
+**Audit trail & versions** : chaque `PATCH` sur les champs du plan alimente `plan_audit_log` ; snapshots automatiques aux transitions de statut et à la soumission ; point manuel via l’icône horloge (« Créer un point de sauvegarde »). API : `GET/POST /api/plans/{id}/versions`, `GET .../versions/{vid}/diff`, `POST .../restore` (expert/admin), `GET /api/plans/{id}/audit-log`. Migration `007_plan_audit_log`.
+
+**Aide IA (Claude)** : dans le parcours Liasse, bouton « Aide IA » sur les champs financiers complexes ; `POST /api/plans/{id}/ai-assist`. Définir `ANTHROPIC_API_KEY` et optionnellement `ANTHROPIC_MODEL` (défaut `claude-sonnet-4-20250514`). Sans clé, l’API renvoie des réponses de démonstration. Migration `004_ai_suggestions` requise (`RUN_MIGRATIONS=true`).
+
 **Comptes démo** (si `RUN_SEED=true`) : `client@demo.tn`, `expert@demo.tn`, `admin@demo.tn` — mot de passe `demo1234`. L’administrateur gère les utilisateurs depuis **Administration** (`/admin`) ou via `GET/POST /api/auth/admin/users` (JWT admin). Création expert legacy : `POST /api/auth/admin/experts` + header `X-Admin-Key`.
 
-Application : http://localhost:8088
+Application : http://localhost:8088 (redirige vers `/fr` ou `/ar` selon la langue)
+
+**Internationalisation (next-intl)** : routes `/fr/...` et `/ar/...` (défaut `fr`). Fichiers `frontend/messages/fr.json`, `ar.json` et `liasse-{locale}.json`. Commutateur FR/AR dans la barre supérieure (cookie `NEXT_LOCALE` + `localStorage`). RTL automatique pour l'arabe. Formats : `src/lib/format.ts` (dates, montants DT). Emails : modèles bilingues (`templates/*.html`) + versions arabes seules (`templates/ar/*.html`) via `context.locale`.
 
 **Cockpit coûts (UI démo)** : http://localhost:8088/finance — production, masse salariale, graphiques Recharts (données fictives, calculs côté client).
 

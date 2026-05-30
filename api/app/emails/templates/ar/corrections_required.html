@@ -1,0 +1,9 @@
+{% extends "ar/base_ar.html" %}
+{% block body %}
+<p>مرحباً،</p>
+<p>طلب خبيركم تعديلات على خطة الأعمال <strong>{{ plan_title }}</strong>.</p>
+{% if expert_message %}
+<p style="background:#fff7ed;border-right:4px solid #f59e0b;padding:12px 16px;">{{ expert_message }}</p>
+{% endif %}
+<p>يرجى إدخال التصحيحات وإعادة الإرسال من المنصة.</p>
+{% endblock %}

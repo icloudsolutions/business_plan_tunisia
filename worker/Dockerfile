@@ -20,4 +20,4 @@ COPY worker /app/worker
 ENV PYTHONPATH=/app/worker:/app/api:/app/packages/bp_schema:/app/packages/bp_calc
 
 WORKDIR /app/worker
-CMD ["celery", "-A", "worker.celery_app", "worker", "--loglevel=info", "-Q", "calc,export", "--concurrency=2"]
+CMD ["celery", "-A", "worker.celery_app", "worker", "--loglevel=info", "-Q", "calc,export,email", "--concurrency=2"]

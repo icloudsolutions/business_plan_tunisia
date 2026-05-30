@@ -1,0 +1,11 @@
+{% extends "ar/base_ar.html" %}
+{% block body %}
+<p>مرحباً،</p>
+{% if body_ar_html %}
+{{ body_ar_html | safe }}
+{% elif message_ar %}
+<p>{{ message_ar }}</p>
+{% else %}
+<p>{{ message }}</p>
+{% endif %}
+{% endblock %}

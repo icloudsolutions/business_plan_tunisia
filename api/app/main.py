@@ -7,7 +7,21 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import validate_security_settings
 from app.database import Base, engine
-from app.routers import auth_router, copilot_router, jobs_router, plans_router
+from app.log_buffer import install_log_buffer
+from app.routers import (
+    admin_router,
+    ai_router,
+    auth_router,
+    collaboration_router,
+    email_router,
+    copilot_router,
+    jobs_router,
+    plans_router,
+    projections_router,
+    scenarios_router,
+    history_router,
+    ws_router,
+)
 
 import app.db_hooks  # noqa: F401 — register ORM validators
 
@@ -35,6 +49,7 @@ async def _run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    install_log_buffer()
     validate_security_settings()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -60,9 +75,17 @@ app.add_middleware(
 )
 
 app.include_router(auth_router.router, prefix="/api")
+app.include_router(admin_router.router, prefix="/api")
 app.include_router(plans_router.router, prefix="/api")
+app.include_router(projections_router.router, prefix="/api")
+app.include_router(scenarios_router.router, prefix="/api")
+app.include_router(history_router.router, prefix="/api")
+app.include_router(ai_router.router, prefix="/api")
+app.include_router(email_router.router, prefix="/api")
+app.include_router(collaboration_router.router, prefix="/api")
 app.include_router(jobs_router.router, prefix="/api")
 app.include_router(copilot_router.router, prefix="/api")
+app.include_router(ws_router.router, prefix="/api")
 
 
 @app.get("/api/health")

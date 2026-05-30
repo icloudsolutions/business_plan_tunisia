@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block body_fr %}
+<p>Bonjour,</p>
+<p>Des corrections sont requises par votre expert sur le plan <strong>{{ plan_title }}</strong>.</p>
+{% if flagged_sections %}
+<p style="font-weight:600;margin-bottom:8px;">Sections signalées&nbsp;:</p>
+<ul style="margin:0 0 16px;padding-left:20px;color:#475569;">
+  {% for s in flagged_sections %}
+  <li>{{ s.label_fr }} <span style="color:#94a3b8;">({{ s.status }})</span></li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% if expert_message %}
+<p style="background:#fff7ed;border-radius:8px;padding:12px;font-size:14px;"><em>{{ expert_message }}</em></p>
+{% endif %}
+{% endblock %}
+{% block body_ar %}
+<p>مرحباً،</p>
+<p>يطلب الخبير تعديلات على الملف <strong>{{ plan_title }}</strong>.</p>
+{% if flagged_sections %}
+<ul style="margin:12px 0;padding-right:20px;list-style:disc inside;">
+  {% for s in flagged_sections %}
+  <li>{{ s.label_ar }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

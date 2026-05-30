@@ -1,0 +1,191 @@
+{
+  "steps": {
+    "general": {
+      "title": "Informations générales",
+      "explainer": "Identité de votre société telle qu'elle figure sur le registre du commerce. Ces données alimentent la page de garde du business plan."
+    },
+    "investments": {
+      "title": "Investissements",
+      "explainer": "Liste des immobilisations (machines, lignes, logiciels). Le total constitue le CAPEX et sert au calcul des amortissements sur 7 ans."
+    },
+    "financing": {
+      "title": "Financement",
+      "explainer": "Répartition entre fonds propres et emprunt bancaire. Le plan vérifie que le financement couvre bien les investissements."
+    },
+    "operations": {
+      "title": "Exploitation",
+      "explainer": "Hypothèses de production et de coûts unitaires. Elles déterminent le chiffre d'affaires et la marge brute année par année."
+    },
+    "hr": {
+      "title": "Ressources humaines",
+      "explainer": "Effectifs et masse salariale. Les charges sociales sont calculées automatiquement selon les barèmes tunisiens du modèle."
+    },
+    "financial": {
+      "title": "Indicateurs financiers",
+      "explainer": "BFR (stocks et délais de paiement), charges en % du CA et fiscalité. Dernière étape avant la vérification finale."
+    }
+  },
+  "fields": {
+    "company.name": {
+      "label": "Raison sociale",
+      "hint": "Nom légal complet de l'entreprise.",
+      "where": "Extrait RNE / statuts.",
+      "example": "Société VIPA SARL"
+    },
+    "company.legalForm": {
+      "label": "Forme juridique",
+      "hint": "Structure juridique déclarée à l'APII.",
+      "where": "Statuts ou certificat d'immatriculation.",
+      "example": "SARL"
+    },
+    "investments.equipment": {
+      "label": "Équipements",
+      "hint": "Chaque ligne = une immobilisation avec coût et durée d'amortissement.",
+      "where": "Devis fournisseurs, factures pro forma.",
+      "example": "Ligne d'embouteillage — 450 000 TND"
+    },
+    "financing.equityRatio": {
+      "label": "Fonds propres (%)",
+      "hint": "Part du projet financée par le capital des associés (0 à 1).",
+      "where": "Plan de financement initial.",
+      "example": "0,30 (= 30 %)"
+    },
+    "financing.debtRatio": {
+      "label": "Dette (%)",
+      "hint": "Part financée par emprunt ; doit compléter les fonds propres à 100 %.",
+      "where": "Lettre d'intention banque.",
+      "example": "0,70 (= 70 %)"
+    },
+    "financing.loan.rate": {
+      "label": "Taux d'intérêt",
+      "hint": "Taux annuel nominal de l'emprunt (décimal).",
+      "where": "Offre de financement bancaire.",
+      "example": "0,083 (= 8,3 %)"
+    },
+    "financing.loan.years": {
+      "label": "Durée emprunt (ans)",
+      "hint": "Nombre d'années de remboursement du principal.",
+      "where": "Convention de crédit.",
+      "example": "7"
+    },
+    "financing.loan.graceMonthsPrincipal": {
+      "label": "Différé principal (mois)",
+      "hint": "Période avant le premier remboursement du capital.",
+      "where": "Grille bancaire / convention.",
+      "example": "12"
+    },
+    "operations.capacityPerMinute": {
+      "label": "Capacité (unités/min)",
+      "hint": "Débit maximal de la ligne de production.",
+      "where": "Fiche technique machine ou étude de capacité.",
+      "example": "120"
+    },
+    "operations.workingDaysPerYear": {
+      "label": "Jours ouvrés / an",
+      "hint": "Jours effectifs de production (hors congés et arrêts).",
+      "where": "Planning atelier / calendrier usine.",
+      "example": "250"
+    },
+    "operations.hoursPerDay": {
+      "label": "Heures / jour",
+      "hint": "Durée journalière d'exploitation de la capacité.",
+      "where": "Organisation des équipes.",
+      "example": "8"
+    },
+    "operations.rawMaterialCost": {
+      "label": "Coût matière (unitaire)",
+      "hint": "Coût moyen d'une unité produite (matière première).",
+      "where": "Devis fournisseurs MP.",
+      "example": "0,45 TND"
+    },
+    "operations.packagingCost": {
+      "label": "Coût emballage (unitaire)",
+      "hint": "Coût d'emballage par unité vendue.",
+      "where": "Factures emballages.",
+      "example": "0,08 TND"
+    },
+    "operations.salePrice": {
+      "label": "Prix de vente (unitaire)",
+      "hint": "Prix HT moyen de vente. Avec la capacité et les jours ouvrés, le plan calcule le CA prévisionnel année 1 — utilisez Aide IA pour estimer prix et volume.",
+      "where": "Grille tarifaire commerciale.",
+      "example": "1,20 TND"
+    },
+    "operations.wasteRate.value": {
+      "label": "Taux de déchet",
+      "hint": "Perte matière en % de la production (décimal).",
+      "where": "Rendement atelier / historique.",
+      "example": "0,01 (= 1 %)"
+    },
+    "operations.wasteRate.maxAllowed": {
+      "label": "Déchet max autorisé",
+      "hint": "Plafond contractuel ou technique (ex. subvention).",
+      "where": "Cahier des charges / audit.",
+      "example": "0,01"
+    },
+    "workingCapital.clientPaymentDays": {
+      "label": "Créances clients (jours) — BFR",
+      "hint": "Délai moyen de paiement des clients ; pilier du besoin en fonds de roulement.",
+      "where": "Conditions commerciales / balance.",
+      "example": "30"
+    },
+    "workingCapital.supplierPaymentDays": {
+      "label": "Dettes fournisseurs (jours)",
+      "hint": "Délai de règlement fournisseurs.",
+      "where": "Contrats fournisseurs.",
+      "example": "45"
+    },
+    "workingCapital.rawMaterialStockDays": {
+      "label": "Stock MP (jours)",
+      "hint": "Couverture stock matières premières en jours de conso.",
+      "where": "Politique stocks / ERP.",
+      "example": "30"
+    },
+    "workingCapital.packagingStockDays": {
+      "label": "Stock emballages (jours)",
+      "hint": "Couverture stock emballages.",
+      "where": "Achats emballages.",
+      "example": "15"
+    },
+    "workingCapital.finishedGoodsStockDays": {
+      "label": "Stock PF (jours)",
+      "hint": "Stock produits finis avant expédition.",
+      "where": "Logistique / entrepôt.",
+      "example": "10"
+    },
+    "plAssumptions.commercialDiscount": {
+      "label": "Ristourne commerciale",
+      "hint": "Remise moyenne accordée aux clients (% du CA, décimal).",
+      "where": "Politique commerciale.",
+      "example": "0,10 (= 10 %)"
+    },
+    "plAssumptions.distributionExpensePct": {
+      "label": "Frais de distribution (% CA)",
+      "hint": "Logistique, transport, commissions (% du CA HT).",
+      "where": "Budget commercial.",
+      "example": "0,04"
+    },
+    "plAssumptions.marketingExpensePct": {
+      "label": "Marketing (% CA)",
+      "hint": "Publicité et promotion en % du CA HT.",
+      "where": "Plan marketing.",
+      "example": "0,02"
+    },
+    "plAssumptions.otherOperatingCharges": {
+      "label": "Autres charges (TND/an)",
+      "hint": "Charges fixes hors masse salariale déjà saisie.",
+      "where": "Compte de résultat prévisionnel.",
+      "example": "15000"
+    },
+    "plAssumptions.corporateTaxRate": {
+      "label": "Impôt sur sociétés",
+      "hint": "Taux IS appliqué (décimal).",
+      "where": "Régime fiscal / barème.",
+      "example": "0,25"
+    }
+  },
+  "fallback": {
+    "hint": "Valeur utilisée dans le calcul du plan sur 7 ans.",
+    "where": "Business plan ou données internes.",
+    "example": "—"
+  }
+}

@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { createSafeId } from "@/lib/safe-id";
 import {
   computePayrollLine,
   monthlyProductionCost,
@@ -42,19 +43,20 @@ type FinanceContextValue = {
     indirectPayroll: number;
   };
   salaryPieData: { name: string; value: number; fill: string }[];
+  flashMessage: string | null;
+  clearFlash: () => void;
 };
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
-
-function newId(prefix: string) {
-  return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
-}
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState<FinanceTab>("overview");
   const [products, setProducts] = useState<FinishedProduct[]>(INITIAL_PRODUCTS);
   const [employees, setEmployees] =
     useState<EmployeeCategory[]>(INITIAL_EMPLOYEES);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
+
+  const clearFlash = useCallback(() => setFlashMessage(null), []);
 
   const payrollLines = useMemo(
     () => employees.map(computePayrollLine),
@@ -113,7 +115,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setProducts((prev) => [
       ...prev,
       {
-        id: newId("pf"),
+        id: createSafeId("pf"),
         name: "Nouveau produit",
         sku: "SKU-NEW",
         unit: "unité",
@@ -126,6 +128,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         monthlyVolume: 1000,
       },
     ]);
+    setFlashMessage("Produit ajouté — modifiez les coûts ci-dessous.");
   }, []);
 
   const updateProduct = useCallback(
@@ -145,7 +148,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setEmployees((prev) => [
       ...prev,
       {
-        id: newId("emp"),
+        id: createSafeId("emp"),
         poste: "Nouveau poste",
         department: "production",
         laborType: "direct",
@@ -153,6 +156,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         netSalaryDesired: 900,
       },
     ]);
+    setFlashMessage("Poste ajouté — complétez effectif et salaire net.");
   }, []);
 
   const updateEmployee = useCallback(
@@ -183,6 +187,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       removeEmployee,
       summary,
       salaryPieData,
+      flashMessage,
+      clearFlash,
     }),
     [
       activeTab,
@@ -197,6 +203,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       removeEmployee,
       summary,
       salaryPieData,
+      flashMessage,
+      clearFlash,
     ]
   );
 

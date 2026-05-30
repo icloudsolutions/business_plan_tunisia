@@ -28,7 +28,14 @@ def _personnel_cost(pl) -> float:
     return sum(p.headcount * p.annualSalary for p in pl.personnel)
 
 
-def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> PlanResults:
+def calculate_plan(
+    inputs: PlanInputs,
+    discount_rate: float = DISCOUNT_RATE,
+    revenue_growth: float = 0.03,
+    *,
+    revenue_growth_by_year: list[float] | None = None,
+    personnel_cost_growth: float = 0.0,
+) -> PlanResults:
     total_inv = total_capex(inputs)
     equity = total_inv * inputs.financing.equityRatio
     debt = total_inv * inputs.financing.debtRatio
@@ -48,7 +55,11 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
     units_by_year = [_capacity_units(inputs.operations, y) for y in range(HORIZON)]
     gross_revenue = [units_by_year[0] * inputs.operations.salePrice]
     for y in range(1, HORIZON):
-        gross_revenue.append(gross_revenue[y - 1] * 1.03)
+        if revenue_growth_by_year and y - 1 < len(revenue_growth_by_year):
+            g = revenue_growth_by_year[y - 1]
+        else:
+            g = revenue_growth
+        gross_revenue.append(gross_revenue[y - 1] * (1.0 + g))
 
     discount_pct = inputs.plAssumptions.commercialDiscount
     revenue_ht = [g * (1.0 - discount_pct) for g in gross_revenue]
@@ -60,7 +71,7 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
     packaging_consumption = []
     consumption = []
     for y in range(HORIZON):
-        growth = 1.03**y
+        growth = (1.0 + revenue_growth) ** y
         raw_c = units_by_year[y] * material_unit * growth
         pack_c = units_by_year[y] * packaging_unit * growth
         raw_consumption.append(raw_c)
@@ -70,7 +81,8 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
     vat_deductible = [vat_on_amount(c, vat_rate) for c in consumption]
     vat_net = [vat_collected[y] - vat_deductible[y] for y in range(HORIZON)]
 
-    personnel = _personnel_cost(inputs.plAssumptions)
+    personnel_base = _personnel_cost(inputs.plAssumptions)
+    personnel = personnel_base
     other = inputs.plAssumptions.otherOperatingCharges
     dist_pct = inputs.plAssumptions.distributionExpensePct
     mkt_pct = inputs.plAssumptions.marketingExpensePct
@@ -87,6 +99,8 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
     net_fixed_assets = total_inv
 
     for y in range(HORIZON):
+        if y > 0 and personnel_cost_growth:
+            personnel = personnel_base * ((1.0 + personnel_cost_growth) ** y)
         rev = revenue_ht[y]
         raw_c = raw_consumption[y]
         pack_c = packaging_consumption[y]

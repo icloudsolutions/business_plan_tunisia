@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit_log import build_plan_snapshot
 from app.models import BusinessPlan, PlanVersion
 
 
@@ -25,15 +26,17 @@ async def create_plan_snapshot(
     created_by_id: UUID,
 ) -> PlanVersion:
     version_number = await next_version_number(db, plan.id)
-    snapshot = PlanVersion(
+    full_snapshot = build_plan_snapshot(plan)
+    version = PlanVersion(
         plan_id=plan.id,
         version_number=version_number,
         status_at_snapshot=plan.status,
         inputs=dict(plan.inputs or {}),
         results=dict(plan.results) if plan.results else None,
+        snapshot=full_snapshot,
         reason=reason,
         created_by_id=created_by_id,
     )
-    db.add(snapshot)
+    db.add(version)
     await db.flush()
-    return snapshot
+    return version
