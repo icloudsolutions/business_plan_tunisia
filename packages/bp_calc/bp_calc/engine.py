@@ -253,14 +253,23 @@ def calculate_plan(
     )
 
 
+def _irr_is_finite_rate(tri: float | None) -> bool:
+    """IRR stored as decimal (0.12 = 12%). Reject non-converged outliers."""
+    return tri is not None and -0.99 < tri < 5.0
+
+
 def compare_results(baseline: PlanResults, scenario: PlanResults) -> dict:
+    b_tri = baseline.indicators.tri
+    s_tri = scenario.indicators.tri
+    delta_tri = None
+    if _irr_is_finite_rate(b_tri) and _irr_is_finite_rate(s_tri):
+        delta_tri = s_tri - b_tri
+
     return {
         "deltaVan": scenario.indicators.van - baseline.indicators.van,
-        "deltaTri": (
-            (scenario.indicators.tri or 0) - (baseline.indicators.tri or 0)
-            if scenario.indicators.tri and baseline.indicators.tri
-            else None
-        ),
+        "deltaTri": delta_tri,
+        "baselineTri": b_tri if _irr_is_finite_rate(b_tri) else None,
+        "scenarioTri": s_tri if _irr_is_finite_rate(s_tri) else None,
         "baselineCashBreakYear": baseline.cashRunwayBreakYear,
         "scenarioCashBreakYear": scenario.cashRunwayBreakYear,
         "baselineVan": baseline.indicators.van,

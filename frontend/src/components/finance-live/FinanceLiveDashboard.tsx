@@ -10,6 +10,7 @@ import {
   LogOut,
   RefreshCw,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/context/AuthContext";
 import { downloadExport, exportPlan } from "@/lib/api";
 import {
@@ -30,27 +31,29 @@ import InventoryTab from "./tabs/InventoryTab";
 
 type TabId = "results" | "treasury" | "investments" | "balance" | "kpis" | "inventory";
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: "kpis", label: "Synthèse" },
-  { id: "inventory", label: "Production & Stocks" },
-  { id: "results", label: "Résultats" },
-  { id: "treasury", label: "Trésorerie" },
-  { id: "investments", label: "Investissements" },
-  { id: "balance", label: "Bilan prévisionnel" },
-];
-
-const SCENARIOS: { id: ScenarioKey; label: string }[] = [
-  { id: "pessimistic", label: "Pessimiste" },
-  { id: "base", label: "Base" },
-  { id: "optimistic", label: "Optimiste" },
-];
-
 type Props = {
   planId: string;
 };
 
 export default function FinanceLiveDashboard({ planId }: Props) {
+  const tFinance = useTranslations("finance");
+  const tCommon = useTranslations("common");
   const { user, logout } = useAuth();
+
+  const TABS: { id: TabId; label: string }[] = [
+    { id: "kpis", label: tFinance("tabSummary") },
+    { id: "inventory", label: tFinance("tabInventory") },
+    { id: "results", label: tFinance("tabResults") },
+    { id: "treasury", label: tFinance("tabTreasury") },
+    { id: "investments", label: tFinance("tabInvestments") },
+    { id: "balance", label: tFinance("tabBalance") },
+  ];
+
+  const SCENARIOS: { id: ScenarioKey; label: string }[] = [
+    { id: "pessimistic", label: tFinance("scenarioPessimistic") },
+    { id: "base", label: tFinance("scenarioBase") },
+    { id: "optimistic", label: tFinance("scenarioOptimistic") },
+  ];
   const [tab, setTab] = useState<TabId>("kpis");
   const [scenario, setScenario] = useState<ScenarioKey>("base");
   const [loading, setLoading] = useState(true);
@@ -104,7 +107,10 @@ export default function FinanceLiveDashboard({ planId }: Props) {
     if (scenario === "optimistic") return scenarios.pessimistic ?? null;
     return scenarios.optimistic ?? null;
   }, [scenarios, scenario]);
-  const overlayLabel = scenario === "optimistic" ? "Pessimiste" : "Optimiste";
+  const overlayLabel =
+    scenario === "optimistic"
+      ? tFinance("scenarioPessimistic")
+      : tFinance("scenarioOptimistic");
 
   const handleSimulate = async () => {
     setError("");
@@ -120,7 +126,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
       setScenario("custom");
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Simulation échouée");
+      setError(e instanceof Error ? e.message : tFinance("simulateStress"));
     } finally {
       setCalcStatus("");
     }
@@ -152,7 +158,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
             href="/finance"
             className="shrink-0 text-xs text-slate-500 hover:text-brand-600 sm:text-sm"
           >
-            Cockpit
+            {tFinance("cockpitNav")}
           </Link>
           <ChevronRight className="hidden h-4 w-4 shrink-0 text-slate-300 sm:block" />
           <div className="min-w-0 flex-1 basis-full sm:basis-auto">
@@ -165,7 +171,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
             type="button"
             onClick={() => void load()}
             className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
-            title="Actualiser"
+            title={tCommon("refresh")}
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -174,7 +180,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
             className="hidden rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 sm:inline-flex"
           >
             <BarChart3 className="mr-1.5 inline h-4 w-4" />
-            Liasse
+            {tFinance("liasseLink")}
           </Link>
           <button type="button" onClick={logout} className="rounded-lg p-2 text-slate-500">
             <LogOut className="h-4 w-4" />
@@ -270,7 +276,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
                   {calcStatus}
                 </>
               ) : (
-                "Recalculer la projection"
+                tFinance("recalcProjection")
               )}
             </button>
           </div>
@@ -310,20 +316,20 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           className="-mx-1 flex gap-0.5 overflow-x-auto border-b border-slate-200 px-1 pb-px scrollbar-thin"
           role="tablist"
         >
-          {TABS.map((t) => (
+          {TABS.map((tabItem) => (
             <button
-              key={t.id}
+              key={tabItem.id}
               type="button"
               role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
+              aria-selected={tab === tabItem.id}
+              onClick={() => setTab(tabItem.id)}
               className={`shrink-0 border-b-2 px-3 py-2 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                tab === t.id
+                tab === tabItem.id
                   ? "border-brand-600 text-brand-700"
                   : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
-              {t.label}
+              {tabItem.label}
             </button>
           ))}
         </nav>
@@ -340,7 +346,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           <ChartSkeleton height={320} />
         ) : !active ? (
           <p className="text-sm text-slate-600">
-            Aucune projection — lancez un calcul depuis la liasse ou la simulation ci-dessus.
+            {tFinance("noProjection")}
           </p>
         ) : (
           <>

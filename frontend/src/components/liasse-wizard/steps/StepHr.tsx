@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Download, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import PayrollCharts from "@/components/liasse-wizard/PayrollCharts";
 import { useFormat } from "@/hooks/useFormat";
@@ -23,6 +24,7 @@ import {
 type Props = {
   planId: string;
   readOnly?: boolean;
+  onDataChange?: () => void;
 };
 
 const YEARS = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -31,7 +33,8 @@ function hcKey(roleId: string, year: number) {
   return `${roleId}:${year}`;
 }
 
-export default function StepHr({ planId, readOnly }: Props) {
+export default function StepHr({ planId, readOnly, onDataChange }: Props) {
+  const t = useTranslations("modules");
   const { formatCurrency, formatPercent } = useFormat();
   const [roles, setRoles] = useState<StaffRole[]>([]);
   const [headcounts, setHeadcounts] = useState<Record<string, number>>({});
@@ -64,8 +67,9 @@ export default function StepHr({ planId, readOnly }: Props) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setLoading(false);
+      onDataChange?.();
     }
-  }, [planId]);
+  }, [planId, onDataChange]);
 
   const refreshProjection = useCallback(async () => {
     try {
@@ -80,7 +84,7 @@ export default function StepHr({ planId, readOnly }: Props) {
   }, [load]);
 
   useEffect(() => {
-    const t = window.setTimeout(() => void refreshProjection(), 400);
+    const t = window.setTimeout(() => void refreshProjection(), 900);
     return () => window.clearTimeout(t);
   }, [roles, headcounts, raiseRate, cnssRate, refreshProjection]);
 
@@ -120,6 +124,7 @@ export default function StepHr({ planId, readOnly }: Props) {
       }
       setHeadcounts(map);
       void refreshProjection();
+      onDataChange?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -141,6 +146,7 @@ export default function StepHr({ planId, readOnly }: Props) {
       const y1 = 1;
       setHeadcounts((m) => ({ ...m, [hcKey(row.id, 1)]: y1 }));
       void refreshProjection();
+      onDataChange?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -152,6 +158,7 @@ export default function StepHr({ planId, readOnly }: Props) {
     await deleteStaffRole(planId, id);
     setRoles((list) => list.filter((r) => r.id !== id));
     void refreshProjection();
+    onDataChange?.();
   };
 
   const patchRole = async (id: string, patch: Parameters<typeof updateStaffRole>[2]) => {
@@ -183,11 +190,7 @@ export default function StepHr({ planId, readOnly }: Props) {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-navy-600">
-        Planifiez les postes, l&apos;évolution des effectifs sur 7 ans, les augmentations et la
-        CNSS. Les coûts imputables production alimentent le coût unitaire ; le reste va dans les
-        autres charges.
-      </p>
+      <p className="text-sm text-navy-600">{t("hrIntro")}</p>
 
       {error && (
         <p className="text-sm text-red-600" role="alert">
@@ -197,7 +200,7 @@ export default function StepHr({ planId, readOnly }: Props) {
       {syncMsg && <p className="text-sm text-green-700">{syncMsg}</p>}
 
       <section className="rounded-xl border border-navy-100 bg-white p-4 shadow-sm">
-        <h4 className="mb-4 text-sm font-semibold text-navy-800">Hypothèses globales</h4>
+        <h4 className="mb-4 text-sm font-semibold text-navy-800">{t("hrGlobalAssumptions")}</h4>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="text-xs font-medium text-navy-700">

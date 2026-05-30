@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Download, Loader2 } from "lucide-react";
 import TvaWaterfallChart from "@/components/liasse-wizard/TvaWaterfallChart";
 import { useFormat } from "@/hooks/useFormat";
@@ -9,6 +10,7 @@ import {
   getTvaProjection,
   listTvaConfig,
   TVA_RATE_OPTIONS,
+  tvaRateLabel,
   updateTvaConfig,
   type TvaConfigRow,
   type TvaProjection,
@@ -17,11 +19,13 @@ import {
 type Props = {
   planId: string;
   readOnly?: boolean;
+  onDataChange?: () => void;
 };
 
 const YEARS = [1, 2, 3, 4, 5, 6, 7] as const;
 
-export default function StepTva({ planId, readOnly }: Props) {
+export default function StepTva({ planId, readOnly, onDataChange }: Props) {
+  const t = useTranslations("modules");
   const { formatCurrency } = useFormat();
   const [configs, setConfigs] = useState<TvaConfigRow[]>([]);
   const [projection, setProjection] = useState<TvaProjection | null>(null);
@@ -37,8 +41,9 @@ export default function StepTva({ planId, readOnly }: Props) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setLoading(false);
+      onDataChange?.();
     }
-  }, [planId]);
+  }, [planId, onDataChange]);
 
   const refreshProjection = useCallback(async () => {
     try {
@@ -53,7 +58,7 @@ export default function StepTva({ planId, readOnly }: Props) {
   }, [load]);
 
   useEffect(() => {
-    const t = window.setTimeout(() => void refreshProjection(), 500);
+    const t = window.setTimeout(() => void refreshProjection(), 900);
     return () => window.clearTimeout(t);
   }, [configs, refreshProjection]);
 
@@ -82,6 +87,7 @@ export default function StepTva({ planId, readOnly }: Props) {
         setConfigs((list) => list.map((c) => (c.id === saved[0].id ? saved[0] : c)));
       }
       void refreshProjection();
+      onDataChange?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -93,7 +99,9 @@ export default function StepTva({ planId, readOnly }: Props) {
     setConfigs((list) => list.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   };
 
-  const renderConfigTable = (rows: TvaConfigRow[], title: string) => (
+  const renderConfigTable = (rows: TvaConfigRow[], title: string) => {
+    const tMod = t;
+    return (
     <div className="mb-6">
       <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-600">
         {title}
@@ -103,8 +111,8 @@ export default function StepTva({ planId, readOnly }: Props) {
           <thead className="border-b border-navy-100 text-xs text-navy-700">
             <tr>
               <th className="px-2 py-2">Ligne</th>
-              <th className="px-2 py-2">TVA achat</th>
-              <th className="px-2 py-2">TVA vente</th>
+              <th className="px-2 py-2">{tMod("tvaPurchasePct")}</th>
+              <th className="px-2 py-2">{tMod("tvaSalesPct")}</th>
             </tr>
           </thead>
           <tbody>
@@ -112,44 +120,58 @@ export default function StepTva({ planId, readOnly }: Props) {
               <tr key={row.id} className="border-b border-navy-50">
                 <td className="px-2 py-2 font-medium text-navy-900">{row.label}</td>
                 <td className="px-2 py-2">
-                  <select
-                    className="rounded border border-navy-200 px-2 py-1 text-sm"
-                    disabled={readOnly}
-                    value={row.tva_rate_purchase}
-                    onChange={(e) =>
-                      patchLocal(row.id, { tva_rate_purchase: Number(e.target.value) })
-                    }
-                    onBlur={() => {
-                      const cur = configs.find((c) => c.id === row.id);
-                      if (cur) void persistRow(cur);
-                    }}
-                  >
-                    {TVA_RATE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      className="rounded border border-navy-200 px-2 py-1 text-sm"
+                      disabled={readOnly}
+                      value={row.tva_rate_purchase}
+                      aria-label={`TVA achat ${row.label}`}
+                      onChange={(e) =>
+                        patchLocal(row.id, { tva_rate_purchase: Number(e.target.value) })
+                      }
+                      onBlur={() => {
+                        const cur = configs.find((c) => c.id === row.id);
+                        if (cur) void persistRow(cur);
+                      }}
+                    >
+                      {TVA_RATE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="rounded bg-navy-50 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-navy-700">
+                      {tvaRateLabel(row.tva_rate_purchase)}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-2 py-2">
-                  <select
-                    className="rounded border border-navy-200 px-2 py-1 text-sm"
-                    disabled={readOnly || row.category !== "product"}
-                    value={row.tva_rate_sales}
-                    onChange={(e) =>
-                      patchLocal(row.id, { tva_rate_sales: Number(e.target.value) })
-                    }
-                    onBlur={() => {
-                      const cur = configs.find((c) => c.id === row.id);
-                      if (cur) void persistRow(cur);
-                    }}
-                  >
-                    {TVA_RATE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      className="rounded border border-navy-200 px-2 py-1 text-sm"
+                      disabled={readOnly || row.category !== "product"}
+                      value={row.tva_rate_sales}
+                      aria-label={`TVA vente ${row.label}`}
+                      onChange={(e) =>
+                        patchLocal(row.id, { tva_rate_sales: Number(e.target.value) })
+                      }
+                      onBlur={() => {
+                        const cur = configs.find((c) => c.id === row.id);
+                        if (cur) void persistRow(cur);
+                      }}
+                    >
+                      {TVA_RATE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="rounded bg-gold-50 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-navy-800">
+                      {row.category === "product"
+                        ? tvaRateLabel(row.tva_rate_sales)
+                        : "—"}
+                    </span>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -158,6 +180,7 @@ export default function StepTva({ planId, readOnly }: Props) {
       </div>
     </div>
   );
+  };
 
   if (loading) {
     return (
@@ -169,10 +192,7 @@ export default function StepTva({ planId, readOnly }: Props) {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-navy-600">
-        Tableau de réconciliation TVA (collectée / déductible / solde) selon la Liasse Unique :
-        taux par produit et par poste d&apos;achat, soldes fournisseurs et clients (1 mois TTC).
-      </p>
+      <p className="text-sm text-navy-600">{t("tvaIntro")}</p>
 
       {error && (
         <p className="text-sm text-red-600" role="alert">
@@ -181,9 +201,9 @@ export default function StepTva({ planId, readOnly }: Props) {
       )}
 
       <section className="rounded-xl border border-navy-100 bg-white p-4 shadow-sm">
-        <h4 className="mb-4 text-sm font-semibold text-navy-800">Configuration des taux TVA</h4>
-        {renderConfigTable(productConfigs, "Ventes & matières premières (par produit)")}
-        {renderConfigTable(systemConfigs, "Achats & charges (plan)")}
+        <h4 className="mb-4 text-sm font-semibold text-navy-800">{t("tvaConfigTitle")}</h4>
+        {renderConfigTable(productConfigs, t("tvaProductsSection"))}
+        {renderConfigTable(systemConfigs, t("tvaChargesSection"))}
       </section>
 
       <TvaWaterfallChart projection={projection} />

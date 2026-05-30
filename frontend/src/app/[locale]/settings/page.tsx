@@ -138,7 +138,7 @@ export default function SettingsPage() {
                 <p className="mb-2 text-xs font-medium text-navy-600">
                   {t("languageHint")}
                 </p>
-                <LanguageSwitcher syncProfile />
+                <LanguageSwitcher syncProfile variant="panel" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-navy-600">

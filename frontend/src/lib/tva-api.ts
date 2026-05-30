@@ -49,6 +49,13 @@ export const TVA_RATE_OPTIONS = [
   { value: 0, label: "0 %" },
 ];
 
+/** Label for a stored decimal rate (0.19 → "19 %"). */
+export function tvaRateLabel(rate: number): string {
+  const hit = TVA_RATE_OPTIONS.find((o) => Math.abs(o.value - rate) < 0.0001);
+  if (hit) return hit.label;
+  return `${(rate * 100).toLocaleString("fr-TN", { maximumFractionDigits: 2 })} %`;
+}
+
 export async function listTvaConfig(planId: string): Promise<TvaConfigRow[]> {
   return api(`/plans/${planId}/tva/config`);
 }

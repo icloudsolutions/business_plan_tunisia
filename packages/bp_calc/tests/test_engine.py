@@ -53,6 +53,37 @@ def test_simulation_patch(sample_inputs):
     scenario = calculate_plan(patched)
     delta = compare_results(baseline, scenario)
     assert "deltaVan" in delta
+    assert "baselineVan" in delta
+    assert "scenarioVan" in delta
+
+
+def test_compare_results_invalid_tri_returns_none_delta():
+    from bp_schema.liasse import PlanResults, ProfitabilityIndicators, YearlySeries
+
+    zeros = [0.0] * 7
+    series = YearlySeries(years=zeros)
+    base = PlanResults(
+        revenue=series,
+        netProfit=series,
+        operatingCashFlow=series,
+        cumulativeTreasury=series,
+        bfr=series,
+        bfrVariation=series,
+        depreciation=series,
+        distributionExpense=series,
+        marketingExpense=series,
+        principalRepayment=series,
+        interestExpense=series,
+        totalInvestment=0,
+        indicators=ProfitabilityIndicators(van=100, tri=0.12, drciYears=1),
+    )
+    bad_tri = base.model_copy(
+        update={
+            "indicators": ProfitabilityIndicators(van=50, tri=-10.5, drciYears=1),
+        }
+    )
+    delta = compare_results(base, bad_tri)
+    assert delta["deltaTri"] is None
 
 
 def test_waste_rate_validation():

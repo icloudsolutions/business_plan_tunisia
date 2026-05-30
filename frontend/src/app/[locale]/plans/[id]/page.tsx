@@ -6,6 +6,7 @@ import { downloadCompletenessReport } from "@/lib/completion";
 import { usePlanCompletion } from "@/hooks/usePlanCompletion";
 import type { WizardStepId } from "@/lib/liasse-wizard/schema";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import AuthGuard from "@/components/AuthGuard";
 import CollaborationSidebar from "@/components/collaboration/CollaborationSidebar";
 import PresenceBridge from "@/components/collaboration/PresenceBridge";
@@ -16,6 +17,7 @@ import LiasseWizard from "@/components/liasse-wizard/LiasseWizard";
 import ScenarioManager from "@/components/scenarios/ScenarioManager";
 import ResultsPanel from "@/components/ResultsPanel";
 import SimulationPanel from "@/components/SimulationPanel";
+import FinancialAuditPanel from "@/components/FinancialAuditPanel";
 import { useAuth } from "@/context/AuthContext";
 import {
   auditPlan,
@@ -37,6 +39,7 @@ import {
 function PlanContent() {
   const params = useParams();
   const id = params.id as string;
+  const tPlan = useTranslations("plan");
   const { isExpert } = useAuth();
   const { setPlanTitle, setPlanId, setPlanCompletion, setRefreshPlan } = useDashboardNav();
   const [completionKey, setCompletionKey] = useState(0);
@@ -48,6 +51,7 @@ function PlanContent() {
   const [simulations, setSimulations] = useState<SimulationItem[]>([]);
   const [audit, setAudit] = useState<AuditResult | null>(null);
   const [jobStatus, setJobStatus] = useState("");
+  const [busyAction, setBusyAction] = useState<"" | "recalc" | "simulate">("");
   const [exportJobId, setExportJobId] = useState<string | null>(null);
   const [exportFormats, setExportFormats] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -99,37 +103,52 @@ function PlanContent() {
     plan?.status === "UNDER_REVIEW" || plan?.status === "ADJUSTMENT";
 
   const handleRecalc = async () => {
+    if (busyAction) return;
     setError("");
-    const job = await recalculate(id);
-    setJobStatus("PENDING");
-    const result = await pollJob(job.id, setJobStatus);
-    if (result.status === "FAILED") setError(result.error || "Calcul échoué");
-    else await load();
+    setBusyAction("recalc");
+    try {
+      const job = await recalculate(id);
+      setJobStatus("PENDING");
+      const result = await pollJob(job.id, setJobStatus);
+      if (result.status === "FAILED") setError(result.error || tPlan("calcFailed"));
+      else await load();
+    } finally {
+      setBusyAction("");
+      setJobStatus("");
+    }
   };
 
   const handleSimulate = async () => {
+    if (busyAction) return;
     setError("");
-    const job = await runSimulation(
-      id,
-      [{ path: "operations/rawMaterialCost", multiplier: 1.15 }],
-      "Inflation matières +15%"
-    );
-    const result = await pollJob(job.id, setJobStatus);
-    if (result.status === "FAILED") setError(result.error || "Simulation échouée");
-    else await load();
+    setBusyAction("simulate");
+    try {
+      const job = await runSimulation(
+        id,
+        [{ path: "operations/rawMaterialCost", multiplier: 1.15 }],
+        "Inflation matières +15%"
+      );
+      setJobStatus("PENDING");
+      const result = await pollJob(job.id, setJobStatus);
+      if (result.status === "FAILED") setError(result.error || tPlan("simFailed"));
+      else await load();
+    } finally {
+      setBusyAction("");
+      setJobStatus("");
+    }
   };
 
   if (loading) {
     return (
       <div className="loading-screen">
         <div className="spinner" aria-hidden />
-        <p>Chargement du plan…</p>
+        <p>{tPlan("loading")}</p>
       </div>
     );
   }
 
   if (!plan) {
-    return <p className="form-error">{error || "Plan introuvable"}</p>;
+    return <p className="form-error">{error || tPlan("notFound")}</p>;
   }
 
   const main = (
@@ -158,7 +177,7 @@ function PlanContent() {
 
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-semibold text-navy-800">
-          Saisie Liasse Unique
+          {tPlan("liasseTitle")}
         </h2>
         {isExpert && (
           <button
@@ -167,18 +186,18 @@ function PlanContent() {
             onClick={() => void downloadCompletenessReport(id)}
           >
             <FileBarChart className="h-4 w-4" />
-            Rapport de complétude (PDF)
+            {tPlan("completenessReport")}
           </button>
         )}
       </div>
       <p className="mb-6 text-sm text-navy-600">
-        Parcours guidé en {13} étapes — sauvegarde automatique toutes les 30 secondes.
-        {collabEnabled && " · Panneau collaboration actif."}
+        {tPlan("wizardIntro", { steps: 13 })}
+        {collabEnabled ? ` ${tPlan("collabActive")}` : ""}
       </p>
 
       {error && <p className="form-error">{error}</p>}
       {jobStatus && (
-        <p className="alert alert-info">Traitement : {jobStatus}</p>
+        <p className="alert alert-info">{tPlan("processing", { status: jobStatus })}</p>
       )}
 
       <div
@@ -205,13 +224,14 @@ function PlanContent() {
                 setMissingFields(res.missingFields || []);
                 setCompletionKey((k) => k + 1);
               }}
+              onPlanModuleChange={() => setCompletionKey((k) => k + 1)}
               readOnly={readOnly}
             />
           </div>
 
           {collabEnabled && (
             <div className="card">
-              <h3 className="card-title">Comparatif simulations</h3>
+              <h3 className="card-title">{tPlan("simulationsCompare")}</h3>
               <SimulationPanel simulations={simulations} />
             </div>
           )}
@@ -230,7 +250,7 @@ function PlanContent() {
         {!isExpert && plan.status === "DRAFT" && (
           <>
             <button type="button" className="btn btn-primary" onClick={handleRecalc}>
-              Calculer (7 ans)
+              {tPlan("calc7y")}
             </button>
             <button
               type="button"
@@ -240,17 +260,27 @@ function PlanContent() {
                 load();
               }}
             >
-              Soumettre à l&apos;expert
+              {tPlan("submitExpert")}
             </button>
           </>
         )}
         {(plan.status === "UNDER_REVIEW" || plan.status === "ADJUSTMENT") && (
           <>
-            <button type="button" className="btn btn-secondary" onClick={handleRecalc}>
-              Recalculer
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleRecalc}
+              disabled={!!busyAction}
+            >
+              {busyAction === "recalc" ? `${tPlan("recalc")}…` : tPlan("recalc")}
             </button>
-            <button type="button" className="btn btn-secondary" onClick={handleSimulate}>
-              Simuler (+15% matières)
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleSimulate}
+              disabled={!!busyAction}
+            >
+              {busyAction === "simulate" ? "…" : tPlan("simulate")}
             </button>
             {isExpert && (
               <>
@@ -259,7 +289,7 @@ function PlanContent() {
                   className="btn btn-secondary"
                   onClick={async () => setAudit(await auditPlan(id))}
                 >
-                  Audit financier
+                  {tPlan("financialAudit")}
                 </button>
                 <button
                   type="button"
@@ -269,7 +299,7 @@ function PlanContent() {
                     load();
                   }}
                 >
-                  Valider
+                  {tPlan("validate")}
                 </button>
               </>
             )}
@@ -291,12 +321,12 @@ function PlanContent() {
                   const formats = result.result?.formats ?? Object.keys(result.result?.files ?? {});
                   setExportFormats(formats.length ? formats : ["pdf", "xlsx"]);
                 } catch (e) {
-                  setError(e instanceof Error ? e.message : "Export échoué");
+                  setError(e instanceof Error ? e.message : tPlan("exportFailed"));
                   setExportJobId(null);
                 }
               }}
             >
-              Générer PDF / Excel
+              {tPlan("exportGenerate")}
             </button>
             {exportJobId && exportFormats.length > 0 && (
               <>
@@ -306,7 +336,7 @@ function PlanContent() {
                     className="btn btn-secondary"
                     onClick={() => downloadExport(id, exportJobId, "pdf")}
                   >
-                    Télécharger PDF
+                    {tPlan("exportPdf")}
                   </button>
                 )}
                 {exportFormats.includes("xlsx") && (
@@ -315,7 +345,7 @@ function PlanContent() {
                     className="btn btn-secondary"
                     onClick={() => downloadExport(id, exportJobId, "xlsx")}
                   >
-                    Télécharger Excel
+                    {tPlan("exportXlsx")}
                   </button>
                 )}
               </>
@@ -325,16 +355,7 @@ function PlanContent() {
       </div>
 
       {audit && (
-        <pre
-          className="card"
-          style={{
-            marginTop: "1.25rem",
-            overflow: "auto",
-            fontSize: "0.8rem",
-          }}
-        >
-          {JSON.stringify(audit, null, 2)}
-        </pre>
+        <FinancialAuditPanel audit={audit} onClose={() => setAudit(null)} />
       )}
     </>
   );

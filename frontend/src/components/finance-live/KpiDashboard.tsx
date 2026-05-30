@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { CheckCircle2, HelpCircle, Loader2, XCircle } from "lucide-react";
 import {
@@ -65,6 +66,7 @@ function HeroCard({
 }
 
 export default function KpiDashboard({ planId, scenario = "base" }: Props) {
+  const tFinance = useTranslations("finance");
   const { formatCurrency, formatPercent } = useFormat();
   const [data, setData] = useState<KpiDashboardProjection | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,7 +101,7 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
   if (error || !data) {
     return (
       <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
-        {error || "Indicateurs indisponibles — complétez la liasse et lancez un calcul."}
+        {error || tFinance("kpiUnavailable")}
       </p>
     );
   }

@@ -526,14 +526,16 @@ async def list_simulations(
     await get_plan_for_user(plan_id, user, db)
     result = await db.execute(select(Simulation).where(Simulation.plan_id == plan_id))
     sims = result.scalars().all()
+    ordered = sorted(sims, key=lambda s: s.created_at or "", reverse=True)
     return [
         {
             "id": str(s.id),
             "name": s.name,
+            "createdAt": s.created_at.isoformat() if s.created_at else None,
             "deltaVsBaseline": s.delta_vs_baseline,
             "results": s.results,
         }
-        for s in sims
+        for s in ordered
     ]
 
 

@@ -34,8 +34,19 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   }
 
   if (!res.ok) {
+    if (res.status === 503) {
+      throw new Error(
+        "Service temporairement indisponible — attendez quelques secondes et réessayez."
+      );
+    }
     const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(typeof err.detail === "string" ? err.detail : JSON.stringify(err));
+    const detail = typeof err.detail === "string" ? err.detail : JSON.stringify(err);
+    if (res.status === 429 || /limit/i.test(detail)) {
+      throw new Error(
+        "Trop de requêtes — patientez quelques secondes avant de réessayer."
+      );
+    }
+    throw new Error(detail);
   }
   if (res.status === 204) return {} as T;
   return res.json();
@@ -79,6 +90,8 @@ export interface PlanPatchResult {
 export interface SimulationDelta {
   deltaVan?: number;
   deltaTri?: number | null;
+  baselineTri?: number | null;
+  scenarioTri?: number | null;
   baselineCashBreakYear?: number | null;
   scenarioCashBreakYear?: number | null;
   baselineVan?: number;
@@ -88,6 +101,7 @@ export interface SimulationDelta {
 export interface SimulationItem {
   id: string;
   name: string;
+  createdAt?: string;
   deltaVsBaseline: SimulationDelta | null;
   results: Record<string, unknown> | null;
 }

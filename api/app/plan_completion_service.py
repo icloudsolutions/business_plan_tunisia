@@ -17,6 +17,8 @@ from app.models import (
     PlanProductCostComponent,
     PlanProductRecipe,
     PlanRawMaterial,
+    PlanStaffHeadcount,
+    PlanStaffRole,
     PlanTimelinePhase,
     PlanTimelineSettings,
     PlanTvaConfig,
@@ -84,6 +86,17 @@ async def build_plan_completion_context(db: AsyncSession, plan_id: UUID) -> Plan
         .select_from(PlanFinancingSource)
         .where(PlanFinancingSource.plan_id == plan_id)
     )
+    staff_roles = await db.scalar(
+        select(func.count())
+        .select_from(PlanStaffRole)
+        .where(PlanStaffRole.plan_id == plan_id)
+    )
+    headcount_active = await db.scalar(
+        select(func.count())
+        .select_from(PlanStaffHeadcount)
+        .join(PlanStaffRole, PlanStaffHeadcount.staff_role_id == PlanStaffRole.id)
+        .where(PlanStaffRole.plan_id == plan_id, PlanStaffHeadcount.headcount > 0)
+    )
 
     return PlanCompletionContext(
         timeline_phases_count=int(phases or 0),
@@ -96,4 +109,6 @@ async def build_plan_completion_context(db: AsyncSession, plan_id: UUID) -> Plan
         other_charges_active=int(other_active or 0),
         tva_config_count=int(tva_rows or 0),
         financing_sources_count=int(financing_sources or 0),
+        staff_roles_count=int(staff_roles or 0),
+        headcount_active_count=int(headcount_active or 0),
     )

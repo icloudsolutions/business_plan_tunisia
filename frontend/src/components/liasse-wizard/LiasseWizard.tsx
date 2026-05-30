@@ -87,6 +87,8 @@ interface Props {
   readOnly?: boolean;
   missingFields?: string[];
   completion?: PlanCompletion | null;
+  /** Refresh sidebar completion after plan-scoped module saves (RH, TVA, …). */
+  onPlanModuleChange?: () => void;
   onRegisterNavigator?: (fn: (step: WizardStepId, fieldPath: string) => void) => void;
 }
 
@@ -98,6 +100,7 @@ export default function LiasseWizard({
   readOnly = false,
   missingFields = [],
   completion = null,
+  onPlanModuleChange,
   onRegisterNavigator,
 }: Props) {
   const router = useRouter();
@@ -235,11 +238,23 @@ export default function LiasseWizard({
             readOnly={readOnly}
           />
         ) : id === "hr" ? (
-          <StepHr planId={planId} readOnly={readOnly} />
+          <StepHr
+            planId={planId}
+            readOnly={readOnly}
+            onDataChange={onPlanModuleChange}
+          />
         ) : id === "otherCharges" ? (
-          <StepOtherCharges planId={planId} readOnly={readOnly} />
+          <StepOtherCharges
+            planId={planId}
+            readOnly={readOnly}
+            onDataChange={onPlanModuleChange}
+          />
         ) : id === "tva" ? (
-          <StepTva planId={planId} readOnly={readOnly} />
+          <StepTva
+            planId={planId}
+            readOnly={readOnly}
+            onDataChange={onPlanModuleChange}
+          />
         ) : id === "financing" ? (
           <StepFinancing planId={planId} readOnly={readOnly} />
         ) : id === "timeline" ? (

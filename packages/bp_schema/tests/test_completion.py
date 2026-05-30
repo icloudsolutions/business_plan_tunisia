@@ -1,4 +1,8 @@
-from bp_schema.completion import compute_plan_completion, get_required_missing_paths
+from bp_schema.completion import (
+    PlanCompletionContext,
+    compute_plan_completion,
+    get_required_missing_paths,
+)
 from bp_schema.liasse import EquipmentItem, PlanInputs
 
 
@@ -26,3 +30,11 @@ def test_filled_plan_improves_score():
     assert "timeline" in section_ids
     assert "products" in section_ids
     assert "pricing" in section_ids
+
+
+def test_hr_completion_uses_payroll_context():
+    ctx = PlanCompletionContext(staff_roles_count=2, headcount_active_count=3)
+    report = compute_plan_completion(PlanInputs(), ctx)
+    hr = next(s for s in report["sections"] if s["section"] == "hr")
+    assert hr["score_pct"] == 100
+    assert hr["status"] == "complete"

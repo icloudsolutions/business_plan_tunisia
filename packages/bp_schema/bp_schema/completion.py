@@ -56,6 +56,8 @@ class PlanCompletionContext:
     other_charges_active: int = 0
     tva_config_count: int = 0
     financing_sources_count: int = 0
+    staff_roles_count: int = 0
+    headcount_active_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,20 @@ def _waste_valid(inputs: PlanInputs) -> bool:
 
 def _personnel_active(inputs: PlanInputs) -> bool:
     return any(p.headcount > 0 and p.role.strip() for p in inputs.plAssumptions.personnel)
+
+
+def _payroll_has_roles(_: PlanInputs, ctx: PlanCompletionContext | None = None) -> bool:
+    c = _ctx(ctx)
+    if c.staff_roles_count >= 1:
+        return True
+    return _personnel_active(_)
+
+
+def _payroll_has_headcount(_: PlanInputs, ctx: PlanCompletionContext | None = None) -> bool:
+    c = _ctx(ctx)
+    if c.headcount_active_count >= 1:
+        return True
+    return _personnel_active(_)
 
 
 def _financing_balanced(inputs: PlanInputs) -> bool:
@@ -364,12 +380,20 @@ FIELD_RULES: list[FieldRule] = [
     ),
     # --- hr ---
     FieldRule(
-        "plAssumptions.personnel",
+        "payroll.staff_roles",
         "hr",
-        "recommended",
-        "Effectifs renseignés",
+        "required",
+        "Au moins un poste RH",
+        "منصب واحد على الأقل",
+        _payroll_has_roles,
+    ),
+    FieldRule(
+        "payroll.headcount",
+        "hr",
+        "required",
+        "Effectifs renseignés (≥ 1)",
         "الموظفون",
-        _personnel_active,
+        _payroll_has_headcount,
     ),
     # --- other charges ---
     FieldRule(

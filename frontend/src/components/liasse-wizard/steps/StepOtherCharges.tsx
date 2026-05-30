@@ -20,12 +20,13 @@ import {
 type Props = {
   planId: string;
   readOnly?: boolean;
+  onDataChange?: () => void;
 };
 
 const YEARS = [1, 2, 3, 4, 5, 6, 7] as const;
 const PAYROLL_CATS = new Set(["tfp", "foprolo"]);
 
-export default function StepOtherCharges({ planId, readOnly }: Props) {
+export default function StepOtherCharges({ planId, readOnly, onDataChange }: Props) {
   const { formatCurrency, formatPercent } = useFormat();
   const [configs, setConfigs] = useState<OtherChargesConfigRow[]>([]);
   const [lf2012, setLf2012] = useState(true);
@@ -49,8 +50,9 @@ export default function StepOtherCharges({ planId, readOnly }: Props) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setLoading(false);
+      onDataChange?.();
     }
-  }, [planId]);
+  }, [planId, onDataChange]);
 
   const refreshProjection = useCallback(async () => {
     try {
