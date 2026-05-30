@@ -32,6 +32,10 @@
       "title": "Autres charges",
       "explainer": "Charges d'exploitation par catégorie (maintenance, loyer, TFP, TCL…) avec règles % CA, % investissement ou forfait indexé sur 7 ans."
     },
+    "tva": {
+      "title": "TVA & Fiscalité",
+      "explainer": "Réconciliation TVA collectée / déductible par catégorie, soldes fournisseurs et clients, export Tableau TVA Liasse Unique."
+    },
     "financial": {
       "title": "Indicateurs financiers",
       "explainer": "BFR (stocks et délais de paiement), charges en % du CA et fiscalité. Dernière étape avant la vérification finale."

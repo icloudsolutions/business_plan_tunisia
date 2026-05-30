@@ -740,4 +740,53 @@ class OtherChargesSyncResponse(BaseModel):
     other_operating_charges_y1: float
 
 
+class TvaConfigResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    category: str
+    applies_to: str
+    label: str
+    tva_rate_purchase: float
+    tva_rate_sales: float
+    enabled: bool
+    sort_order: int
+
+    class Config:
+        from_attributes = True
+
+
+class TvaConfigUpdate(BaseModel):
+    label: str | None = None
+    tva_rate_purchase: float | None = Field(None, ge=0, le=0.19)
+    tva_rate_sales: float | None = Field(None, ge=0, le=0.19)
+    enabled: bool | None = None
+    sort_order: int | None = None
+
+
+class TvaConfigBulkItem(TvaConfigUpdate):
+    id: UUID
+
+
+class TvaConfigBulkRequest(BaseModel):
+    items: list[TvaConfigBulkItem]
+
+
+class TvaSettingsResponse(BaseModel):
+    plan_id: UUID
+    carton_share_of_packaging: float
+    projection_cache: dict | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class TvaSettingsUpdate(BaseModel):
+    carton_share_of_packaging: float | None = Field(None, ge=0, le=1)
+
+
+class TvaProjectionResponse(BaseModel):
+    projection: dict
+
+
 PlanPatchResponse.model_rebuild()

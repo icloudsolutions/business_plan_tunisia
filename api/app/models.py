@@ -72,6 +72,44 @@ class BusinessPlan(Base):
     other_charges_settings: Mapped["PlanOtherChargesSettings | None"] = relationship(
         back_populates="plan", uselist=False
     )
+    tva_config: Mapped[list["PlanTvaConfig"]] = relationship(back_populates="plan")
+    tva_settings: Mapped["PlanTvaSettings | None"] = relationship(back_populates="plan", uselist=False)
+
+
+class PlanTvaSettings(Base):
+    __tablename__ = "plan_tva_settings"
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("business_plans.id"), primary_key=True
+    )
+    carton_share_of_packaging: Mapped[float] = mapped_column(Float, default=0.35)
+    projection_cache: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="tva_settings")
+
+
+class PlanTvaConfig(Base):
+    __tablename__ = "plan_tva_config"
+    __table_args__ = (
+        Index("ix_plan_tva_config_plan_id", "plan_id"),
+        Index("ix_plan_tva_config_plan_applies", "plan_id", "category", "applies_to", unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    category: Mapped[str] = mapped_column(String(32))
+    applies_to: Mapped[str] = mapped_column(String(64))
+    label: Mapped[str] = mapped_column(String(255), default="")
+    tva_rate_purchase: Mapped[float] = mapped_column(Float, default=0.18)
+    tva_rate_sales: Mapped[float] = mapped_column(Float, default=0.18)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="tva_config")
 
 
 class PlanOtherChargesSettings(Base):

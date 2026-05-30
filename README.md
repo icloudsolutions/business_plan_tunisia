@@ -39,6 +39,8 @@ docker compose up --build -d
 
 **Revenus multi-produits** : `GET/POST/PATCH/DELETE /api/plans/{id}/products`, `PUT /api/plans/{id}/revenue-assumptions`, `GET /api/plans/{id}/revenue-projection` (aperçu sync ou Celery via `POST`). Migration `008_plan_products_revenue`. Étape Liasse « Produits & Prix ».
 
+**TVA & fiscalité** : `GET/PUT /api/plans/{id}/tva/config`, `GET/PUT /api/plans/{id}/tva/settings`, `GET /api/plans/{id}/tva/projection`, `GET /api/plans/{id}/tva/export?format=csv|html`. Migration `012_plan_tva`. Étape « TVA & Fiscalité » (taux par produit/poste, solde annuel, waterfall, créances/dettes 1 mois TTC).
+
 **Autres charges d'exploitation** : `GET/PUT /api/plans/{id}/other-charges/config`, `PUT /api/plans/{id}/other-charges/settings`, `GET /api/plans/{id}/other-charges/projection`, `POST /api/plans/{id}/other-charges/sync-liasse`. Migration `011_plan_other_charges`. Étape « Autres charges » (11 catégories, LF 2012 TFP/FOPROLOS, tableau Y1–Y7).
 
 **Masse salariale (RH)** : `GET/POST/PATCH/DELETE /api/plans/{id}/staff-roles`, `PUT /api/plans/{id}/headcount-plan`, `PUT /api/plans/{id}/payroll-assumptions`, `GET /api/plans/{id}/payroll-projection`, `POST /api/plans/{id}/payroll/sync-liasse`, `GET /api/plans/{id}/payroll/export?format=csv|html`. Migration `010_plan_payroll`. Étape « Ressources humaines » (effectifs Y1–Y7, CNSS, graphiques, export Liasse PDF). Les coûts imputables production alimentent le coût unitaire (`unit-cost-projection`).

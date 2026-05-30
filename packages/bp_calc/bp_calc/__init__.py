@@ -4,6 +4,7 @@ from bp_calc.revenue import calculate_revenue_projection, utilization_color
 from bp_calc.cost import calculate_plan_cost_projection, calculate_all_years_cost_summary, compute_unit_cost
 from bp_calc.payroll import calculate_payroll_projection, imputable_payroll_for_year
 from bp_calc.other_charges import calculate_other_charges_projection, ExpenseDrivers
+from bp_calc.tva_reconciliation import calculate_tva_projection, build_purchase_bases, PurchaseBases
 
 __all__ = [
     "calculate_plan",
@@ -19,4 +20,7 @@ __all__ = [
     "imputable_payroll_for_year",
     "calculate_other_charges_projection",
     "ExpenseDrivers",
+    "calculate_tva_projection",
+    "build_purchase_bases",
+    "PurchaseBases",
 ]
