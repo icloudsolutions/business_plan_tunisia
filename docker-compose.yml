@@ -57,7 +57,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       # Set true if Celery worker is not running (scenario calc runs inside API)
-      SCENARIO_CALC_SYNC: ${SCENARIO_CALC_SYNC:-false}
+      SCENARIO_CALC_SYNC: ${SCENARIO_CALC_SYNC:-true}
     depends_on:
       postgres:
         condition: service_healthy

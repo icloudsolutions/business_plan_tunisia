@@ -9,7 +9,10 @@ from app.export_files import parse_export_files
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import CalcJob, ExportJob, User
-from app.job_stale import fail_stale_calc_job_if_needed
+from app.job_stale import (
+    fail_stale_calc_job_if_needed,
+    recover_pending_scenario_job_if_needed,
+)
 from app.schemas import JobResponse
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -25,6 +28,7 @@ async def get_job(
     job = result.scalar_one_or_none()
     if job:
         await assert_job_access(job.plan_id, user, db)
+        job = await recover_pending_scenario_job_if_needed(db, job)
         job = await fail_stale_calc_job_if_needed(db, job)
         return JobResponse(
             id=job.id,
