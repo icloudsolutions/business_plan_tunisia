@@ -26,7 +26,7 @@ function stockMpBand(consumed: number, closing: number): "green" | "orange" | "n
   if (consumed <= 0) return "neutral";
   const oneMonth = consumed / 12;
   if (closing < (consumed / 24)) return "orange";
-  if closing > consumed / 6) return "orange";
+  if (closing > (consumed / 6)) return "orange";
   return "green";
 }
 
