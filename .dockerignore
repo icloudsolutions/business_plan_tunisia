@@ -1,0 +1,13 @@
+# Root context (api / worker builds)
+frontend/node_modules
+frontend/.next
+.git
+.env
+**/__pycache__
+**/.pytest_cache
+**/*.pyc
+.venv
+venv
+postgres_data
+redis_data
+~$*.xlsx
