@@ -168,7 +168,7 @@ function PlanContent() {
         )}
       </div>
       <p className="mb-6 text-sm text-navy-600">
-        Parcours guidé en {7} étapes — sauvegarde automatique toutes les 30 secondes.
+        Parcours guidé en {8} étapes — sauvegarde automatique toutes les 30 secondes.
         {collabEnabled && " · Panneau collaboration actif."}
       </p>
 

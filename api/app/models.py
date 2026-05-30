@@ -61,6 +61,7 @@ class BusinessPlan(Base):
     revenue_assumptions: Mapped["PlanRevenueAssumptions | None"] = relationship(
         back_populates="plan", uselist=False
     )
+    cost_components: Mapped[list["PlanProductCostComponent"]] = relationship(back_populates="plan")
 
 
 class PlanProduct(Base):
@@ -78,6 +79,35 @@ class PlanProduct(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     plan: Mapped["BusinessPlan"] = relationship(back_populates="products")
+    cost_components: Mapped[list["PlanProductCostComponent"]] = relationship(back_populates="product")
+
+
+class PlanProductCostComponent(Base):
+    __tablename__ = "plan_product_cost_components"
+    __table_args__ = (
+        Index("ix_plan_cost_plan_id", "plan_id"),
+        Index("ix_plan_cost_product_year", "plan_id", "product_id", "year", unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("plan_products.id"))
+    year: Mapped[int] = mapped_column(Integer, default=1)
+    mp_price_per_kg: Mapped[float] = mapped_column(Float, default=0.0)
+    arome_rate_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    packaging_g_per_unit: Mapped[float] = mapped_column(Float, default=1000.0)
+    packaging_price_per_kg: Mapped[float] = mapped_column(Float, default=0.0)
+    gas_monthly: Mapped[float] = mapped_column(Float, default=0.0)
+    electricity_monthly: Mapped[float] = mapped_column(Float, default=0.0)
+    water_monthly: Mapped[float] = mapped_column(Float, default=0.0)
+    waste_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="cost_components")
+    product: Mapped["PlanProduct"] = relationship(back_populates="cost_components")
 
 
 class PlanRevenueAssumptions(Base):
@@ -96,6 +126,7 @@ class PlanRevenueAssumptions(Base):
     growth_rate_y6: Mapped[float] = mapped_column(Float, default=0.15)
     growth_rate_y7: Mapped[float] = mapped_column(Float, default=0.15)
     projection_cache: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    margin_alert_threshold: Mapped[float] = mapped_column(Float, default=0.2)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

@@ -19,6 +19,9 @@
     "recharts": "^2.15.0",
     "zod": "^4.4.3"
   },
+  "overrides": {
+    "@swc/helpers": "0.5.23"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",

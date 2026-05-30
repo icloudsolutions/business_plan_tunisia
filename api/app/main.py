@@ -21,6 +21,7 @@ from app.routers import (
     scenarios_router,
     history_router,
     products_router,
+    cost_router,
     ws_router,
 )
 
@@ -82,6 +83,7 @@ app.include_router(projections_router.router, prefix="/api")
 app.include_router(scenarios_router.router, prefix="/api")
 app.include_router(history_router.router, prefix="/api")
 app.include_router(products_router.router, prefix="/api")
+app.include_router(cost_router.router, prefix="/api")
 app.include_router(ai_router.router, prefix="/api")
 app.include_router(email_router.router, prefix="/api")
 app.include_router(collaboration_router.router, prefix="/api")

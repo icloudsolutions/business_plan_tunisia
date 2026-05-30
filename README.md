@@ -35,6 +35,8 @@ docker compose up --build -d
 
 **Emails transactionnels** : transitions de workflow et commentaires déclenchent l’envoi via Celery (`queue: email`). `EMAIL_PROVIDER=log|smtp|resend`, `APP_BASE_URL` pour les liens. Stats dans **Administration → Analytics**. Migration `005_email_notifications`.
 
+**Coûts unitaires multi-produits** : `GET/PUT /api/plans/{id}/cost-components`, `GET /api/plans/{id}/cost-autofill`, `GET /api/plans/{id}/unit-cost-projection`. Migration `009_plan_product_cost_components`. Étape « Coûts de production » (donut + marges).
+
 **Revenus multi-produits** : `GET/POST/PATCH/DELETE /api/plans/{id}/products`, `PUT /api/plans/{id}/revenue-assumptions`, `GET /api/plans/{id}/revenue-projection` (aperçu sync ou Celery via `POST`). Migration `008_plan_products_revenue`. Étape Liasse « Produits & Prix ».
 
 **Audit trail & versions** : chaque `PATCH` sur les champs du plan alimente `plan_audit_log` ; snapshots automatiques aux transitions de statut et à la soumission ; point manuel via l’icône horloge (« Créer un point de sauvegarde »). API : `GET/POST /api/plans/{id}/versions`, `GET .../versions/{vid}/diff`, `POST .../restore` (expert/admin), `GET /api/plans/{id}/audit-log`. Migration `007_plan_audit_log`.

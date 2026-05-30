@@ -20,6 +20,10 @@
       "title": "Produits & Prix",
       "explainer": "Catalogue multi-produits, ristournes, croissance Y2–Y7 et taux d'utilisation de la capacité nominale."
     },
+    "productionCosts": {
+      "title": "Coûts de production",
+      "explainer": "Coût unitaire par produit (MP, arômes, emballage, énergie, MO, amortissement, déchets) et marge brute."
+    },
     "hr": {
       "title": "Ressources humaines",
       "explainer": "Effectifs et masse salariale. Les charges sociales sont calculées automatiquement selon les barèmes tunisiens du modèle."

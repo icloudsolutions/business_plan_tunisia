@@ -213,7 +213,7 @@ async def delete_plan(
     pid = plan.id
     from app.models import PlanAuditLog
 
-    from app.models import PlanProduct, PlanRevenueAssumptions
+    from app.models import PlanProduct, PlanProductCostComponent, PlanRevenueAssumptions
 
     for model in (
         PlanComment,
@@ -224,6 +224,7 @@ async def delete_plan(
         PlanVersion,
         PlanAuditLog,
         PlanProduct,
+        PlanProductCostComponent,
         PlanRevenueAssumptions,
         CalcJob,
     ):

@@ -549,4 +549,61 @@ class RevenueProjectionResponse(BaseModel):
         )
 
 
+class CostComponentUpsert(BaseModel):
+    product_id: UUID | None = None
+    year: int | None = Field(None, ge=1, le=7)
+    mp_price_per_kg: float | None = Field(None, ge=0)
+    arome_rate_pct: float | None = Field(None, ge=0, le=1)
+    packaging_g_per_unit: float | None = Field(None, ge=0)
+    packaging_price_per_kg: float | None = Field(None, ge=0)
+    gas_monthly: float | None = Field(None, ge=0)
+    electricity_monthly: float | None = Field(None, ge=0)
+    water_monthly: float | None = Field(None, ge=0)
+    waste_pct: float | None = Field(None, ge=0, le=1)
+
+
+class CostComponentBulkItem(CostComponentUpsert):
+    product_id: UUID
+    year: int = Field(ge=1, le=7)
+
+
+class CostComponentBulkUpdate(BaseModel):
+    items: list[CostComponentBulkItem]
+
+
+class CostComponentResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    product_id: UUID
+    year: int
+    mp_price_per_kg: float
+    arome_rate_pct: float
+    packaging_g_per_unit: float
+    packaging_price_per_kg: float
+    gas_monthly: float
+    electricity_monthly: float
+    water_monthly: float
+    waste_pct: float
+
+    class Config:
+        from_attributes = True
+
+
+class CostAutofillResponse(BaseModel):
+    annual_payroll: float
+    annual_depreciation_y1: float
+    depreciation_by_year: list[float]
+    total_capex: float
+    suggested_mp_price_per_kg: float
+    suggested_packaging_price_per_kg: float
+    suggested_waste_pct: float
+    products: list[dict]
+
+
+class PlanCostProjectionResponse(BaseModel):
+    year: int = 1
+    projection: dict | None = None
+    years: list[dict] | None = None
+
+
 PlanPatchResponse.model_rebuild()

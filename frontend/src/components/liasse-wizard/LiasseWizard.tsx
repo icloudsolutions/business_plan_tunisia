@@ -44,6 +44,7 @@ import StepInvestments from "./steps/StepInvestments";
 import StepFinancing from "./steps/StepFinancing";
 import StepOperations from "./steps/StepOperations";
 import StepProducts from "./steps/StepProducts";
+import StepProductionCosts from "./steps/StepProductionCosts";
 import StepHr from "./steps/StepHr";
 import StepFinancial from "./steps/StepFinancial";
 
@@ -263,7 +264,10 @@ export default function LiasseWizard({
                 style={{ transform: `translateX(-${stepIndex * 100}%)` }}
               >
                 {WIZARD_STEPS.map((id) => {
-                  const Body = id === "products" ? null : STEP_COMPONENTS[id as Exclude<WizardStepId, "products">];
+                  const Body =
+                    id === "products" || id === "productionCosts"
+                      ? null
+                      : STEP_COMPONENTS[id as Exclude<WizardStepId, "products" | "productionCosts">];
                   return (
                     <div
                       key={id}
@@ -272,6 +276,12 @@ export default function LiasseWizard({
                     >
                       {id === "products" ? (
                         <StepProducts planId={planId} readOnly={readOnly} />
+                      ) : id === "productionCosts" ? (
+                        <StepProductionCosts
+                          planId={planId}
+                          planInputs={inputs}
+                          readOnly={readOnly}
+                        />
                       ) : Body ? (
                         <Body readOnly={readOnly} />
                       ) : null}
