@@ -116,10 +116,13 @@ async def run_startup_migrations() -> None:
 
 async def ensure_orm_tables() -> None:
     """Create any ORM tables missing from the DB (checkfirst; safe after Alembic)."""
+    from app.legacy_schema import apply_legacy_column_patches
+
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("ORM tables verified (create_all checkfirst)")
+            await conn.run_sync(apply_legacy_column_patches)
+        logger.info("ORM tables verified (create_all + legacy column patches)")
     except Exception:
         logger.exception("create_all failed during startup")
         raise

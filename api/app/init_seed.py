@@ -1,5 +1,7 @@
 """Optional seed: run inside api container for demo users."""
+
 import asyncio
+import logging
 import uuid
 
 from sqlalchemy import select
@@ -7,6 +9,8 @@ from sqlalchemy import select
 from app.auth import hash_password
 from app.database import async_session
 from app.models import User
+
+logger = logging.getLogger("bp.api.seed")
 
 
 async def seed():
@@ -32,6 +36,9 @@ async def seed():
         except Exception:
             await db.rollback()
             raise
+    logger.info(
+        "Seed OK (DEV ONLY): client@demo.tn / expert@demo.tn / admin@demo.tn — password demo1234"
+    )
     print(
         "Seed OK (DEV ONLY): client@demo.tn / expert@demo.tn / admin@demo.tn — password demo1234. "
         "Set RUN_SEED=false in production."
