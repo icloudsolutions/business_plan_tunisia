@@ -46,17 +46,20 @@ import StepOperations from "./steps/StepOperations";
 import StepProducts from "./steps/StepProducts";
 import StepProductionCosts from "./steps/StepProductionCosts";
 import StepHr from "./steps/StepHr";
+import StepOtherCharges from "./steps/StepOtherCharges";
 import StepFinancial from "./steps/StepFinancial";
 
+const PLAN_SCOPED_STEPS = ["products", "productionCosts", "hr", "otherCharges"] as const;
+type PlanScopedStep = (typeof PLAN_SCOPED_STEPS)[number];
+
 const STEP_COMPONENTS: Record<
-  WizardStepId,
+  Exclude<WizardStepId, PlanScopedStep>,
   ComponentType<{ readOnly?: boolean }>
 > = {
   general: StepGeneral,
   investments: StepInvestments,
   financing: StepFinancing,
   operations: StepOperations,
-  hr: StepHr,
   financial: StepFinancial,
 };
 
@@ -265,9 +268,17 @@ export default function LiasseWizard({
               >
                 {WIZARD_STEPS.map((id) => {
                   const Body =
-                    id === "products" || id === "productionCosts"
+                    id === "products" ||
+                    id === "productionCosts" ||
+                    id === "hr" ||
+                    id === "otherCharges"
                       ? null
-                      : STEP_COMPONENTS[id as Exclude<WizardStepId, "products" | "productionCosts">];
+                      : STEP_COMPONENTS[
+                          id as Exclude<
+                            WizardStepId,
+                            "products" | "productionCosts" | "hr" | "otherCharges"
+                          >
+                        ];
                   return (
                     <div
                       key={id}
@@ -282,6 +293,10 @@ export default function LiasseWizard({
                           planInputs={inputs}
                           readOnly={readOnly}
                         />
+                      ) : id === "hr" ? (
+                        <StepHr planId={planId} readOnly={readOnly} />
+                      ) : id === "otherCharges" ? (
+                        <StepOtherCharges planId={planId} readOnly={readOnly} />
                       ) : Body ? (
                         <Body readOnly={readOnly} />
                       ) : null}

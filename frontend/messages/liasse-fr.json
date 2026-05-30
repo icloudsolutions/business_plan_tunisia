@@ -28,6 +28,10 @@
       "title": "Ressources humaines",
       "explainer": "Effectifs et masse salariale. Les charges sociales sont calculées automatiquement selon les barèmes tunisiens du modèle."
     },
+    "otherCharges": {
+      "title": "Autres charges",
+      "explainer": "Charges d'exploitation par catégorie (maintenance, loyer, TFP, TCL…) avec règles % CA, % investissement ou forfait indexé sur 7 ans."
+    },
     "financial": {
       "title": "Indicateurs financiers",
       "explainer": "BFR (stocks et délais de paiement), charges en % du CA et fiscalité. Dernière étape avant la vérification finale."

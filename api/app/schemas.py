@@ -606,4 +606,138 @@ class PlanCostProjectionResponse(BaseModel):
     years: list[dict] | None = None
 
 
+class StaffRoleCreate(BaseModel):
+    function_name: str = Field(min_length=1, max_length=255)
+    qualification: str = Field(default="", max_length=128)
+    is_production_imputable: bool = True
+    base_monthly_salary: float = Field(ge=0, default=0)
+    annual_raise_rate_override: float | None = Field(None, ge=0, le=1)
+    sort_order: int | None = None
+    headcount_y1: int = Field(ge=0, default=1)
+
+
+class StaffRoleUpdate(BaseModel):
+    function_name: str | None = Field(None, min_length=1, max_length=255)
+    qualification: str | None = None
+    is_production_imputable: bool | None = None
+    base_monthly_salary: float | None = Field(None, ge=0)
+    annual_raise_rate_override: float | None = None
+    sort_order: int | None = None
+
+
+class StaffRoleResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    function_name: str
+    qualification: str
+    is_production_imputable: bool
+    base_monthly_salary: float
+    annual_raise_rate_override: float | None
+    sort_order: int
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class HeadcountBulkItem(BaseModel):
+    staff_role_id: UUID
+    year: int = Field(ge=1, le=7)
+    headcount: int = Field(ge=0)
+
+
+class HeadcountBulkUpdate(BaseModel):
+    items: list[HeadcountBulkItem]
+
+
+class HeadcountEntryResponse(BaseModel):
+    id: UUID
+    staff_role_id: UUID
+    function_name: str
+    year: int
+    headcount: int
+
+
+class PayrollAssumptionsUpdate(BaseModel):
+    annual_raise_rate: float | None = Field(None, ge=0, le=1)
+    cnss_employer_rate: float | None = Field(None, ge=0, le=1)
+
+
+class PayrollAssumptionsResponse(BaseModel):
+    plan_id: UUID
+    annual_raise_rate: float
+    cnss_employer_rate: float
+    projection_cache: dict | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class PayrollProjectionResponse(BaseModel):
+    projection: dict
+
+
+class PayrollSyncResponse(BaseModel):
+    message: str
+    personnel_count: int
+    imputable_y1: float
+    non_imputable_y1: float
+
+
+class OtherChargesConfigResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    category: str
+    rule_type: str
+    base_value: float
+    rate_or_pct: float
+    inflation_rate: float
+    enabled: bool
+    sort_order: int
+
+    class Config:
+        from_attributes = True
+
+
+class OtherChargesConfigUpdate(BaseModel):
+    rule_type: str | None = None
+    base_value: float | None = Field(None, ge=0)
+    rate_or_pct: float | None = Field(None, ge=0)
+    inflation_rate: float | None = Field(None, ge=0)
+    enabled: bool | None = None
+    sort_order: int | None = None
+
+
+class OtherChargesConfigBulkItem(OtherChargesConfigUpdate):
+    id: UUID
+
+
+class OtherChargesConfigBulkRequest(BaseModel):
+    items: list[OtherChargesConfigBulkItem]
+
+
+class OtherChargesSettingsResponse(BaseModel):
+    plan_id: UUID
+    lf2012_exemption_5y: bool
+    projection_cache: dict | None = None
+    updated_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class OtherChargesSettingsUpdate(BaseModel):
+    lf2012_exemption_5y: bool | None = None
+
+
+class OtherChargesProjectionResponse(BaseModel):
+    projection: dict
+
+
+class OtherChargesSyncResponse(BaseModel):
+    message: str
+    other_operating_charges_y1: float
+
+
 PlanPatchResponse.model_rebuild()

@@ -150,9 +150,10 @@ def calculate_plan_cost_projection(
     year: int = 1,
     plan_id: UUID | None = None,
     margin_threshold: float = DEFAULT_MARGIN_ALERT_PCT,
+    annual_payroll: float | None = None,
 ) -> PlanCostProjection:
     yi = year - 1
-    payroll = total_annual_payroll(inputs)
+    payroll = annual_payroll if annual_payroll is not None else total_annual_payroll(inputs)
     dep_schedule = annual_depreciation_schedule(inputs)
     dep_y = dep_schedule[yi] if yi < len(dep_schedule) else 0.0
 
@@ -237,6 +238,7 @@ def calculate_all_years_cost_summary(
     *,
     plan_id: UUID | None = None,
     margin_threshold: float = DEFAULT_MARGIN_ALERT_PCT,
+    payroll_by_year: dict[int, float] | None = None,
 ) -> list[PlanCostProjection]:
     revenue = calculate_revenue_projection(products, assumptions, plan_id=plan_id)
     return [
@@ -248,6 +250,7 @@ def calculate_all_years_cost_summary(
             year=y,
             plan_id=plan_id,
             margin_threshold=margin_threshold,
+            annual_payroll=(payroll_by_year or {}).get(y),
         )
         for y in range(1, HORIZON + 1)
     ]

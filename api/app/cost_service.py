@@ -13,6 +13,7 @@ from bp_schema.revenue import PlanProduct
 
 from app.models import PlanProduct as PlanProductORM
 from app.models import PlanProductCostComponent, PlanRevenueAssumptions
+from app.payroll_service import get_imputable_payroll_annual, load_staff_roles
 from app.revenue_service import (
     _assumptions_from_orm,
     _product_from_orm,
@@ -77,6 +78,17 @@ async def ensure_cost_grid(db: AsyncSession, plan_id: UUID, product_id: UUID) ->
     await db.flush()
 
 
+async def _payroll_for_cost(
+    db: AsyncSession, plan_id: UUID, plan_inputs: dict, year: int
+) -> float:
+    from bp_calc.cost import total_annual_payroll
+
+    roles = await load_staff_roles(db, plan_id)
+    if roles:
+        return await get_imputable_payroll_annual(db, plan_id, year)
+    return total_annual_payroll(PlanInputs.model_validate(plan_inputs))
+
+
 async def compute_unit_cost_projection(
     db: AsyncSession,
     plan_id: UUID,
@@ -90,6 +102,7 @@ async def compute_unit_cost_projection(
     assumptions = _assumptions_from_orm(assump_row, plan_id)
     inputs = PlanInputs.model_validate(plan_inputs)
     margin = float(getattr(assump_row, "margin_alert_threshold", 0.2) or 0.2)
+    payroll = await _payroll_for_cost(db, plan_id, plan_inputs, year)
 
     revenue = calculate_revenue_projection(products, assumptions, plan_id=plan_id)
     projection = calculate_plan_cost_projection(
@@ -100,6 +113,7 @@ async def compute_unit_cost_projection(
         year=year,
         plan_id=plan_id,
         margin_threshold=margin,
+        annual_payroll=payroll,
     )
     return projection.model_dump()
 
@@ -115,6 +129,9 @@ async def compute_all_years(
     assumptions = _assumptions_from_orm(assump_row, plan_id)
     inputs = PlanInputs.model_validate(plan_inputs)
     margin = float(getattr(assump_row, "margin_alert_threshold", 0.2) or 0.2)
+    payroll_by_year = {
+        y: await _payroll_for_cost(db, plan_id, plan_inputs, y) for y in range(1, 8)
+    }
     rows = calculate_all_years_cost_summary(
         products,
         cost_lookup(components),
@@ -122,16 +139,24 @@ async def compute_all_years(
         inputs,
         plan_id=plan_id,
         margin_threshold=margin,
+        payroll_by_year=payroll_by_year,
     )
     return [r.model_dump() for r in rows]
 
 
-def autofill_hints(inputs: PlanInputs, products: list[PlanProduct]) -> dict:
+async def autofill_hints(
+    db: AsyncSession,
+    plan_id: UUID,
+    inputs: PlanInputs,
+    products: list[PlanProduct],
+) -> dict:
     from bp_calc.capex import annual_depreciation_schedule, total_capex
     from bp_calc.cost import total_annual_payroll
 
     dep = annual_depreciation_schedule(inputs)
-    payroll = total_annual_payroll(inputs)
+    payroll = await _payroll_for_cost(db, plan_id, inputs.model_dump(), 1)
+    if payroll <= 0:
+        payroll = total_annual_payroll(inputs)
     ops = inputs.operations
     return {
         "annual_payroll": payroll,

@@ -144,7 +144,9 @@ async def get_cost_autofill(
 ):
     plan = await get_plan_for_user(plan_id, user, db)
     products = await load_products(db, plan_id)
-    hints = autofill_hints(PlanInputs.model_validate(plan.inputs or {}), products)
+    hints = await autofill_hints(
+        db, plan_id, PlanInputs.model_validate(plan.inputs or {}), products
+    )
     return CostAutofillResponse(**hints)
 
 

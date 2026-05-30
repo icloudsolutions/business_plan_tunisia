@@ -8,7 +8,6 @@ import {
   getCostAutofill,
   getUnitCostProjection,
   listCostComponents,
-  listProducts,
   type CostAutofill,
   type CostComponent,
   type PlanCostProjection,
@@ -16,8 +15,9 @@ import {
   upsertCostComponents,
   updateMarginThreshold,
 } from "@/lib/cost-api";
-import type { PlanProduct } from "@/lib/products-api";
+import { listProducts, type PlanProduct } from "@/lib/products-api";
 import type { Inputs } from "@/components/liasse-form-utils";
+import { get } from "@/components/liasse-form-utils";
 
 type Props = {
   planId: string;
@@ -142,6 +142,14 @@ export default function StepProductionCosts({ planId, planInputs, readOnly }: Pr
     if (!autofill || readOnly) return;
     const dep =
       autofill.depreciation_by_year[year - 1] ?? autofill.annual_depreciation_y1;
+    const rawMaterialRaw = get(planInputs, "operations.rawMaterialCost", "");
+    const packagingRaw = get(planInputs, "operations.packagingCost", "");
+    const wasteRaw = get(planInputs, "operations.wasteRate.value", "");
+    const rawMaterialCost =
+      rawMaterialRaw !== "" ? parseFloat(rawMaterialRaw) : undefined;
+    const packagingCost =
+      packagingRaw !== "" ? parseFloat(packagingRaw) : undefined;
+    const wastePct = wasteRaw !== "" ? parseFloat(wasteRaw) : undefined;
     setComponents((prev) => {
       const next = { ...prev };
       for (const p of products) {
@@ -149,10 +157,9 @@ export default function StepProductionCosts({ planId, planInputs, readOnly }: Pr
         const cur = next[k] ?? getComp(p.id);
         next[k] = {
           ...cur,
-          mp_price_per_kg: planInputs.operations?.rawMaterialCost ?? cur.mp_price_per_kg,
-          packaging_price_per_kg:
-            planInputs.operations?.packagingCost ?? cur.packaging_price_per_kg,
-          waste_pct: planInputs.operations?.wasteRate?.value ?? cur.waste_pct,
+          mp_price_per_kg: rawMaterialCost ?? cur.mp_price_per_kg,
+          packaging_price_per_kg: packagingCost ?? cur.packaging_price_per_kg,
+          waste_pct: wastePct ?? cur.waste_pct,
         };
       }
       return next;

@@ -39,6 +39,10 @@ docker compose up --build -d
 
 **Revenus multi-produits** : `GET/POST/PATCH/DELETE /api/plans/{id}/products`, `PUT /api/plans/{id}/revenue-assumptions`, `GET /api/plans/{id}/revenue-projection` (aperçu sync ou Celery via `POST`). Migration `008_plan_products_revenue`. Étape Liasse « Produits & Prix ».
 
+**Autres charges d'exploitation** : `GET/PUT /api/plans/{id}/other-charges/config`, `PUT /api/plans/{id}/other-charges/settings`, `GET /api/plans/{id}/other-charges/projection`, `POST /api/plans/{id}/other-charges/sync-liasse`. Migration `011_plan_other_charges`. Étape « Autres charges » (11 catégories, LF 2012 TFP/FOPROLOS, tableau Y1–Y7).
+
+**Masse salariale (RH)** : `GET/POST/PATCH/DELETE /api/plans/{id}/staff-roles`, `PUT /api/plans/{id}/headcount-plan`, `PUT /api/plans/{id}/payroll-assumptions`, `GET /api/plans/{id}/payroll-projection`, `POST /api/plans/{id}/payroll/sync-liasse`, `GET /api/plans/{id}/payroll/export?format=csv|html`. Migration `010_plan_payroll`. Étape « Ressources humaines » (effectifs Y1–Y7, CNSS, graphiques, export Liasse PDF). Les coûts imputables production alimentent le coût unitaire (`unit-cost-projection`).
+
 **Audit trail & versions** : chaque `PATCH` sur les champs du plan alimente `plan_audit_log` ; snapshots automatiques aux transitions de statut et à la soumission ; point manuel via l’icône horloge (« Créer un point de sauvegarde »). API : `GET/POST /api/plans/{id}/versions`, `GET .../versions/{vid}/diff`, `POST .../restore` (expert/admin), `GET /api/plans/{id}/audit-log`. Migration `007_plan_audit_log`.
 
 **Aide IA (Claude)** : dans le parcours Liasse, bouton « Aide IA » sur les champs financiers complexes ; `POST /api/plans/{id}/ai-assist`. Définir `ANTHROPIC_API_KEY` et optionnellement `ANTHROPIC_MODEL` (défaut `claude-sonnet-4-20250514`). Sans clé, l’API renvoie des réponses de démonstration. Migration `004_ai_suggestions` requise (`RUN_MIGRATIONS=true`).

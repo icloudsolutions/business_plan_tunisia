@@ -62,6 +62,105 @@ class BusinessPlan(Base):
         back_populates="plan", uselist=False
     )
     cost_components: Mapped[list["PlanProductCostComponent"]] = relationship(back_populates="plan")
+    staff_roles: Mapped[list["PlanStaffRole"]] = relationship(back_populates="plan")
+    payroll_assumptions: Mapped["PlanPayrollAssumptions | None"] = relationship(
+        back_populates="plan", uselist=False
+    )
+    other_charges_config: Mapped[list["PlanOtherChargesConfig"]] = relationship(
+        back_populates="plan"
+    )
+    other_charges_settings: Mapped["PlanOtherChargesSettings | None"] = relationship(
+        back_populates="plan", uselist=False
+    )
+
+
+class PlanOtherChargesSettings(Base):
+    __tablename__ = "plan_other_charges_settings"
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("business_plans.id"), primary_key=True
+    )
+    lf2012_exemption_5y: Mapped[bool] = mapped_column(Boolean, default=True)
+    projection_cache: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="other_charges_settings")
+
+
+class PlanOtherChargesConfig(Base):
+    __tablename__ = "plan_other_charges_config"
+    __table_args__ = (
+        Index("ix_plan_other_charges_plan_id", "plan_id"),
+        Index("ix_plan_other_charges_plan_category", "plan_id", "category", unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    category: Mapped[str] = mapped_column(String(32))
+    rule_type: Mapped[str] = mapped_column(String(32))
+    base_value: Mapped[float] = mapped_column(Float, default=0.0)
+    rate_or_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    inflation_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="other_charges_config")
+
+
+class PlanStaffRole(Base):
+    __tablename__ = "plan_staff_roles"
+    __table_args__ = (Index("ix_plan_staff_roles_plan_id", "plan_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    function_name: Mapped[str] = mapped_column(String(255), default="")
+    qualification: Mapped[str] = mapped_column(String(128), default="")
+    is_production_imputable: Mapped[bool] = mapped_column(Boolean, default=True)
+    base_monthly_salary: Mapped[float] = mapped_column(Float, default=0.0)
+    annual_raise_rate_override: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="staff_roles")
+    headcounts: Mapped[list["PlanStaffHeadcount"]] = relationship(
+        back_populates="staff_role", cascade="all, delete-orphan"
+    )
+
+
+class PlanStaffHeadcount(Base):
+    __tablename__ = "plan_staff_headcount"
+    __table_args__ = (
+        Index("ix_plan_staff_headcount_role_year", "staff_role_id", "year", unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    staff_role_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("plan_staff_roles.id")
+    )
+    year: Mapped[int] = mapped_column(Integer)
+    headcount: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    staff_role: Mapped["PlanStaffRole"] = relationship(back_populates="headcounts")
+
+
+class PlanPayrollAssumptions(Base):
+    __tablename__ = "plan_payroll_assumptions"
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("business_plans.id"), primary_key=True
+    )
+    annual_raise_rate: Mapped[float] = mapped_column(Float, default=0.06)
+    cnss_employer_rate: Mapped[float] = mapped_column(Float, default=0.1897)
+    projection_cache: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="payroll_assumptions")
 
 
 class PlanProduct(Base):
