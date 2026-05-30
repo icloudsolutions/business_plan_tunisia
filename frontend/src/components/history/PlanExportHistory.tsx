@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import EmptyState from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { downloadExport } from "@/lib/api";
 import { listPlanExports, type ExportJobSummary } from "@/lib/export-job-api";
 
@@ -71,7 +71,7 @@ export default function PlanExportHistory({ planId, active }: Props) {
   if (rows.length === 0) {
     return (
       <EmptyState
-        icon={<ArrowDownTrayIcon />}
+        icon={<ArrowDownTrayIcon aria-hidden />}
         title={t("emptyTitle")}
         description={t("emptyDescription")}
       />

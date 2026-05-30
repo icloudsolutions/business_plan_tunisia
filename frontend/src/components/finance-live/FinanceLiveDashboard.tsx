@@ -166,10 +166,10 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
-            title={tCommon("refresh")}
+            className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            aria-label={tCommon("refresh")}
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" aria-hidden />
           </button>
           <Link
             href={`/plans/${planId}`}

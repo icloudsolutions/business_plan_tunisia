@@ -1,22 +1,20 @@
 "use client";
 
-import { Link, usePathname } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
+import { usePathname } from "@/i18n/navigation";
 import LanguageToggle from "@/components/LanguageToggle";
+import Navbar, { NavLinks } from "@/components/nav/Navbar";
 import { FOCUS_RING } from "@/lib/a11y";
 import {
   Bell,
   Clock,
-  LayoutGrid,
   LogOut,
   Menu,
   Settings,
-  Wallet,
   X,
 } from "lucide-react";
-import Breadcrumb from "@/components/nav/Breadcrumb";
 import PlanHistoryDrawer from "@/components/history/PlanHistoryDrawer";
 import { useEffect, useState } from "react";
-import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
 import CompletionProgressBar from "@/components/completion/CompletionProgressBar";
 import { useDashboardNav } from "@/context/DashboardNavContext";
@@ -29,34 +27,12 @@ const ROLE_KEYS = {
   admin: "roleAdmin",
 } as const;
 
-const NAV_ICONS = {
-  "/": LayoutGrid,
-  "/finance": Wallet,
-  "/settings": Settings,
-  "/admin": Settings,
-} as const;
-
-const navLinkActive =
-  "border-b-2 border-indigo-600 text-indigo-700 font-semibold";
-const navLinkInactive = "text-gray-600 hover:text-indigo-600";
-
 function iconBtn(active: boolean) {
   return `flex h-9 w-9 items-center justify-center rounded-lg border transition ${FOCUS_RING} ${
     active
       ? "border-indigo-200 bg-indigo-50 text-indigo-700"
       : "border-navy-100 bg-white text-navy-700 shadow-sm hover:border-navy-200 hover:bg-navy-50"
   }`;
-}
-
-function isNavActive(href: string, pathname: string): boolean {
-  if (href === "/") {
-    return (
-      pathname === "/" ||
-      pathname === "" ||
-      pathname.startsWith("/plans")
-    );
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export default function DashboardTopNav() {
@@ -77,13 +53,6 @@ export default function DashboardTopNav() {
 
   const roleKey = ROLE_KEYS[user?.role as keyof typeof ROLE_KEYS] ?? "roleClient";
 
-  const navLinks = [
-    { href: "/", label: t("navPlans") },
-    { href: "/finance", label: t("navFinance") },
-    { href: "/settings", label: tNav("navSettings") },
-  ];
-  const adminNavLink = { href: "/admin", label: t("navAdmin") };
-
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -93,158 +62,127 @@ export default function DashboardTopNav() {
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen]);
 
-  return (
-    <header className="sticky top-0 z-50 border-b border-navy-800/10 bg-white/95 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6">
+  const brand = (
+    <>
+      <button
+        type="button"
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-navy-100 text-navy-700 md:hidden"
+        onClick={() => {
+          setMenuOpen(!menuOpen);
+          setNotifOpen(false);
+        }}
+        aria-expanded={menuOpen}
+        aria-label={tNav("menu")}
+      >
+        {menuOpen ? (
+          <X className="h-5 w-5" aria-hidden />
+        ) : (
+          <Menu className="h-5 w-5" aria-hidden />
+        )}
+      </button>
+      <Link href="/plans" className="flex shrink-0 items-center gap-2">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 font-display text-xs font-bold text-gold-400 shadow-md sm:h-10 sm:w-10 sm:text-sm">
+          BP
+        </span>
+        <span className="hidden min-w-0 sm:block">
+          <span className="block truncate font-display text-sm font-semibold leading-tight text-navy-800">
+            {t("appName")}
+          </span>
+          <span className="block truncate text-[10px] text-navy-500">{t("appTagline")}</span>
+        </span>
+      </Link>
+    </>
+  );
+
+  const trailing = (
+    <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
+      {planId && (
         <button
           type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-navy-100 text-navy-700 md:hidden"
-          onClick={() => {
-            setMenuOpen(!menuOpen);
-            setNotifOpen(false);
-          }}
-          aria-expanded={menuOpen}
-          aria-label={tNav("menu")}
+          onClick={() => setHistoryOpen(!historyOpen)}
+          className={iconBtn(historyOpen)}
+          aria-label={tNav("planHistory")}
+          title={tNav("planHistoryTitle")}
         >
-          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <Clock className="h-4 w-4" aria-hidden />
         </button>
+      )}
 
-        <Link href="/" className="flex shrink-0 items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-800 font-display text-xs font-bold text-gold-400 shadow-md sm:h-10 sm:w-10 sm:text-sm">
-            BP
-          </span>
-          <span className="hidden min-w-0 sm:block">
-            <span className="block truncate font-display text-sm font-semibold leading-tight text-navy-800">
-              {t("appName")}
-            </span>
-            <span className="block truncate text-[10px] text-navy-500">{t("appTagline")}</span>
-          </span>
+      {planId && planCompletion && (
+        <div className="hidden sm:block">
+          <CompletionProgressBar completion={planCompletion} compact />
+        </div>
+      )}
+
+      <div className="flex items-center gap-1 rounded-xl border border-navy-100/80 bg-navy-50/40 p-0.5">
+        <LanguageToggle />
+
+        <Link
+          href="/settings"
+          className={iconBtn(pathname.startsWith("/settings"))}
+          aria-label={tNav("navSettings")}
+          title={tNav("navSettings")}
+        >
+          <Settings className="h-4 w-4" aria-hidden />
         </Link>
 
-        <nav
-          className="ms-1 hidden items-stretch gap-1 md:flex"
-          aria-label={tNav("menu")}
-        >
-          {navLinks.map((link) => {
-            const Icon = NAV_ICONS[link.href as keyof typeof NAV_ICONS] ?? LayoutGrid;
-            const active = isNavActive(link.href, pathname);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                prefetch={link.href === "/finance" ? false : undefined}
-                className={`flex items-center gap-1.5 border-b-2 px-2.5 py-2 text-sm transition ${
-                  active ? navLinkActive : navLinkInactive
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-                <span className="max-w-[6.5rem] truncate xl:max-w-none">{link.label}</span>
-              </Link>
-            );
-          })}
-          <RoleGate role={["admin"]}>
-            <Link
-              href={adminNavLink.href}
-              className={`flex items-center gap-1.5 border-b-2 px-2.5 py-2 text-sm transition ${
-                isNavActive(adminNavLink.href, pathname)
-                  ? navLinkActive
-                  : navLinkInactive
-              }`}
-            >
-              <Settings className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
-              <span className="max-w-[6.5rem] truncate xl:max-w-none">
-                {adminNavLink.label}
-              </span>
-            </Link>
-          </RoleGate>
-        </nav>
-
-        <div className="hidden min-w-0 flex-1 items-center justify-center px-2 lg:flex">
-          <Breadcrumb />
-        </div>
-
-        <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
-          {planId && (
-            <button
-              type="button"
-              onClick={() => setHistoryOpen(!historyOpen)}
-              className={iconBtn(historyOpen)}
-              aria-label={tNav("planHistory")}
-              title={tNav("planHistoryTitle")}
-            >
-              <Clock className="h-4 w-4" />
-            </button>
-          )}
-
-          {planId && planCompletion && (
-            <div className="hidden sm:block">
-              <CompletionProgressBar completion={planCompletion} compact />
-            </div>
-          )}
-
-          <div className="flex items-center gap-1 rounded-xl border border-navy-100/80 bg-navy-50/40 p-0.5">
-            <LanguageToggle />
-
-            <Link
-              href="/settings"
-              className={iconBtn(pathname.startsWith("/settings"))}
-              aria-label={tNav("navSettings")}
-              title={tNav("navSettings")}
-            >
-              <Settings className="h-4 w-4" />
-            </Link>
-
-            <div className="relative">
-              <button
-                type="button"
-                className={`${iconBtn(false)} relative`}
-                onClick={() => {
-                  setNotifOpen(!notifOpen);
-                  setMenuOpen(false);
-                  if (unreadNotifications > 0) markNotificationsRead();
-                }}
-                aria-expanded={notifOpen}
-                aria-label={t("notifications")}
-              >
-                <Bell className="h-4 w-4" />
-                {unreadNotifications > 0 && (
-                  <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-navy-900">
-                    {unreadNotifications}
-                  </span>
-                )}
-              </button>
-              {notifOpen && (
-                <div className="absolute end-0 top-full z-[55] mt-1.5 w-72 rounded-xl border border-navy-100 bg-white p-3 shadow-lg ring-1 ring-navy-900/5">
-                  <p className="mb-2 text-xs font-semibold text-navy-800">
-                    {t("notifications")}
-                  </p>
-                  <ul className="space-y-2 text-xs text-navy-600">
-                    <li className="rounded-lg bg-navy-50 px-2 py-2">
-                      {tNav("notifExpertWaiting")}
-                    </li>
-                    <li className="rounded-lg bg-gold-50 px-2 py-2">
-                      {tNav("notifCompletion85")}
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <span className="hidden rounded-lg border border-gold-300/50 bg-gold-50/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-navy-800 md:inline">
-            {t(roleKey)}
-          </span>
-
+        <div className="relative">
           <button
             type="button"
-            onClick={logout}
-            className="hidden h-9 items-center gap-1.5 rounded-lg border border-navy-100 bg-white px-2.5 text-sm text-navy-600 shadow-sm transition hover:bg-navy-50 sm:inline-flex"
-            aria-label={t("logout")}
+            className={`${iconBtn(false)} relative`}
+            onClick={() => {
+              setNotifOpen(!notifOpen);
+              setMenuOpen(false);
+              if (unreadNotifications > 0) markNotificationsRead();
+            }}
+            aria-expanded={notifOpen}
+            aria-label={t("notifications")}
           >
-            <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-            <span className="hidden xl:inline">{t("logout")}</span>
+            <Bell className="h-4 w-4" aria-hidden />
+            {unreadNotifications > 0 && (
+              <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-navy-900">
+                {unreadNotifications}
+              </span>
+            )}
           </button>
+          {notifOpen && (
+            <div className="absolute end-0 top-full z-[55] mt-1.5 w-72 rounded-xl border border-navy-100 bg-white p-3 shadow-lg ring-1 ring-navy-900/5">
+              <p className="mb-2 text-xs font-semibold text-navy-800">
+                {t("notifications")}
+              </p>
+              <ul className="space-y-2 text-xs text-navy-600">
+                <li className="rounded-lg bg-navy-50 px-2 py-2">
+                  {tNav("notifExpertWaiting")}
+                </li>
+                <li className="rounded-lg bg-gold-50 px-2 py-2">
+                  {tNav("notifCompletion85")}
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
+      </div>
+
+      <span className="hidden rounded-lg border border-gold-300/50 bg-gold-50/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-navy-800 md:inline">
+        {t(roleKey)}
+      </span>
+
+      <button
+        type="button"
+        onClick={logout}
+        className="hidden h-9 items-center gap-1.5 rounded-lg border border-navy-100 bg-white px-2.5 text-sm text-navy-600 shadow-sm transition hover:bg-navy-50 sm:inline-flex"
+        aria-label={t("logout")}
+      >
+        <LogOut className="h-4 w-4 shrink-0" aria-hidden />
+        <span className="hidden xl:inline">{t("logout")}</span>
+      </button>
+    </div>
+  );
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-navy-800/10 bg-white/95 shadow-sm backdrop-blur-md">
+      <div className="mx-auto max-w-6xl px-3 sm:px-6">
+        <Navbar brand={brand} trailing={trailing} showBreadcrumb />
       </div>
 
       <PlanHistoryDrawer />
@@ -261,49 +199,7 @@ export default function DashboardTopNav() {
             <LanguageToggle />
           </div>
 
-          <ul className="space-y-0.5">
-            {navLinks.map((link) => {
-              const Icon = NAV_ICONS[link.href as keyof typeof NAV_ICONS] ?? LayoutGrid;
-              const active = isNavActive(link.href, pathname);
-              return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    prefetch={link.href === "/finance" ? false : undefined}
-                    onClick={() => setMenuOpen(false)}
-                    className={`flex items-center gap-3 border-s-2 px-3 py-2.5 text-sm ${
-                      active
-                        ? "border-indigo-600 font-semibold text-indigo-700"
-                        : "border-transparent text-gray-600 hover:text-indigo-600"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0 opacity-80" />
-                    {link.label}
-                  </Link>
-                </li>
-              );
-            })}
-            <RoleGate role={["admin"]}>
-              <li>
-                <Link
-                  href={adminNavLink.href}
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 border-s-2 px-3 py-2.5 text-sm ${
-                    isNavActive(adminNavLink.href, pathname)
-                      ? "border-indigo-600 font-semibold text-indigo-700"
-                      : "border-transparent text-gray-600 hover:text-indigo-600"
-                  }`}
-                >
-                  <Settings className="h-4 w-4 shrink-0 opacity-80" />
-                  {adminNavLink.label}
-                </Link>
-              </li>
-            </RoleGate>
-          </ul>
-
-          <div className="mt-3 border-t border-navy-100 px-1 pt-3 lg:hidden">
-            <Breadcrumb />
-          </div>
+          <NavLinks variant="mobile" onNavigate={() => setMenuOpen(false)} />
 
           <div className="mt-3 border-t border-navy-100 pt-3">
             <button

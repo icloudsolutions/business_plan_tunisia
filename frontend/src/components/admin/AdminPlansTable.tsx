@@ -113,7 +113,7 @@ export default function AdminPlansTable({
               <StatusBadge status={p.status} />
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
-              <p className="text-xs text-gray-400">{formatAdminDate(p.updated_at)}</p>
+              <p className="text-xs text-gray-600">{formatAdminDate(p.updated_at)}</p>
               <Link
                 href={`/plans/${p.id}`}
                 className={`${btnPrimary} shrink-0 text-center`}

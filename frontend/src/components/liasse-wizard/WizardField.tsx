@@ -15,6 +15,7 @@ import { useLocale } from "next-intl";
 import { metaFor, type FieldMeta } from "@/lib/liasse-wizard/field-meta";
 import { unitForField } from "@/lib/liasse-wizard/field-units";
 import type { AppLocale } from "@/i18n/routing";
+import { FOCUS_RING, FOCUS_RING_INPUT } from "@/lib/a11y";
 import { cn } from "@/lib/utils";
 
 type Props<T extends FieldValues> = {
@@ -106,11 +107,11 @@ export default function WizardField<T extends FieldValues>({
       {collab?.enabled && (
         <button
           type="button"
-          className="rounded p-0.5 text-orange-600 hover:bg-orange-100"
-          title="Commentaires sur ce champ"
+          className={cn("rounded p-0.5 text-orange-600 hover:bg-orange-100", FOCUS_RING)}
+          aria-label="Commentaires sur ce champ"
           onClick={() => collab.setActiveFieldKey(fieldKey)}
         >
-          <MessageSquare className="h-4 w-4" />
+          <MessageSquare className="h-4 w-4" aria-hidden />
         </button>
       )}
     </>
@@ -120,7 +121,8 @@ export default function WizardField<T extends FieldValues>({
     const reg = register(name);
     const locked = disabled || highlight;
     const selectClass = cn(
-      "mt-1 w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition focus:outline-none focus:ring-2",
+      "mt-1 w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition",
+      FOCUS_RING_INPUT,
       locked
         ? "cursor-not-allowed border-blue-200 bg-blue-50 text-blue-800"
         : "border-gray-200 bg-white text-gray-900 focus:border-indigo-500 focus:ring-indigo-100",

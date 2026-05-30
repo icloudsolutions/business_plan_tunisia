@@ -22,8 +22,10 @@ export default function StatusBadge({ status }: { status: string }) {
 
   return (
     <span className={`status-badge status-${key}`}>
-      <span aria-hidden="true">{symbol} </span>
-      {label}
+      <span className="sr-only">{label}</span>
+      <span aria-hidden="true">
+        {symbol} {label}
+      </span>
     </span>
   );
 }

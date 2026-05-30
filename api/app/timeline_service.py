@@ -9,6 +9,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bp_calc.kpi_dashboard import build_kpi_dashboard
+from bp_calc.loan import aggregate_loan_projections
 from bp_calc.projections import apply_scenario_to_inputs
 from bp_calc.timeline import (
     add_months,

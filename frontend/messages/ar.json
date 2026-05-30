@@ -67,9 +67,12 @@
     "stepReview": "مراجعة الخبير",
     "stepAdjust": "تعديل",
     "stepValidated": "معتمد",
-    "emptyPlansTitle": "لا توجد خطط حالياً",
+    "emptyPlansTitle": "لا توجد خطط",
     "emptyPlansDescription": "أنشئ أول خطة أعمال في 7 خطوات.",
     "emptyPlansCta": "خطة جديدة",
+    "emptyPlansSearchTitle": "لا نتائج",
+    "emptyPlansSearchDescription": "لا توجد خطة تطابق بحثك.",
+    "plansSearchPlaceholder": "البحث عن خطة…",
     "creatingPlan": "جاري إنشاء الخطة…",
     "backToPlans": "العودة إلى الخطط"
   },
@@ -94,7 +97,11 @@
     "download": "تنزيل {format}",
     "retry": "إعادة المحاولة",
     "failed": "فشل التصدير",
-    "formatUnavailable": "التنسيق غير متوفر لهذا التصدير"
+    "formatUnavailable": "التنسيق غير متوفر لهذا التصدير",
+    "statusPending": "في الانتظار",
+    "statusRunning": "جاري التوليد…",
+    "statusDone": "جاهز",
+    "statusError": "خطأ"
   },
   "status": {
     "DRAFT": "مسودة",

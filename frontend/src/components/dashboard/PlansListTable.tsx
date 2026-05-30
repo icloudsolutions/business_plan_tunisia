@@ -83,7 +83,7 @@ export default function PlansListTable({ plans, completionPct }: Props) {
                 <StatusBadge status={plan.status} />
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-600">
                   {formatUpdated(plan, locale, unknownDate)}
                 </p>
                 <PlanListPrimaryAction plan={plan} />

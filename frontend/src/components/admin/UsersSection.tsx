@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { UsersIcon } from "@heroicons/react/24/outline";
 import { Download, Mail, Search, UserPlus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import EmptyState from "@/components/ui/EmptyState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   bulkResetPassword,
   createAdminUser,
@@ -208,13 +208,13 @@ export default function UsersSection() {
               <p className="px-6 py-8 text-sm text-slate-500">Chargement…</p>
             ) : search.trim() && filteredUsers.length === 0 ? (
               <EmptyState
-                icon={<UserGroupIcon />}
+                icon={<UsersIcon aria-hidden />}
                 title={tAdmin("usersSearchEmptyTitle")}
                 description={tAdmin("usersSearchEmptyDescription")}
               />
             ) : users.length === 0 ? (
               <EmptyState
-                icon={<UserGroupIcon />}
+                icon={<UsersIcon aria-hidden />}
                 title={tAdmin("usersEmptyTitle")}
                 description={tAdmin("usersEmptyDescription")}
               />

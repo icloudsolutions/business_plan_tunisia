@@ -86,7 +86,11 @@ function ThreadBlock({
         </div>
       ))}
       <div className="mt-2 flex gap-2">
+        <label className="sr-only" htmlFor={`reply-${root.id}`}>
+          Répondre au commentaire
+        </label>
         <input
+          id={`reply-${root.id}`}
           className="min-w-0 flex-1 rounded border border-orange-200 bg-white px-2 py-1 text-xs"
           placeholder="Répondre…"
           value={replyText}
@@ -102,7 +106,7 @@ function ThreadBlock({
           }}
           aria-label="Envoyer le commentaire"
         >
-          <Send className="h-3.5 w-3.5" />
+          <Send className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
       {canResolve && (
@@ -214,19 +218,28 @@ export default function CollaborationSidebar({
                         ["flag", AlertTriangle, "text-amber-700 bg-amber-50"],
                         ["reject", XCircle, "text-red-700 bg-red-50"],
                       ] as const
-                    ).map(([st, Icon, cls]) => (
+                    ).map(([st, Icon, cls]) => {
+                      const reviewLabels = {
+                        approve: "Approuver la section",
+                        flag: "Signaler la section",
+                        reject: "Rejeter la section",
+                      } as const;
+                      return (
                       <button
                         key={st}
                         type="button"
-                        title={st}
-                        className={`rounded p-1 ${status === st ? cls + " ring-1 ring-current" : "text-navy-400 hover:bg-white"}`}
+                        title={reviewLabels[st]}
+                        aria-label={reviewLabels[st]}
+                        aria-pressed={status === st}
+                        className={`rounded p-1 ${status === st ? cls + " ring-1 ring-current" : "text-navy-600 hover:bg-white"}`}
                         onClick={() =>
                           collab.setSectionReview(s.id as SectionId, st)
                         }
                       >
-                        <Icon className="h-3.5 w-3.5" />
+                        <Icon className="h-3.5 w-3.5" aria-hidden />
                       </button>
-                    ))}
+                    );
+                    })}
                   </div>
                 </div>
               );
@@ -247,7 +260,11 @@ export default function CollaborationSidebar({
             </button>
           ) : (
             <div className="space-y-2">
+              <label htmlFor="adjustment-global-message" className="sr-only">
+                Message global pour le client
+              </label>
               <textarea
+                id="adjustment-global-message"
                 className="w-full rounded-lg border border-navy-200 px-2 py-1.5 text-xs"
                 rows={3}
                 placeholder="Message global pour le client (optionnel)…"
@@ -267,8 +284,9 @@ export default function CollaborationSidebar({
                   type="button"
                   className="rounded-lg border border-navy-200 px-2 py-1.5 text-xs"
                   onClick={() => setAdjustOpen(false)}
+                  aria-label="Annuler la demande d'ajustement"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4" aria-hidden />
                 </button>
               </div>
             </div>
@@ -317,7 +335,13 @@ export default function CollaborationSidebar({
                 />
               ))}
               <div className="mt-2 flex gap-2">
+                <label className="sr-only" htmlFor="collab-new-comment">
+                  {isExpert
+                    ? "Commentaire expert sur ce champ"
+                    : "Votre commentaire sur ce champ"}
+                </label>
                 <input
+                  id="collab-new-comment"
                   className="min-w-0 flex-1 rounded-lg border border-navy-200 px-2 py-1.5 text-xs"
                   placeholder={
                     isExpert
@@ -330,13 +354,14 @@ export default function CollaborationSidebar({
                 <button
                   type="button"
                   className="rounded-lg bg-navy-800 px-2 text-white"
+                  aria-label="Publier le commentaire"
                   onClick={async () => {
                     if (!newComment.trim()) return;
                     await collab.addComment(fieldKey, newComment.trim());
                     setNewComment("");
                   }}
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-4 w-4" aria-hidden />
                 </button>
               </div>
             </div>

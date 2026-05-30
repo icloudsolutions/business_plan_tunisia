@@ -60,7 +60,7 @@ function StepTooltipBody({
     <div className="space-y-0.5 text-start">
       <p className="font-semibold text-white">{label}</p>
       <p className="tabular-nums text-gray-300">{dateText}</p>
-      <p className="text-gray-400">{changedBy ?? noActorLabel}</p>
+      <p className="text-gray-600">{changedBy ?? noActorLabel}</p>
     </div>
   );
 }

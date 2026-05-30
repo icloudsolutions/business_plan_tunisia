@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { ChartBarIcon } from "@heroicons/react/24/outline";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { BarChart3 } from "lucide-react";
 import ChartLtr from "@/components/ui/ChartLtr";
 import ChartSuspense from "@/components/ui/ChartSuspense";
@@ -91,17 +92,12 @@ export default function FinanceKpiCockpit({
       )}
 
       {isEmpty && !isLoading && (
-        <div className="flex flex-col items-center py-16 text-gray-400">
-          <ChartBarIcon className="mb-3 h-12 w-12" aria-hidden />
-          <p className="font-medium text-gray-600">{t("emptyNoDataTitle")}</p>
-          <p className="mt-1 text-sm">{t("emptyNoDataSubtitle")}</p>
-          <Link
-            href="/plans"
-            className="mt-4 text-sm text-indigo-600 underline hover:text-indigo-700"
-          >
-            {t("emptyNoDataCta")}
-          </Link>
-        </div>
+        <EmptyState
+          icon={<ChartBarIcon aria-hidden />}
+          title={t("emptyNoDataTitle")}
+          description={t("emptyNoDataSubtitle")}
+          cta={{ label: t("emptyNoDataCta"), href: "/plans" }}
+        />
       )}
 
       {error && !isLoading && (

@@ -67,9 +67,12 @@
     "stepReview": "Expert review",
     "stepAdjust": "Adjustment",
     "stepValidated": "Validated",
-    "emptyPlansTitle": "No plans yet",
+    "emptyPlansTitle": "No plans",
     "emptyPlansDescription": "Create your first business plan in 7 steps.",
     "emptyPlansCta": "New plan",
+    "emptyPlansSearchTitle": "No results",
+    "emptyPlansSearchDescription": "No plan matches your search.",
+    "plansSearchPlaceholder": "Search plans…",
     "creatingPlan": "Creating plan…",
     "backToPlans": "Back to plans"
   },
@@ -94,7 +97,11 @@
     "download": "Download {format}",
     "retry": "Retry",
     "failed": "Export failed",
-    "formatUnavailable": "Format not available for this export"
+    "formatUnavailable": "Format not available for this export",
+    "statusPending": "Queued",
+    "statusRunning": "Generating…",
+    "statusDone": "Ready",
+    "statusError": "Error"
   },
   "status": {
     "DRAFT": "Draft",

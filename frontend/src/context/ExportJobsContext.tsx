@@ -57,7 +57,8 @@ export function ExportJobsProvider({ children }: { children: ReactNode }) {
         onComplete?: (formats: string[]) => void;
       }
     ) => {
-      const jobId = options?.jobId ?? (await exportPlan(planId)).id;
+      const jobId =
+        options?.jobId ?? (await exportPlan(planId, [format])).id;
       const key = jobKey(planId, jobId, format);
       setJobs((prev) => {
         if (prev.some((j) => j.key === key)) return prev;

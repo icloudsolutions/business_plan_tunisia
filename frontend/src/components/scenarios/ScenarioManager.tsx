@@ -172,7 +172,11 @@ export default function ScenarioManager({ planId, readOnly, onOfficialSet }: Pro
 
       {!readOnly && (
         <div className="flex flex-wrap gap-2">
+          <label htmlFor="scenario-custom-name" className="sr-only">
+            Nom du scénario personnalisé
+          </label>
           <input
+            id="scenario-custom-name"
             type="text"
             placeholder="Nom du scénario personnalisé"
             className="rounded-lg border border-navy-200 px-3 py-2 text-sm"

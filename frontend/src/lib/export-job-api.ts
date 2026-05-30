@@ -8,7 +8,20 @@ export type ExportJobStatus = {
   formats: string[];
   files: Record<string, string>;
   error?: string;
+  /** Present when the job completed successfully (authenticated download path). */
+  downloadUrl?: string;
 };
+
+/** Maps API / Celery statuses to monitor phases. */
+export function normalizeExportJobStatus(
+  raw: string | undefined
+): "pending" | "running" | "done" | "error" {
+  const s = (raw ?? "PENDING").toUpperCase();
+  if (s === "COMPLETED" || s === "SUCCESS") return "done";
+  if (s === "FAILED" || s === "FAILURE") return "error";
+  if (s === "STARTED" || s === "RUNNING") return "running";
+  return "pending";
+}
 
 export type ExportJobSummary = {
   id: string;

@@ -40,18 +40,24 @@ export default function LegacyExpertForm({ onCreated }: { onCreated?: () => void
       <p className="text-xs text-slate-500">
         POST /api/auth/admin/experts — en-tête <code className="rounded bg-slate-100 px-1">X-Admin-Key</code>
       </p>
+      <label htmlFor="legacy-expert-email" className="text-sm font-medium text-slate-700">
+        Email expert
+      </label>
       <input
+        id="legacy-expert-email"
         type="email"
-        placeholder="Email expert"
         className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
         autoComplete="off"
       />
+      <label htmlFor="legacy-expert-password" className="text-sm font-medium text-slate-700">
+        Mot de passe (8 caractères minimum)
+      </label>
       <input
+        id="legacy-expert-password"
         type="password"
-        placeholder="Mot de passe (8+)"
         className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -59,9 +65,12 @@ export default function LegacyExpertForm({ onCreated }: { onCreated?: () => void
         required
         autoComplete="new-password"
       />
+      <label htmlFor="legacy-expert-admin-key" className="text-sm font-medium text-slate-700">
+        Clé administrateur (X-Admin-Key)
+      </label>
       <input
+        id="legacy-expert-admin-key"
         type="password"
-        placeholder="X-Admin-Key (ADMIN_API_KEY)"
         className="w-full rounded-md border border-amber-200 bg-amber-50/50 px-3 py-2 font-mono text-sm"
         value={adminKey}
         onChange={(e) => setAdminKey(e.target.value)}

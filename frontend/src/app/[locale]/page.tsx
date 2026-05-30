@@ -1,12 +1,13 @@
-"use client";
+import { generatePageMetadata } from "@/lib/generate-page-metadata";
+import HomePageClient from "./HomePageClient";
 
-import AuthGuard from "@/components/AuthGuard";
-import PlansDashboard from "@/components/dashboard/PlansDashboard";
+type Props = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: Props) {
+  const { locale } = await params;
+  return generatePageMetadata(locale, "homeTitle", "homeDescription");
+}
 
 export default function HomePage() {
-  return (
-    <AuthGuard>
-      <PlansDashboard />
-    </AuthGuard>
-  );
+  return <HomePageClient />;
 }

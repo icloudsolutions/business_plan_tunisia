@@ -297,8 +297,9 @@ export default function StepProcurement({ planId, readOnly }: Props) {
                           type="button"
                           className="text-red-600"
                           onClick={() => void deleteRawMaterial(planId, m.id).then(load)}
+                          aria-label="Supprimer la matière première"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden />
                         </button>
                       )}
                     </td>

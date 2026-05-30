@@ -129,18 +129,24 @@ export default function NotificationsSection() {
           <option value="both">In-app + email</option>
         </select>
 
+        <label htmlFor="notif-broadcast-title" className="text-sm font-medium text-slate-700">
+          Titre
+        </label>
         <input
+          id="notif-broadcast-title"
           className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Titre"
         />
+        <label htmlFor="notif-broadcast-body" className="text-sm font-medium text-slate-700">
+          Message
+        </label>
         <textarea
+          id="notif-broadcast-body"
           className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
           rows={5}
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Message"
         />
 
         <Button onClick={() => void handleSend()}>Envoyer</Button>

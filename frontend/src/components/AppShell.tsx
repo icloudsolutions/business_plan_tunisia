@@ -1,9 +1,8 @@
 "use client";
 
-import { Link } from "@/i18n/navigation";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import LanguageToggle from "@/components/LanguageToggle";
-import RoleGate from "@/components/auth/RoleGate";
+import { NavLinks } from "@/components/nav/Navbar";
 import { useAuth } from "@/context/AuthContext";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -43,27 +42,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           <nav className="app-nav">
             <LanguageToggle className="me-2 shrink-0" />
-            <Link
-              href="/"
-              className={pathname === "/" ? "nav-link active" : "nav-link"}
-            >
-              Business Plans
-            </Link>
-            <Link
-              href="/finance"
-              prefetch={false}
-              className={pathname.startsWith("/finance") ? "nav-link active" : "nav-link"}
-            >
-              Cockpit coûts
-            </Link>
-            <RoleGate role={["admin"]}>
-              <Link
-                href="/admin"
-                className={pathname.startsWith("/admin") ? "nav-link active" : "nav-link"}
-              >
-                Administration
-              </Link>
-            </RoleGate>
+            <NavLinks className="flex items-center gap-1" />
           </nav>
 
           <div className="header-user">

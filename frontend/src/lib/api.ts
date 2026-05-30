@@ -299,10 +299,13 @@ export async function transitionPlan(id: string, action: string, message?: strin
   });
 }
 
-export async function exportPlan(id: string) {
+export async function exportPlan(
+  id: string,
+  formats: ("pdf" | "xlsx")[] = ["pdf", "xlsx"]
+) {
   return api<{ id: string }>(`/plans/${id}/export`, {
     method: "POST",
-    body: JSON.stringify({ formats: ["pdf", "xlsx"] }),
+    body: JSON.stringify({ formats }),
   });
 }
 

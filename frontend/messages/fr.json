@@ -67,9 +67,12 @@
     "stepReview": "Revue expert",
     "stepAdjust": "Ajustement",
     "stepValidated": "Validé",
-    "emptyPlansTitle": "Aucun plan pour l'instant",
+    "emptyPlansTitle": "Aucun plan",
     "emptyPlansDescription": "Créez votre premier business plan en 7 étapes.",
     "emptyPlansCta": "Nouveau plan",
+    "emptyPlansSearchTitle": "Aucun résultat",
+    "emptyPlansSearchDescription": "Aucun plan ne correspond à votre recherche.",
+    "plansSearchPlaceholder": "Rechercher un plan…",
     "creatingPlan": "Création du plan…",
     "backToPlans": "Retour aux plans"
   },
@@ -94,7 +97,11 @@
     "download": "Télécharger {format}",
     "retry": "Réessayer",
     "failed": "Échec de l'export",
-    "formatUnavailable": "Format non disponible pour cet export"
+    "formatUnavailable": "Format non disponible pour cet export",
+    "statusPending": "En attente",
+    "statusRunning": "Génération…",
+    "statusDone": "Prêt",
+    "statusError": "Erreur"
   },
   "status": {
     "DRAFT": "Brouillon",
@@ -329,7 +336,7 @@
     "cockpitSubtitle": "Indicateurs issus des plans validés (API live)",
     "emptyValidated": "Validez un plan pour accéder aux indicateurs financiers.",
     "emptyValidatedCta": "Voir mes plans",
-    "emptyNoDataTitle": "Aucune donnée disponible",
+    "emptyNoDataTitle": "Données non disponibles",
     "emptyNoDataSubtitle": "Validez un plan pour accéder aux indicateurs.",
     "emptyNoDataCta": "Voir mes plans →",
     "openFullCockpit": "Cockpit détaillé →",
@@ -382,7 +389,7 @@
   },
   "meta": {
     "siteDescription": "Plateforme collaborative de business plans conformes à la Liasse Unique TIA — projection 7 ans.",
-    "homeTitle": "Mes plans",
+    "homeTitle": "Mes Plans",
     "homeDescription": "Tableau de bord de vos business plans et création de nouveaux dossiers.",
     "plansTitle": "Plans",
     "plansDescription": "Liste de vos business plans et accès rapide à chaque dossier.",
