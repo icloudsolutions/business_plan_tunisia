@@ -1,6 +1,7 @@
 import type { AppLocale } from "@/i18n/routing";
 import frLiasse from "../../../messages/liasse-fr.json";
 import arLiasse from "../../../messages/liasse-ar.json";
+import enLiasse from "../../../messages/liasse-en.json";
 
 export type FieldMeta = {
   label: string;
@@ -14,6 +15,7 @@ type LiasseMessages = typeof frLiasse;
 const BY_LOCALE: Record<AppLocale, LiasseMessages> = {
   fr: frLiasse,
   ar: arLiasse,
+  en: { ...frLiasse, steps: enLiasse.steps, fallback: enLiasse.fallback },
 };
 
 export function stepMetaFor(step: string, locale: AppLocale = "fr") {
@@ -26,8 +28,9 @@ export function metaFor(
   fallbackLabel: string,
   locale: AppLocale = "fr"
 ): FieldMeta {
-  const fields = BY_LOCALE[locale].fields as Record<string, FieldMeta>;
-  const fb = BY_LOCALE[locale].fallback;
+  const pack = BY_LOCALE[locale];
+  const fields = pack.fields as Record<string, FieldMeta>;
+  const fb = pack.fallback;
   return (
     fields[path] ?? {
       label: fallbackLabel,

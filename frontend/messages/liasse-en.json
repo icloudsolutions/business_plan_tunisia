@@ -1,0 +1,62 @@
+{
+  "steps": {
+    "general": {
+      "title": "General information",
+      "explainer": "Company identity as on the commercial register. Feeds the cover page of your business plan."
+    },
+    "investments": {
+      "title": "Investments",
+      "explainer": "Fixed assets (machinery, lines, software). Total CAPEX drives 7-year depreciation."
+    },
+    "financing": {
+      "title": "Financing",
+      "explainer": "Equity / debt, up to 3 loan tranches, amortization schedule, annual summary and debt chart."
+    },
+    "operations": {
+      "title": "Operations",
+      "explainer": "Production and unit cost assumptions. Drive revenue and gross margin by year."
+    },
+    "timeline": {
+      "title": "Implementation timeline",
+      "explainer": "Gantt chart (M1–M18), commercial start delay and milestones. Delay reduces year-1 revenue."
+    },
+    "procurement": {
+      "title": "Procurement",
+      "explainer": "Raw materials, BOMs, stock and purchase plan Y1–Y7. Feeds purchases, supplier WC and deductible VAT."
+    },
+    "products": {
+      "title": "Products & pricing",
+      "explainer": "Multi-product catalogue, rebates, Y2–Y7 growth and capacity utilisation."
+    },
+    "pricing": {
+      "title": "Selling prices",
+      "explainer": "Buy/sell vs. market grid, gross margin per product, price sensitivity."
+    },
+    "productionCosts": {
+      "title": "Production costs",
+      "explainer": "Unit cost per product (RM, packaging, energy, labour, depreciation, waste) and margin."
+    },
+    "hr": {
+      "title": "Human resources",
+      "explainer": "Headcount and payroll. Social charges per Tunisian model rules."
+    },
+    "otherCharges": {
+      "title": "Other operating expenses",
+      "explainer": "Expenses by category (% revenue, % investment or flat, indexed over 7 years)."
+    },
+    "tva": {
+      "title": "VAT & tax",
+      "explainer": "VAT collected / deductible by category, supplier and customer balances, export table."
+    },
+    "financial": {
+      "title": "Financial indicators",
+      "explainer": "Working capital, % of revenue charges and tax. Final step before validation."
+    }
+  },
+  "fields": {},
+  "fallback": {
+    "hint": "Value used in the 7-year plan calculation.",
+    "where": "Business plan or internal data.",
+    "example": "—"
+  }
+}

@@ -36,6 +36,17 @@ _COLUMN_PATCHES: list[tuple[str, str, str]] = [
         "snapshot",
         "ALTER TABLE plan_versions ADD COLUMN snapshot JSONB",
     ),
+    (
+        "users",
+        "preferred_locale",
+        "ALTER TABLE users ADD COLUMN preferred_locale VARCHAR(8) NOT NULL DEFAULT 'fr'",
+    ),
+    ("users", "timezone", "ALTER TABLE users ADD COLUMN timezone VARCHAR(64)"),
+    (
+        "users",
+        "email_notifications_enabled",
+        "ALTER TABLE users ADD COLUMN email_notifications_enabled BOOLEAN NOT NULL DEFAULT true",
+    ),
 ]
 
 

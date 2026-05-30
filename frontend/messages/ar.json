@@ -5,6 +5,7 @@
     "navPlans": "خططي",
     "navFinance": "لوحة التكاليف",
     "navAdmin": "الإدارة",
+    "navSettings": "الملف والإعدادات",
     "logout": "تسجيل الخروج",
     "notifications": "الإشعارات",
     "roleClient": "عميل",
@@ -167,6 +168,30 @@
   "language": {
     "fr": "Français",
     "ar": "العربية",
+    "en": "English",
     "switchTo": "تغيير اللغة"
+  },
+  "settings": {
+    "title": "الملف والإعدادات",
+    "subtitle": "الحساب واللغة والإشعارات",
+    "account": "الحساب",
+    "emailReadOnly": "البريد (غير قابل للتعديل)",
+    "displayName": "الاسم المعروض",
+    "displayNamePlaceholder": "اسمك أو شركتك",
+    "role": "الدور",
+    "memberSince": "عضو منذ",
+    "preferences": "التفضيلات",
+    "languageHint": "يُحفظ في ملفك ويُطبّق في الزيارة القادمة.",
+    "timezone": "المنطقة الزمنية",
+    "timezoneHint": "للتواريخ وطوابع الإشعارات.",
+    "emailNotifications": "إشعارات البريد",
+    "emailNotificationsHint": "تحديثات سير العمل وتعليقات الخبير.",
+    "enabled": "مفعّلة",
+    "disabled": "معطّلة",
+    "save": "حفظ",
+    "saving": "جاري الحفظ…",
+    "saved": "تم حفظ التفضيلات",
+    "saveError": "فشل الحفظ",
+    "languageApplied": "تم تحديث اللغة"
   }
 }

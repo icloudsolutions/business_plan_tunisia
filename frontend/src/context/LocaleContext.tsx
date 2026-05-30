@@ -16,6 +16,7 @@ export type TranslationKey =
   | "navPlans"
   | "navFinance"
   | "navAdmin"
+  | "navSettings"
   | "logout"
   | "notifications"
   | "roleClient"
@@ -54,6 +55,7 @@ const NAV_KEYS = new Set<string>([
   "navPlans",
   "navFinance",
   "navAdmin",
+  "navSettings",
   "logout",
   "notifications",
   "roleClient",

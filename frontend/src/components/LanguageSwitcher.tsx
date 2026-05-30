@@ -3,26 +3,43 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { usePathname, useRouter } from "@/i18n/navigation";
-import { LOCALE_COOKIE, LOCALE_STORAGE_KEY, type AppLocale } from "@/i18n/routing";
-
-const LOCALES: AppLocale[] = ["fr", "ar"];
+import {
+  LOCALE_COOKIE,
+  LOCALE_STORAGE_KEY,
+  locales,
+  type AppLocale,
+} from "@/i18n/routing";
+import { useAuth } from "@/context/AuthContext";
+import { updateProfile } from "@/lib/api";
 
 const FLAGS: Record<AppLocale, string> = {
   fr: "🇫🇷",
   ar: "🇹🇳",
+  en: "🇬🇧",
 };
 
-export default function LanguageSwitcher() {
+type Props = {
+  /** Persist locale to user profile when signed in */
+  syncProfile?: boolean;
+};
+
+export default function LanguageSwitcher({ syncProfile = false }: Props) {
   const locale = useLocale() as AppLocale;
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
   const t = useTranslations("language");
+  const { user, refreshUser } = useAuth();
 
   const switchLocale = (next: AppLocale) => {
     if (next === locale) return;
     document.cookie = `${LOCALE_COOKIE}=${next};path=/;max-age=${60 * 60 * 24 * 365};samesite=lax`;
     localStorage.setItem(LOCALE_STORAGE_KEY, next);
+    if (syncProfile && user) {
+      void updateProfile({ preferred_locale: next })
+        .then(() => refreshUser())
+        .catch(() => {});
+    }
     startTransition(() => {
       router.replace(pathname, { locale: next });
     });
@@ -34,7 +51,7 @@ export default function LanguageSwitcher() {
       role="group"
       aria-label={t("switchTo")}
     >
-      {LOCALES.map((l) => (
+      {locales.map((l) => (
         <button
           key={l}
           type="button"

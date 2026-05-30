@@ -2,7 +2,7 @@
 
 import { Link, usePathname } from "@/i18n/navigation";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { Bell, ChevronRight, Clock, LogOut, Menu, X } from "lucide-react";
+import { Bell, ChevronRight, Clock, LogOut, Menu, Settings, X } from "lucide-react";
 import PlanHistoryDrawer from "@/components/history/PlanHistoryDrawer";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -40,6 +40,11 @@ export default function DashboardTopNav() {
   const navLinks = [
     { href: "/", label: t("navPlans"), active: pathname === "/" || pathname === "" },
     { href: "/finance", label: t("navFinance"), active: pathname.startsWith("/finance") },
+    {
+      href: "/settings",
+      label: tNav("navSettings"),
+      active: pathname.startsWith("/settings"),
+    },
     ...(isAdmin
       ? [{ href: "/admin", label: t("navAdmin"), active: pathname.startsWith("/admin") }]
       : []),
@@ -133,6 +138,19 @@ export default function DashboardTopNav() {
             <CompletionProgressBar completion={planCompletion} compact />
           )}
           <LanguageSwitcher />
+
+          <Link
+            href="/settings"
+            className={`rounded-lg border p-2 transition ${
+              pathname.startsWith("/settings")
+                ? "border-gold-400 bg-gold-50 text-gold-800"
+                : "border-navy-100 text-navy-700 hover:bg-navy-50"
+            }`}
+            aria-label={tNav("navSettings")}
+            title={tNav("navSettings")}
+          >
+            <Settings className="h-5 w-5" />
+          </Link>
 
           <span className="hidden rounded-md border border-gold-300/60 bg-gold-50 px-2 py-1 text-[10px] font-bold tracking-wider text-navy-800 sm:inline">
             {t(roleKey)}

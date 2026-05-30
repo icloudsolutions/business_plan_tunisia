@@ -7,12 +7,14 @@ export type DateFormatOptions = {
 };
 
 const FR_TAG = "fr-TN";
+const EN_TAG = "en-TN";
 const AR_TAG = "ar-TN-u-nu-arab";
 
 function intlLocale(locale: AppLocale, hijri?: boolean): string {
   if (locale === "ar") {
     return hijri ? "ar-TN-u-ca-islamic-u-nu-arab" : AR_TAG;
   }
+  if (locale === "en") return EN_TAG;
   return FR_TAG;
 }
 
@@ -34,7 +36,8 @@ export function formatCurrency(value: number, locale: AppLocale): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return locale === "ar" ? `${formatted} د.ت` : `${formatted} DT`;
+  if (locale === "ar") return `${formatted} د.ت`;
+  return `${formatted} TND`;
 }
 
 export function formatPercent(value: number, locale: AppLocale): string {

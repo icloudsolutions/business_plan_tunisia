@@ -12,9 +12,13 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+SUPPORTED_LOCALES = frozenset({"fr", "ar", "en"})
+
+
 class UserRegister(BaseModel):
     email: str
     password: str
+    preferred_locale: Literal["fr", "ar", "en"] | None = None
 
     @field_validator("password")
     @classmethod
@@ -59,12 +63,30 @@ class UserResponse(BaseModel):
     email: str
     role: str
     display_name: str | None = None
+    preferred_locale: str = "fr"
+    timezone: str | None = None
+    email_notifications_enabled: bool = True
     status: str = "active"
     last_active_at: datetime | None = None
     created_at: datetime | None = None
 
     class Config:
         from_attributes = True
+
+
+class UserProfileUpdate(BaseModel):
+    display_name: str | None = Field(None, max_length=255)
+    preferred_locale: Literal["fr", "ar", "en"] | None = None
+    timezone: str | None = Field(None, max_length=64)
+    email_notifications_enabled: bool | None = None
+
+    @field_validator("display_name")
+    @classmethod
+    def strip_display_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        s = v.strip()
+        return s or None
 
 
 class AdminUserRow(UserResponse):

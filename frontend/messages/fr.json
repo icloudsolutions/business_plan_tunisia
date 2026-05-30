@@ -5,6 +5,7 @@
     "navPlans": "Mes plans",
     "navFinance": "Cockpit coûts",
     "navAdmin": "Administration",
+    "navSettings": "Profil & préférences",
     "logout": "Déconnexion",
     "notifications": "Notifications",
     "roleClient": "CLIENT",
@@ -167,6 +168,30 @@
   "language": {
     "fr": "Français",
     "ar": "العربية",
+    "en": "English",
     "switchTo": "Changer la langue"
+  },
+  "settings": {
+    "title": "Profil & préférences",
+    "subtitle": "Compte, langue et notifications",
+    "account": "Compte",
+    "emailReadOnly": "Email (non modifiable)",
+    "displayName": "Nom affiché",
+    "displayNamePlaceholder": "Votre nom ou société",
+    "role": "Rôle",
+    "memberSince": "Membre depuis",
+    "preferences": "Préférences",
+    "languageHint": "Enregistré sur votre profil et appliqué à la prochaine visite.",
+    "timezone": "Fuseau horaire",
+    "timezoneHint": "Utilisé pour les dates et horodatages.",
+    "emailNotifications": "Notifications email",
+    "emailNotificationsHint": "Mises à jour workflow et commentaires expert.",
+    "enabled": "Activées",
+    "disabled": "Désactivées",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Préférences enregistrées",
+    "saveError": "Échec de l'enregistrement",
+    "languageApplied": "Langue mise à jour"
   }
 }

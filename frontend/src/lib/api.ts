@@ -1,6 +1,18 @@
 import { clearToken, getToken } from "./auth-storage";
+import { locales, type AppLocale } from "@/i18n/routing";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+
+function isAppLocale(value: string): value is AppLocale {
+  return (locales as readonly string[]).includes(value);
+}
+
+export function loginPathForStoredLocale(): string {
+  if (typeof localStorage === "undefined") return "/fr/login";
+  const loc = localStorage.getItem("bp_locale") || "fr";
+  const segment = isAppLocale(loc) ? loc : "fr";
+  return `/${segment}/login`;
+}
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
@@ -14,13 +26,9 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
   if (res.status === 401 && typeof window !== "undefined") {
     clearToken();
-    const onLogin = window.location.pathname.startsWith("/login");
+    const onLogin = /\/login\/?$/.test(window.location.pathname);
     if (!onLogin) {
-      const loc =
-        typeof localStorage !== "undefined"
-          ? localStorage.getItem("bp_locale") || "fr"
-          : "fr";
-      window.location.href = `/${loc === "ar" ? "ar" : "fr"}/login`;
+      window.location.href = loginPathForStoredLocale();
     }
     throw new Error("Session expirée — reconnectez-vous");
   }
@@ -37,7 +45,18 @@ export interface User {
   id: string;
   email: string;
   role: string;
+  display_name?: string | null;
+  preferred_locale?: AppLocale | string;
+  timezone?: string | null;
+  email_notifications_enabled?: boolean;
   created_at?: string;
+}
+
+export interface UserProfileUpdate {
+  display_name?: string | null;
+  preferred_locale?: AppLocale;
+  timezone?: string | null;
+  email_notifications_enabled?: boolean;
 }
 
 export interface Plan {
@@ -91,10 +110,21 @@ export async function login(email: string, password: string) {
   });
 }
 
-export async function register(email: string, password: string) {
+export async function register(
+  email: string,
+  password: string,
+  preferred_locale?: AppLocale
+) {
   return api<User>("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, preferred_locale }),
+  });
+}
+
+export async function updateProfile(body: UserProfileUpdate): Promise<User> {
+  return api<User>("/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify(body),
   });
 }
 

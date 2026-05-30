@@ -17,8 +17,10 @@ from app.models import User
 from app.schemas import (
     AdminUserCreate,
     ExpertCreate,
+    SUPPORTED_LOCALES,
     TokenResponse,
     UserLogin,
+    UserProfileUpdate,
     UserRegister,
     UserResponse,
 )
@@ -31,10 +33,13 @@ async def register(body: UserRegister, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    locale = body.preferred_locale if body.preferred_locale in SUPPORTED_LOCALES else "fr"
     user = User(
         email=body.email,
         hashed_password=hash_password(body.password),
         role="client",
+        preferred_locale=locale,
+        timezone="Africa/Tunis",
     )
     db.add(user)
     await db.commit()
@@ -58,6 +63,23 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 async def me(user: User = Depends(get_current_user)):
+    return user
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    body: UserProfileUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    data = body.model_dump(exclude_unset=True)
+    if "preferred_locale" in data and data["preferred_locale"] not in SUPPORTED_LOCALES:
+        raise HTTPException(status_code=400, detail="Locale non supportée")
+    for key, value in data.items():
+        setattr(user, key, value)
+    user.last_active_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(user)
     return user
 
 
