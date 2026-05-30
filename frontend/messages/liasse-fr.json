@@ -10,7 +10,7 @@
     },
     "financing": {
       "title": "Financement",
-      "explainer": "Répartition entre fonds propres et emprunt bancaire. Le plan vérifie que le financement couvre bien les investissements."
+      "explainer": "Fonds propres / dette, jusqu'à 3 tranches d'emprunt (CMT, leasing…), tableau d'amortissement trimestriel avec différé, synthèse annuelle et graphique encours / intérêts."
     },
     "operations": {
       "title": "Exploitation",

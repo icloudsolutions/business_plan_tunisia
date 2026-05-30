@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -786,6 +786,60 @@ class TvaSettingsUpdate(BaseModel):
 
 
 class TvaProjectionResponse(BaseModel):
+    projection: dict
+
+
+class PlanLoanCreate(BaseModel):
+    lender_name: str = Field(default="", max_length=255)
+    amount: float = Field(ge=0, default=0)
+    rate: float = Field(ge=0, le=1, default=0.083)
+    term_years: int = Field(ge=1, le=30, default=7)
+    grace_months: int = Field(ge=0, le=120, default=12)
+    start_date: date | None = None
+    frequency: str = Field(default="quarterly", pattern="^(quarterly|annual)$")
+    sort_order: int | None = None
+
+
+class PlanLoanUpdate(BaseModel):
+    lender_name: str | None = Field(None, max_length=255)
+    amount: float | None = Field(None, ge=0)
+    rate: float | None = Field(None, ge=0, le=1)
+    term_years: int | None = Field(None, ge=1, le=30)
+    grace_months: int | None = Field(None, ge=0, le=120)
+    start_date: date | None = None
+    frequency: str | None = Field(None, pattern="^(quarterly|annual)$")
+    sort_order: int | None = None
+
+
+class PlanLoanResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    lender_name: str
+    amount: float
+    rate: float
+    term_years: int
+    grace_months: int
+    start_date: date | None
+    frequency: str
+    sort_order: int
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class LoanProjectionResponse(BaseModel):
+    projection: dict
+
+
+class LoanSyncResponse(BaseModel):
+    message: str
+    loan_count: int
+    primary_amount: float
+
+
+class BalanceSheetResponse(BaseModel):
+    scenario: str = "base"
     projection: dict
 
 

@@ -11,6 +11,8 @@ from bp_schema.other_charges import (
     CATEGORY_LABELS,
 )
 from bp_schema.tva_module import TvaConfig, TvaProjection, TvaConfigCategory, guess_product_tva_profile
+from bp_schema.loan_plan import PlanLoan, CombinedLoanProjection, LoanFrequency, MAX_LOANS_PER_PLAN
+from bp_schema.balance_sheet import BalanceSheetProjection, BalanceSheetYear
 from bp_schema.completion import compute_plan_completion, get_required_missing_paths
 from bp_schema.validation import validate_draft_inputs
 
@@ -41,6 +43,12 @@ __all__ = [
     "TvaProjection",
     "TvaConfigCategory",
     "guess_product_tva_profile",
+    "PlanLoan",
+    "CombinedLoanProjection",
+    "LoanFrequency",
+    "MAX_LOANS_PER_PLAN",
+    "BalanceSheetProjection",
+    "BalanceSheetYear",
     "validate_draft_inputs",
     "compute_plan_completion",
     "get_required_missing_paths",

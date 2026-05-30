@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -74,6 +74,26 @@ class BusinessPlan(Base):
     )
     tva_config: Mapped[list["PlanTvaConfig"]] = relationship(back_populates="plan")
     tva_settings: Mapped["PlanTvaSettings | None"] = relationship(back_populates="plan", uselist=False)
+    loans: Mapped[list["PlanLoan"]] = relationship(back_populates="plan")
+
+
+class PlanLoan(Base):
+    __tablename__ = "plan_loans"
+    __table_args__ = (Index("ix_plan_loans_plan_id", "plan_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    lender_name: Mapped[str] = mapped_column(String(255), default="")
+    amount: Mapped[float] = mapped_column(Float, default=0.0)
+    rate: Mapped[float] = mapped_column(Float, default=0.083)
+    term_years: Mapped[int] = mapped_column(Integer, default=7)
+    grace_months: Mapped[int] = mapped_column(Integer, default=12)
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    frequency: Mapped[str] = mapped_column(String(16), default="quarterly")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="loans")
 
 
 class PlanTvaSettings(Base):

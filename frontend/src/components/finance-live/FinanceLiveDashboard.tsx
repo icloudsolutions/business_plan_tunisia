@@ -25,13 +25,15 @@ import KpiCards from "./KpiCards";
 import ResultsTab from "./tabs/ResultsTab";
 import TreasuryTab from "./tabs/TreasuryTab";
 import InvestmentsTab from "./tabs/InvestmentsTab";
+import BalanceSheetTab from "./tabs/BalanceSheetTab";
 
-type TabId = "results" | "treasury" | "investments" | "kpis";
+type TabId = "results" | "treasury" | "investments" | "balance" | "kpis";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "results", label: "Résultats" },
   { id: "treasury", label: "Trésorerie" },
   { id: "investments", label: "Investissements" },
+  { id: "balance", label: "Bilan prévisionnel" },
   { id: "kpis", label: "Indicateurs clés" },
 ];
 
@@ -310,7 +312,9 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           ))}
         </nav>
 
-        {loading || calcStatus ? (
+        {tab === "balance" ? (
+          <BalanceSheetTab planId={planId} scenario={scenario} />
+        ) : loading || calcStatus ? (
           <ChartSkeleton height={320} />
         ) : !active ? (
           <p className="text-sm text-slate-600">

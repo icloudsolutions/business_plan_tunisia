@@ -25,6 +25,8 @@ from app.routers import (
     payroll_router,
     other_charges_router,
     tva_router,
+    loans_router,
+    balance_sheet_router,
     ws_router,
 )
 
@@ -90,6 +92,8 @@ app.include_router(cost_router.router, prefix="/api")
 app.include_router(payroll_router.router, prefix="/api")
 app.include_router(other_charges_router.router, prefix="/api")
 app.include_router(tva_router.router, prefix="/api")
+app.include_router(loans_router.router, prefix="/api")
+app.include_router(balance_sheet_router.router, prefix="/api")
 app.include_router(ai_router.router, prefix="/api")
 app.include_router(email_router.router, prefix="/api")
 app.include_router(collaboration_router.router, prefix="/api")

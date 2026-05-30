@@ -218,6 +218,7 @@ async def delete_plan(
         PlanOtherChargesSettings,
         PlanTvaConfig,
         PlanTvaSettings,
+        PlanLoan,
         PlanPayrollAssumptions,
         PlanProduct,
         PlanProductCostComponent,
@@ -242,6 +243,7 @@ async def delete_plan(
         PlanOtherChargesSettings,
         PlanTvaConfig,
         PlanTvaSettings,
+        PlanLoan,
         CalcJob,
     ):
         await db.execute(sql_delete(model).where(model.plan_id == pid))

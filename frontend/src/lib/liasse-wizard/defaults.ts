@@ -36,7 +36,7 @@ export function defaultFormValues(): LiasseFormValues {
     financing: {
       equityRatio: 0.3,
       debtRatio: 0.7,
-      loan: { rate: 0.083, years: 7, graceMonthsPrincipal: 0 },
+      loan: { rate: 0.083, years: 7, graceMonthsPrincipal: 12 },
     },
     operations: {
       capacityPerMinute: 0,

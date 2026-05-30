@@ -39,6 +39,10 @@ docker compose up --build -d
 
 **Revenus multi-produits** : `GET/POST/PATCH/DELETE /api/plans/{id}/products`, `PUT /api/plans/{id}/revenue-assumptions`, `GET /api/plans/{id}/revenue-projection` (aperçu sync ou Celery via `POST`). Migration `008_plan_products_revenue`. Étape Liasse « Produits & Prix ».
 
+**Bilan prévisionnel** : `GET /api/plans/{id}/balance-sheet?scenario=base|pessimistic|optimistic`. Onglet « Bilan prévisionnel » du cockpit finance (ACTIFS / PASSIFS Y1–Y7, ratios BFR, composition empilée).
+
+**Emprunts & amortissement** : `GET/POST/PATCH/DELETE /api/plans/{id}/loans`, `GET /api/plans/{id}/loan-projection`, `POST /api/plans/{id}/loans/sync-liasse`. Migration `013_plan_loans`. Étape Financement : tranches (max 3), tableau trimestriel, pivot annuel, graphique dual-axis. Moteur `bp_calc.loan` alimente P&L / trésorerie (intérêts, principal, encours).
+
 **TVA & fiscalité** : `GET/PUT /api/plans/{id}/tva/config`, `GET/PUT /api/plans/{id}/tva/settings`, `GET /api/plans/{id}/tva/projection`, `GET /api/plans/{id}/tva/export?format=csv|html`. Migration `012_plan_tva`. Étape « TVA & Fiscalité » (taux par produit/poste, solde annuel, waterfall, créances/dettes 1 mois TTC).
 
 **Autres charges d'exploitation** : `GET/PUT /api/plans/{id}/other-charges/config`, `PUT /api/plans/{id}/other-charges/settings`, `GET /api/plans/{id}/other-charges/projection`, `POST /api/plans/{id}/other-charges/sync-liasse`. Migration `011_plan_other_charges`. Étape « Autres charges » (11 catégories, LF 2012 TFP/FOPROLOS, tableau Y1–Y7).

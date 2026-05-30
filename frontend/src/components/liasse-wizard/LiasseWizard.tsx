@@ -56,6 +56,7 @@ const PLAN_SCOPED_STEPS = [
   "hr",
   "otherCharges",
   "tva",
+  "financing",
 ] as const;
 type PlanScopedStep = (typeof PLAN_SCOPED_STEPS)[number];
 
@@ -65,7 +66,6 @@ const STEP_COMPONENTS: Record<
 > = {
   general: StepGeneral,
   investments: StepInvestments,
-  financing: StepFinancing,
   operations: StepOperations,
   financial: StepFinancial,
 };
@@ -279,12 +279,18 @@ export default function LiasseWizard({
                     id === "productionCosts" ||
                     id === "hr" ||
                     id === "otherCharges" ||
-                    id === "tva"
+                    id === "tva" ||
+                    id === "financing"
                       ? null
                       : STEP_COMPONENTS[
                           id as Exclude<
                             WizardStepId,
-                            "products" | "productionCosts" | "hr" | "otherCharges" | "tva"
+                            | "products"
+                            | "productionCosts"
+                            | "hr"
+                            | "otherCharges"
+                            | "tva"
+                            | "financing"
                           >
                         ];
                   return (
@@ -307,6 +313,8 @@ export default function LiasseWizard({
                         <StepOtherCharges planId={planId} readOnly={readOnly} />
                       ) : id === "tva" ? (
                         <StepTva planId={planId} readOnly={readOnly} />
+                      ) : id === "financing" ? (
+                        <StepFinancing planId={planId} readOnly={readOnly} />
                       ) : Body ? (
                         <Body readOnly={readOnly} />
                       ) : null}
