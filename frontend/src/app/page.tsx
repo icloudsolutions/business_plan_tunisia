@@ -5,8 +5,76 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
 import StatusBadge from "@/components/StatusBadge";
-import { createPlan, listPlans, type Plan } from "@/lib/api";
+import { createPlan, deletePlan, listPlans, updatePlan, type Plan } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+
+function PlanRow({ plan, onChanged }: { plan: Plan; onChanged: () => void }) {
+  const { isClient, isAdmin } = useAuth();
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(plan.title);
+  const canEdit = plan.status !== "VALIDATED" && (isAdmin || isClient);
+  const canDelete =
+    plan.status !== "VALIDATED" &&
+    (isAdmin || (isClient && plan.status === "DRAFT"));
+
+  const saveTitle = async () => {
+    await updatePlan(plan.id, title);
+    setEditing(false);
+    onChanged();
+  };
+
+  const remove = async () => {
+    if (!confirm(`Supprimer « ${plan.title} » ?`)) return;
+    await deletePlan(plan.id);
+    onChanged();
+  };
+
+  return (
+    <div className="plan-row">
+      <div style={{ flex: "1 1 200px" }}>
+        {editing ? (
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <input
+              className="form-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={{ maxWidth: 280 }}
+            />
+            <button type="button" className="btn btn-primary" onClick={saveTitle}>
+              OK
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>
+              Annuler
+            </button>
+          </div>
+        ) : (
+          <Link href={`/plans/${plan.id}`}>{plan.title}</Link>
+        )}
+      </div>
+      <StatusBadge status={plan.status} />
+      <div className="btn-group" style={{ margin: 0 }}>
+        {canEdit && !editing && (
+          <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}>
+            Renommer
+          </button>
+        )}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => router.push(`/plans/${plan.id}`)}
+        >
+          Ouvrir
+        </button>
+        {canDelete && (
+          <button type="button" className="btn btn-ghost" onClick={remove}>
+            Supprimer
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function Dashboard() {
   const router = useRouter();
@@ -40,7 +108,7 @@ function Dashboard() {
   return (
     <>
       <header className="page-header">
-        <h1>Tableau de bord</h1>
+        <h1>Business Plans</h1>
         <p>
           {isExpert
             ? "Plans assignés — revue, simulations et validation"
@@ -49,6 +117,15 @@ function Dashboard() {
               : "Business plans collaboratifs"}
         </p>
       </header>
+
+      <div className="card" style={{ marginBottom: "1.25rem", padding: "1rem 1.25rem" }}>
+        <p style={{ margin: "0 0 0.75rem", fontSize: "0.9rem", color: "var(--color-muted)" }}>
+          Gestion des coûts de production et de la masse salariale (données démo).
+        </p>
+        <Link href="/finance" className="btn btn-primary" style={{ display: "inline-flex" }}>
+          Ouvrir le cockpit financier →
+        </Link>
+      </div>
 
       <div className="btn-group">
         {isClient && (
@@ -84,12 +161,7 @@ function Dashboard() {
       ) : (
         <div className="plans-grid">
           {plans.map((p) => (
-            <div key={p.id} className="plan-row">
-              <div>
-                <Link href={`/plans/${p.id}`}>{p.title}</Link>
-              </div>
-              <StatusBadge status={p.status} />
-            </div>
+            <PlanRow key={p.id} plan={p} onChanged={loadPlans} />
           ))}
         </div>
       )}

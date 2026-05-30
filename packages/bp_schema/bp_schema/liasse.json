@@ -10,34 +10,58 @@
       "properties": {
         "name": { "type": "string" },
         "legalForm": { "enum": ["SARL", "SUARL", "SA"] },
-        "taxRegime": {
-          "type": "object",
-          "properties": {
-            "tvaRates": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["label", "rate"],
-                "properties": {
-                  "label": { "type": "string" },
-                  "rate": { "type": "number", "enum": [0.06, 0.07, 0.13, 0.18, 0.19] }
-                }
-              }
-            }
-          }
-        }
+        "taxRegime": { "type": "object" }
       }
     },
     "investments": {
       "type": "object",
       "properties": {
+        "equipment": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "cost", "usefulLifeYears", "acquisitionYear"],
+            "properties": {
+              "name": { "type": "string" },
+              "cost": { "type": "number", "minimum": 0 },
+              "usefulLifeYears": { "type": "integer", "minimum": 1 },
+              "acquisitionYear": { "type": "integer", "minimum": 1, "maximum": 7 },
+              "assetType": { "enum": ["intangible", "tangible"] }
+            }
+          }
+        },
         "intangible": { "type": "array" },
         "tangible": { "type": "array" }
       }
     },
-    "operations": { "type": "object" },
-    "financing": { "type": "object" },
-    "workingCapital": { "type": "object" },
-    "plAssumptions": { "type": "object" }
+    "operations": {
+      "type": "object",
+      "properties": {
+        "wasteRate": { "type": "object" },
+        "wasteRateByYear": {
+          "type": "array",
+          "items": { "type": "number", "minimum": 0, "maximum": 1 },
+          "maxItems": 7
+        }
+      }
+    },
+    "workingCapital": {
+      "type": "object",
+      "properties": {
+        "rawMaterialStockDays": { "type": "integer", "minimum": 0 },
+        "packagingStockDays": { "type": "integer", "minimum": 0 },
+        "finishedGoodsStockDays": { "type": "integer", "minimum": 0 },
+        "clientPaymentDays": { "type": "integer", "minimum": 0 },
+        "supplierPaymentDays": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "plAssumptions": {
+      "type": "object",
+      "properties": {
+        "distributionExpensePct": { "type": "number", "minimum": 0, "maximum": 1 },
+        "marketingExpensePct": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "financing": { "type": "object" }
   }
 }

@@ -13,9 +13,10 @@ const ROLE_LABELS: Record<string, string> = {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout, isAdmin } = useAuth();
   const pathname = usePathname();
+  const isFinance = pathname.startsWith("/finance");
   const showNav = user && !pathname.startsWith("/login");
 
-  if (!showNav) {
+  if (!showNav || isFinance) {
     return <>{children}</>;
   }
 
@@ -43,7 +44,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               href="/"
               className={pathname === "/" ? "nav-link active" : "nav-link"}
             >
-              Tableau de bord
+              Business Plans
+            </Link>
+            <Link
+              href="/finance"
+              className={pathname.startsWith("/finance") ? "nav-link active" : "nav-link"}
+            >
+              Cockpit coûts
             </Link>
             {isAdmin && (
               <Link

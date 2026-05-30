@@ -56,8 +56,17 @@ def _import_models():
 def _fail_job(db: Session, job, error: str) -> None:
     if job:
         job.status = "FAILED"
-        job.error = error
-        job.completed_at = datetime.now(timezone.utc)
+        if hasattr(job, "error"):
+            job.error = error
+        if hasattr(job, "completed_at"):
+            job.completed_at = datetime.now(timezone.utc)
+        db.commit()
+
+
+def _fail_export_job(db: Session, job, error: str) -> None:
+    if job:
+        job.status = "FAILED"
+        job.file_path = None
         db.commit()
 
 
@@ -186,7 +195,7 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
         job = db.get(ExportJob, UUID(job_id))
         plan = db.get(BusinessPlan, UUID(plan_id))
         if not plan or not plan.results:
-            _fail_job(db, job, "Résultats manquants")
+            _fail_export_job(db, job, "Résultats manquants")
             return {"error": "no results"}
 
         try:
@@ -196,21 +205,23 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
 
             inputs = PlanInputs.model_validate(plan.inputs)
             results = PlanResults.model_validate(plan.results)
-            paths = []
-            if "xlsx" in formats:
-                paths.append(_export_xlsx(plan_id, inputs, results))
+            files: dict[str, str] = {}
             if "pdf" in formats:
-                paths.append(_export_pdf(plan_id, inputs, results))
+                files["pdf"] = _export_pdf(plan_id, inputs, results)
+            if "xlsx" in formats:
+                files["xlsx"] = _export_xlsx(plan_id, inputs, results)
+
+            if not files:
+                _fail_export_job(db, job, "Aucun format demandé")
+                return {"error": "no formats"}
 
             if job:
                 job.status = "COMPLETED"
-                job.file_path = ";".join(paths)
+                job.file_path = json.dumps(files)
             db.commit()
-            return {"files": paths}
-        except Exception as e:
-            if job:
-                job.status = "FAILED"
-                db.commit()
+            return {"files": files}
+        except Exception:
+            _fail_export_job(db, job, "Erreur génération export")
             raise
 
 
@@ -238,7 +249,12 @@ def _export_xlsx(plan_id: str, inputs: PlanInputs, results: PlanResults) -> str:
     ws2.append(["Bilan équilibré", results.balanceSheetBalanced])
     ws2.append(["BFR cohérent", results.bfrCoherent])
     wb.save(path)
-    return str(path)
+    return str(path.resolve())
+
+
+def _pdf_safe(text: str) -> str:
+    """Helvetica only supports Latin-1; replace unsupported chars."""
+    return text.encode("latin-1", errors="replace").decode("latin-1")
 
 
 def _export_pdf(plan_id: str, inputs: PlanInputs, results: PlanResults) -> str:
@@ -247,19 +263,43 @@ def _export_pdf(plan_id: str, inputs: PlanInputs, results: PlanResults) -> str:
 
     path = EXPORT_DIR / f"plan_{plan_id}.pdf"
     c = canvas.Canvas(str(path), pagesize=A4)
-    _, h = A4
-    y = h - 50
+    width, height = A4
+    y = height - 50
+    company = inputs.company.name.strip() or "Sans nom"
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, y, f"Business Plan — {inputs.company.name}")
-    y -= 30
+    c.drawString(50, y, _pdf_safe(f"Business Plan — {company}"))
+    y -= 28
     c.setFont("Helvetica", 11)
-    for line in [
+    lines = [
         f"Forme juridique: {inputs.company.legalForm}",
-        f"Investissement: {results.totalInvestment:,.0f} TND",
-        f"VAN: {results.indicators.van:,.0f} TND",
-        f"TRI: {(results.indicators.tri or 0)*100:.2f}%",
-    ]:
-        y -= 20
-        c.drawString(50, y, line)
+        f"Investissement total: {results.totalInvestment:,.0f} TND",
+        f"VAN (10%): {results.indicators.van:,.0f} TND",
+        f"TRI: {(results.indicators.tri or 0) * 100:.2f}%",
+        f"DRCI: {results.indicators.drciYears or 'N/A'} ans",
+        f"Bilan equilibre: {'Oui' if results.balanceSheetBalanced else 'Non'}",
+        f"BFR coherent: {'Oui' if results.bfrCoherent else 'Non'}",
+    ]
+    for line in lines:
+        y -= 18
+        c.drawString(50, y, _pdf_safe(line))
+
+    y -= 24
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, _pdf_safe("Projection 7 ans — Resultat net (TND)"))
+    y -= 18
+    c.setFont("Helvetica", 10)
+    for i, val in enumerate(results.netProfit.years[:7]):
+        y -= 14
+        if y < 60:
+            c.showPage()
+            y = height - 50
+            c.setFont("Helvetica", 10)
+        rev = results.revenue.years[i] if i < len(results.revenue.years) else 0
+        c.drawString(
+            50,
+            y,
+            _pdf_safe(f"An {i + 1}: CA {rev:,.0f} | RN {val:,.0f}"),
+        )
+
     c.save()
-    return str(path)
+    return str(path.resolve())

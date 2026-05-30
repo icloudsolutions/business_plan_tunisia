@@ -4,6 +4,8 @@ interface Results {
   revenue?: { years: number[] };
   netProfit?: { years: number[] };
   cumulativeTreasury?: { years: number[] };
+  distributionExpense?: { years: number[] };
+  marketingExpense?: { years: number[] };
   indicators?: { van: number; tri?: number; drciYears?: number };
   cashRunwayBreakYear?: number | null;
 }
@@ -33,6 +35,16 @@ export default function ResultsPanel({ results }: { results: Results | null }) {
         {"balanceSheetBalanced" in results && (
           <li>
             Bilan équilibré : {(results as { balanceSheetBalanced?: boolean }).balanceSheetBalanced ? "Oui" : "Non"}
+          </li>
+        )}
+        {results.distributionExpense?.years?.[0] != null && (
+          <li>
+            Distribution (an 1) : {results.distributionExpense.years[0].toLocaleString("fr-TN")} TND
+          </li>
+        )}
+        {results.marketingExpense?.years?.[0] != null && (
+          <li>
+            Marketing (an 1) : {results.marketingExpense.years[0].toLocaleString("fr-TN")} TND
           </li>
         )}
       </ul>

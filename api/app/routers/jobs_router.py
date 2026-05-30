@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.access_control import assert_job_access
+from app.export_files import parse_export_files
 from app.auth import get_current_user
 from app.database import get_db
 from app.models import CalcJob, ExportJob, User
@@ -35,11 +36,17 @@ async def get_job(
     export = result.scalar_one_or_none()
     if export:
         await assert_job_access(export.plan_id, user, db)
+        files = parse_export_files(export.file_path)
         return JobResponse(
             id=export.id,
             status=export.status,
             task_type="export",
-            result={"file_path": export.file_path, "format": export.format},
+            result={
+                "format": export.format,
+                "files": files,
+                "formats": list(files.keys()),
+            },
+            error=None if export.status != "FAILED" else "Génération export échouée",
         )
 
     raise HTTPException(status_code=404, detail="Job introuvable")

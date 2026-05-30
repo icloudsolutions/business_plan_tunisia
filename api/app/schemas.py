@@ -73,6 +73,17 @@ class PlanUpdateInputs(BaseModel):
     inputs: dict
 
 
+class PlanUpdate(BaseModel):
+    title: str | None = None
+
+    @field_validator("title")
+    @classmethod
+    def title_not_empty(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("Le titre ne peut pas être vide")
+        return v.strip() if v else v
+
+
 class PlanResponse(BaseModel):
     id: UUID
     title: str

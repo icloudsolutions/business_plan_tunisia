@@ -1,19 +1,23 @@
-"""Working capital requirement (BFR) from payment delays."""
+"""Working capital requirement (BFR) from payment delays and stock days."""
 
 
 def compute_bfr(
     revenue: float,
-    purchases: float,
+    raw_material_purchases: float,
+    packaging_purchases: float,
     client_days: int,
     supplier_days: int,
-    finished_stock_days: int,
-    raw_stock_days: int,
+    finished_goods_stock_days: int,
+    raw_material_stock_days: int,
+    packaging_stock_days: int,
 ) -> float:
+    total_purchases = raw_material_purchases + packaging_purchases
     receivables = revenue * client_days / 365.0
-    payables = purchases * supplier_days / 365.0
-    finished_stock = revenue * finished_stock_days / 365.0
-    raw_stock = purchases * raw_stock_days / 365.0
-    return receivables + finished_stock + raw_stock - payables
+    payables = total_purchases * supplier_days / 365.0
+    finished_stock = revenue * finished_goods_stock_days / 365.0
+    raw_stock = raw_material_purchases * raw_material_stock_days / 365.0
+    packaging_stock = packaging_purchases * packaging_stock_days / 365.0
+    return receivables + finished_stock + raw_stock + packaging_stock - payables
 
 
 def bfr_variation_series(bfr_levels: list[float]) -> list[float]:

@@ -1,11 +1,10 @@
 """7-year financial projection engine (VIPA-aligned)."""
 
-from typing import Any
-
 from bp_schema.liasse import PlanInputs, PlanResults, ProfitabilityIndicators, YearlySeries
 
 from bp_calc.balance import check_balance_sheet, check_bfr_coherent
 from bp_calc.bfr import bfr_variation_series, compute_bfr
+from bp_calc.capex import annual_depreciation_schedule, total_capex
 from bp_calc.indicators import irr, npv, payback_period_years
 from bp_calc.loan import build_loan_schedule
 from bp_calc.patch import apply_patch
@@ -17,28 +16,12 @@ DISCOUNT_RATE = 0.10
 __all__ = ["apply_patch", "calculate_plan", "compare_results", "HORIZON"]
 
 
-def _capacity_units(ops) -> float:
+def _capacity_units(ops, year_index: int) -> float:
     ppm = ops.packagesPerMinute if ops.packagesPerMinute else ops.capacityPerMinute
     minutes_per_day = ops.hoursPerDay * 60
     gross = ppm * minutes_per_day * ops.workingDaysPerYear
-    waste = ops.wasteRate.value
+    waste = ops.waste_for_year(year_index)
     return gross * (1.0 - waste)
-
-
-def _total_investment(inputs: PlanInputs) -> float:
-    intangible = sum(i.amount for i in inputs.investments.intangible)
-    tangible = sum(i.amount for i in inputs.investments.tangible)
-    return intangible + tangible
-
-
-def _annual_depreciation(inputs: PlanInputs) -> list[float]:
-    dep = [0.0] * HORIZON
-    for line in list(inputs.investments.intangible) + list(inputs.investments.tangible):
-        life = max(1, line.usefulLifeYears)
-        annual = line.amount / life
-        for y in range(min(life, HORIZON)):
-            dep[y] += annual
-    return dep
 
 
 def _personnel_cost(pl) -> float:
@@ -46,13 +29,13 @@ def _personnel_cost(pl) -> float:
 
 
 def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> PlanResults:
-    total_inv = _total_investment(inputs)
+    total_inv = total_capex(inputs)
     equity = total_inv * inputs.financing.equityRatio
     debt = total_inv * inputs.financing.debtRatio
     loan_amount = inputs.financing.loan.amount or debt
     vat_rate = weighted_vat_rate(inputs.company.taxRegime.tvaRates)
 
-    dep = _annual_depreciation(inputs)
+    dep = annual_depreciation_schedule(inputs)
     interest, principal_rep, end_balance = build_loan_schedule(
         loan_amount,
         inputs.financing.loan.rate,
@@ -62,10 +45,10 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
     interest = (interest + [0.0] * HORIZON)[:HORIZON]
     principal_rep = (principal_rep + [0.0] * HORIZON)[:HORIZON]
 
-    units = _capacity_units(inputs.operations)
-    gross_revenue = [units * inputs.operations.salePrice] * HORIZON
+    units_by_year = [_capacity_units(inputs.operations, y) for y in range(HORIZON)]
+    gross_revenue = [units_by_year[0] * inputs.operations.salePrice]
     for y in range(1, HORIZON):
-        gross_revenue[y] = gross_revenue[y - 1] * 1.03
+        gross_revenue.append(gross_revenue[y - 1] * 1.03)
 
     discount_pct = inputs.plAssumptions.commercialDiscount
     revenue_ht = [g * (1.0 - discount_pct) for g in gross_revenue]
@@ -73,17 +56,31 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
 
     material_unit = inputs.operations.rawMaterialCost
     packaging_unit = inputs.operations.packagingCost
-    consumption = [units * (material_unit + packaging_unit) * (1.03**y) for y in range(HORIZON)]
+    raw_consumption = []
+    packaging_consumption = []
+    consumption = []
+    for y in range(HORIZON):
+        growth = 1.03**y
+        raw_c = units_by_year[y] * material_unit * growth
+        pack_c = units_by_year[y] * packaging_unit * growth
+        raw_consumption.append(raw_c)
+        packaging_consumption.append(pack_c)
+        consumption.append(raw_c + pack_c)
+
     vat_deductible = [vat_on_amount(c, vat_rate) for c in consumption]
     vat_net = [vat_collected[y] - vat_deductible[y] for y in range(HORIZON)]
 
     personnel = _personnel_cost(inputs.plAssumptions)
     other = inputs.plAssumptions.otherOperatingCharges
+    dist_pct = inputs.plAssumptions.distributionExpensePct
+    mkt_pct = inputs.plAssumptions.marketingExpensePct
 
     net_profit = []
     operating_cf = []
     bfr_levels = []
     cumulative = []
+    distribution_exp = []
+    marketing_exp = []
     cum = -equity
 
     wc = inputs.workingCapital
@@ -91,9 +88,23 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
 
     for y in range(HORIZON):
         rev = revenue_ht[y]
+        raw_c = raw_consumption[y]
+        pack_c = packaging_consumption[y]
         cons = consumption[y]
         vat_payable = max(0.0, vat_net[y])
-        ebitda = rev - cons - personnel - other - vat_payable
+        dist_cost = rev * dist_pct
+        mkt_cost = rev * mkt_pct
+        distribution_exp.append(dist_cost)
+        marketing_exp.append(mkt_cost)
+        ebitda = (
+            rev
+            - cons
+            - personnel
+            - other
+            - dist_cost
+            - mkt_cost
+            - vat_payable
+        )
         dep_y = dep[y]
         ebit = ebitda - dep_y
         fin = interest[y]
@@ -102,14 +113,15 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
         net = taxable - tax
         net_profit.append(net)
 
-        purchases = cons
         bfr = compute_bfr(
             rev,
-            purchases,
+            raw_c,
+            pack_c,
             wc.clientPaymentDays,
             wc.supplierPaymentDays,
             wc.finishedGoodsStockDays,
             wc.rawMaterialStockDays,
+            wc.packagingStockDays,
         )
         bfr_levels.append(bfr)
 
@@ -136,7 +148,9 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
 
     final_bfr = bfr_levels[-1] if bfr_levels else 0.0
     total_assets = net_fixed_assets + final_bfr
-    bs_ok = check_balance_sheet(total_assets, equity, end_balance[-1] if end_balance else debt, final_bfr)
+    bs_ok = check_balance_sheet(
+        total_assets, equity, end_balance[-1] if end_balance else debt, final_bfr
+    )
     bfr_ok = check_bfr_coherent(bfr_levels, revenue_ht)
 
     return PlanResults(
@@ -147,6 +161,8 @@ def calculate_plan(inputs: PlanInputs, discount_rate: float = DISCOUNT_RATE) -> 
         bfr=YearlySeries(years=bfr_levels),
         bfrVariation=YearlySeries(years=bfr_var_series),
         depreciation=YearlySeries(years=dep),
+        distributionExpense=YearlySeries(years=distribution_exp),
+        marketingExpense=YearlySeries(years=marketing_exp),
         principalRepayment=YearlySeries(years=principal_rep),
         interestExpense=YearlySeries(years=interest),
         totalInvestment=total_inv,

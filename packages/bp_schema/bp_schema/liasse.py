@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -42,7 +42,25 @@ class InvestmentLine(BaseModel):
     usefulLifeYears: int = 5
 
 
+class EquipmentItem(BaseModel):
+    """Ligne CAPEX détaillée (équipement / immobilisation)."""
+
+    name: str
+    cost: float = Field(ge=0, default=0.0)
+    usefulLifeYears: int = Field(ge=1, default=5)
+    acquisitionYear: int = Field(
+        ge=1,
+        le=7,
+        default=1,
+        description="Année du plan (1-7) de mise en service",
+    )
+    assetType: Literal["intangible", "tangible"] = "tangible"
+
+
 class Investments(BaseModel):
+    """CAPEX : liste d'équipements (prioritaire) + lignes legacy."""
+
+    equipment: list[EquipmentItem] = Field(default_factory=list)
     intangible: list[InvestmentLine] = Field(default_factory=list)
     tangible: list[InvestmentLine] = Field(default_factory=list)
 
@@ -61,6 +79,16 @@ class Operations(BaseModel):
     packagingCost: float = 0.0
     salePrice: float = 0.0
     wasteRate: WasteRate = Field(default_factory=WasteRate)
+    """Taux de déchet par année (0-6). Si vide, répète wasteRate.value."""
+
+    wasteRateByYear: list[float] = Field(default_factory=list)
+
+    def waste_for_year(self, year_index: int) -> float:
+        if self.wasteRateByYear:
+            if year_index < len(self.wasteRateByYear):
+                return self.wasteRateByYear[year_index]
+            return self.wasteRateByYear[-1]
+        return self.wasteRate.value
 
 
 class LoanParams(BaseModel):
@@ -88,6 +116,7 @@ class WorkingCapital(BaseModel):
     supplierPaymentDays: int = 30
     finishedGoodsStockDays: int = 10
     rawMaterialStockDays: int = 30
+    packagingStockDays: int = 15
 
 
 class PersonnelLine(BaseModel):
@@ -100,6 +129,12 @@ class PlAssumptions(BaseModel):
     commercialDiscount: float = 0.10
     corporateTaxRate: float = 0.25
     otherOperatingCharges: float = 0.0
+    """Frais de distribution en % du CA HT (ex. 0.05 = 5 %)."""
+
+    distributionExpensePct: float = Field(ge=0, le=1, default=0.0)
+    """Frais de marketing en % du CA HT."""
+
+    marketingExpensePct: float = Field(ge=0, le=1, default=0.0)
     personnel: list[PersonnelLine] = Field(default_factory=list)
 
 
@@ -131,6 +166,8 @@ class PlanResults(BaseModel):
     bfr: YearlySeries = Field(default_factory=YearlySeries)
     bfrVariation: YearlySeries = Field(default_factory=YearlySeries)
     depreciation: YearlySeries = Field(default_factory=YearlySeries)
+    distributionExpense: YearlySeries = Field(default_factory=YearlySeries)
+    marketingExpense: YearlySeries = Field(default_factory=YearlySeries)
     principalRepayment: YearlySeries = Field(default_factory=YearlySeries)
     interestExpense: YearlySeries = Field(default_factory=YearlySeries)
     totalInvestment: float = 0.0

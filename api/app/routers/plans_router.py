@@ -2,9 +2,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bp_schema.enums import BusinessPlanStatus
@@ -18,6 +18,7 @@ from app.celery_client import celery_app
 from app.config import settings
 from app.database import get_db
 from app.models import BusinessPlan, CalcJob, ExpertComment, ExportJob, PlanVersion, Simulation, User
+from app.export_files import parse_export_files
 from app.plan_versions import create_plan_snapshot
 from app.schemas import (
     CommentCreate,
@@ -27,6 +28,7 @@ from app.schemas import (
     PlanCreate,
     PlanPatchResponse,
     PlanResponse,
+    PlanUpdate,
     PlanUpdateInputs,
     PlanVersionResponse,
     SimulateRequest,
@@ -39,19 +41,38 @@ router = APIRouter(prefix="/plans", tags=["plans"])
 
 
 def _default_inputs() -> dict:
+    from bp_schema.liasse import EquipmentItem
+
     base = PlanInputs()
-    if not base.investments.intangible:
-        from bp_schema.liasse import InvestmentLine
-
-        base.investments.intangible = [
-            InvestmentLine(label="Logiciels", amount=0, usefulLifeYears=5),
+    if not base.investments.equipment:
+        base.investments.equipment = [
+            EquipmentItem(
+                name="Logiciels & ERP",
+                cost=50000,
+                usefulLifeYears=5,
+                acquisitionYear=1,
+                assetType="intangible",
+            ),
+            EquipmentItem(
+                name="Ligne de production",
+                cost=350000,
+                usefulLifeYears=10,
+                acquisitionYear=1,
+                assetType="tangible",
+            ),
+            EquipmentItem(
+                name="Conditionnement automatique",
+                cost=100000,
+                usefulLifeYears=7,
+                acquisitionYear=2,
+                assetType="tangible",
+            ),
         ]
-    if not base.investments.tangible:
-        from bp_schema.liasse import InvestmentLine
-
-        base.investments.tangible = [
-            InvestmentLine(label="Matériel industriel", amount=0, usefulLifeYears=10),
-        ]
+    if not base.operations.wasteRateByYear:
+        base.operations.wasteRateByYear = [0.01] * 7
+    base.workingCapital.packagingStockDays = 15
+    base.plAssumptions.distributionExpensePct = 0.04
+    base.plAssumptions.marketingExpensePct = 0.02
     return base.model_dump()
 
 
@@ -92,6 +113,37 @@ async def get_plan(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_plan_for_user(plan_id, user, db)
+
+
+@router.patch("/{plan_id}", response_model=PlanResponse)
+async def update_plan(
+    plan_id: UUID,
+    body: PlanUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    plan = await get_plan_for_user(plan_id, user, db)
+    assert_plan_action(plan, user, PlanAction.UPDATE_META)
+    if body.title is not None:
+        plan.title = body.title
+    await db.commit()
+    await db.refresh(plan)
+    return plan
+
+
+@router.delete("/{plan_id}", status_code=204)
+async def delete_plan(
+    plan_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    plan = await get_plan_for_user(plan_id, user, db)
+    assert_plan_action(plan, user, PlanAction.DELETE)
+    pid = plan.id
+    for model in (ExpertComment, Simulation, ExportJob, PlanVersion, CalcJob):
+        await db.execute(sql_delete(model).where(model.plan_id == pid))
+    await db.delete(plan)
+    await db.commit()
 
 
 @router.get("/{plan_id}/versions", response_model=list[PlanVersionResponse])
@@ -348,10 +400,34 @@ async def export_plan(
     return JobResponse(id=job.id, status=job.status, task_type="export")
 
 
+@router.get("/{plan_id}/exports/{job_id}")
+async def get_export_job(
+    plan_id: UUID,
+    job_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await get_plan_for_user(plan_id, user, db)
+    result = await db.execute(
+        select(ExportJob).where(ExportJob.id == job_id, ExportJob.plan_id == plan_id)
+    )
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Export introuvable")
+    files = parse_export_files(job.file_path)
+    return {
+        "id": str(job.id),
+        "status": job.status,
+        "formats": list(files.keys()),
+        "files": files,
+    }
+
+
 @router.get("/{plan_id}/exports/{job_id}/download")
 async def download_export(
     plan_id: UUID,
     job_id: UUID,
+    format: str = Query("pdf", pattern="^(pdf|xlsx)$"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -363,12 +439,21 @@ async def download_export(
     if not job or job.status != "COMPLETED" or not job.file_path:
         raise HTTPException(status_code=404, detail="Export introuvable ou non terminé")
 
-    paths = job.file_path.split(";")
-    if not paths:
-        raise HTTPException(status_code=404, detail="Aucun fichier")
-    path = Path(paths[0])
+    files = parse_export_files(job.file_path)
+    file_str = files.get(format)
+    if not file_str:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Format {format} non disponible pour cet export",
+        )
+    path = Path(file_str)
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Fichier absent du stockage")
 
-    media = "application/pdf" if path.suffix == ".pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    return FileResponse(path, media_type=media, filename=path.name)
+    if format == "pdf":
+        media = "application/pdf"
+        filename = f"business-plan-{plan_id}.pdf"
+    else:
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"business-plan-{plan_id}.xlsx"
+    return FileResponse(path, media_type=media, filename=filename)

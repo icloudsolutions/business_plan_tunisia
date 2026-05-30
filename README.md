@@ -33,6 +33,8 @@ docker compose up --build -d
 
 Application : http://localhost:8088
 
+**Cockpit coûts (UI démo)** : http://localhost:8088/finance — production, masse salariale, graphiques Recharts (données fictives, calculs côté client).
+
 API health : http://localhost:8088/api/health
 
 Override ports in `.env`: `NGINX_HTTP_PORT`, `NGINX_HTTPS_PORT`.

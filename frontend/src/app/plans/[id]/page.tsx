@@ -14,6 +14,7 @@ import {
   downloadExport,
   exportPlan,
   getPlan,
+  updatePlan,
   listSimulations,
   pollJob,
   recalculate,
@@ -44,6 +45,9 @@ function PlanContent() {
   const [audit, setAudit] = useState<AuditResult | null>(null);
   const [jobStatus, setJobStatus] = useState("");
   const [exportJobId, setExportJobId] = useState<string | null>(null);
+  const [exportFormats, setExportFormats] = useState<string[]>([]);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -112,7 +116,51 @@ function PlanContent() {
 
       <header className="page-header">
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem" }}>
-          <h1 style={{ margin: 0, flex: "1 1 auto" }}>{plan.title}</h1>
+          {editingTitle && plan.status !== "VALIDATED" ? (
+            <form
+              style={{ display: "flex", gap: "0.5rem", flex: "1 1 auto", flexWrap: "wrap" }}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const updated = await updatePlan(id, titleDraft);
+                setPlan(updated);
+                setEditingTitle(false);
+              }}
+            >
+              <input
+                className="form-input"
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                style={{ maxWidth: 400 }}
+              />
+              <button type="submit" className="btn btn-primary">
+                Enregistrer
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setEditingTitle(false)}
+              >
+                Annuler
+              </button>
+            </form>
+          ) : (
+            <h1 style={{ margin: 0, flex: "1 1 auto" }}>
+              {plan.title}
+              {plan.status !== "VALIDATED" && (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ marginLeft: "0.5rem", verticalAlign: "middle" }}
+                  onClick={() => {
+                    setTitleDraft(plan.title);
+                    setEditingTitle(true);
+                  }}
+                >
+                  Renommer
+                </button>
+              )}
+            </h1>
+          )}
           <StatusBadge status={plan.status} />
         </div>
         <p>{STATUS_HINTS[plan.status] || plan.status}</p>
@@ -219,22 +267,44 @@ function PlanContent() {
               type="button"
               className="btn btn-primary"
               onClick={async () => {
+                setError("");
+                setExportFormats([]);
                 const job = await exportPlan(id);
                 setExportJobId(job.id);
-                const result = await pollJob(job.id, setJobStatus);
-                if (result.status === "COMPLETED") setExportJobId(job.id);
+                try {
+                  const result = await pollJob(job.id, setJobStatus);
+                  setExportJobId(job.id);
+                  const formats = result.result?.formats ?? Object.keys(result.result?.files ?? {});
+                  setExportFormats(formats.length ? formats : ["pdf", "xlsx"]);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Export échoué");
+                  setExportJobId(null);
+                }
               }}
             >
               Générer PDF / Excel
             </button>
-            {exportJobId && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => downloadExport(id, exportJobId)}
-              >
-                Télécharger export
-              </button>
+            {exportJobId && exportFormats.length > 0 && (
+              <>
+                {exportFormats.includes("pdf") && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => downloadExport(id, exportJobId, "pdf")}
+                  >
+                    Télécharger PDF
+                  </button>
+                )}
+                {exportFormats.includes("xlsx") && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => downloadExport(id, exportJobId, "xlsx")}
+                  >
+                    Télécharger Excel
+                  </button>
+                )}
+              </>
             )}
           </>
         )}

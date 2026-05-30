@@ -1,8 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-
-type Inputs = Record<string, unknown>;
+import {
+  DEFAULT_EQUIPMENT,
+  get,
+  getArray,
+  set,
+  setArray,
+  type Inputs,
+} from "./liasse-form-utils";
 
 interface Props {
   inputs: Inputs;
@@ -12,30 +18,15 @@ interface Props {
   debounceMs?: number;
 }
 
-function get(obj: Inputs, path: string, fallback: string | number = ""): string {
-  const parts = path.split(".");
-  let cur: unknown = obj;
-  for (const p of parts) {
-    if (cur == null || typeof cur !== "object") return String(fallback);
-    cur = (cur as Record<string, unknown>)[p];
-  }
-  return cur != null ? String(cur) : String(fallback);
-}
+type EquipmentRow = {
+  name: string;
+  cost: number;
+  usefulLifeYears: number;
+  acquisitionYear: number;
+  assetType: string;
+};
 
-function set(obj: Inputs, path: string, value: string | number): Inputs {
-  const parts = path.split(".");
-  const out = JSON.parse(JSON.stringify(obj)) as Inputs;
-  let cur: Record<string, unknown> = out;
-  for (let i = 0; i < parts.length - 1; i++) {
-    const p = parts[i];
-    if (!cur[p] || typeof cur[p] !== "object") cur[p] = {};
-    cur = cur[p] as Record<string, unknown>;
-  }
-  const last = parts[parts.length - 1];
-  const num = parseFloat(String(value));
-  cur[last] = isNaN(num) || String(value).trim() === "" ? value : num;
-  return out;
-}
+const YEAR_LABELS = ["An 1", "An 2", "An 3", "An 4", "An 5", "An 6", "An 7"];
 
 export default function LiasseForm({
   inputs,
@@ -53,8 +44,10 @@ export default function LiasseForm({
     setLocal(inputs);
   }, [inputs]);
 
-  const scheduleSave = useCallback(
+  const push = useCallback(
     (next: Inputs) => {
+      setLocal(next);
+      onChange(next);
       if (readOnly) return;
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(async () => {
@@ -67,14 +60,59 @@ export default function LiasseForm({
         }
       }, debounceMs);
     },
-    [onSave, readOnly, debounceMs]
+    [onChange, onSave, readOnly, debounceMs]
   );
 
   const update = (path: string, value: string) => {
-    const next = set(local, path, value);
-    setLocal(next);
-    onChange(next);
-    scheduleSave(next);
+    push(set(local, path, value));
+  };
+
+  const equipment = getArray<EquipmentRow>(local, "investments.equipment");
+
+  const updateEquipment = (index: number, field: keyof EquipmentRow, value: string) => {
+    const rows = [...equipment];
+    const row = { ...rows[index] };
+    if (field === "name" || field === "assetType") {
+      row[field] = value as never;
+    } else {
+      const n = parseFloat(value);
+      (row as Record<string, unknown>)[field] = isNaN(n) ? 0 : n;
+    }
+    rows[index] = row;
+    push(setArray(local, "investments.equipment", rows));
+  };
+
+  const addEquipment = () => {
+    push(setArray(local, "investments.equipment", [...equipment, { ...DEFAULT_EQUIPMENT }]));
+  };
+
+  const removeEquipment = (index: number) => {
+    push(
+      setArray(
+        local,
+        "investments.equipment",
+        equipment.filter((_, i) => i !== index)
+      )
+    );
+  };
+
+  const wasteByYear = getArray<Record<string, unknown>>(local, "operations.wasteRateByYear").map(
+    (v) => (typeof v === "number" ? v : parseFloat(String(v)) || 0.01)
+  );
+  const wasteRates =
+    wasteByYear.length >= 7
+      ? wasteByYear.slice(0, 7)
+      : [
+          ...wasteByYear,
+          ...Array(7 - wasteByYear.length).fill(
+            parseFloat(get(local, "operations.wasteRate.value", "0.01")) || 0.01
+          ),
+        ];
+
+  const setWasteYear = (yearIndex: number, value: string) => {
+    const next = [...wasteRates];
+    next[yearIndex] = parseFloat(value) || 0;
+    push(setArray(local, "operations.wasteRateByYear", next));
   };
 
   const field = (label: string, path: string, type = "text") => (
@@ -90,6 +128,8 @@ export default function LiasseForm({
       />
     </div>
   );
+
+  const totalCapex = equipment.reduce((s, e) => s + (Number(e.cost) || 0), 0);
 
   return (
     <div>
@@ -120,9 +160,105 @@ export default function LiasseForm({
       </section>
 
       <section className="form-section">
-        <h3>Investissements initiaux</h3>
-        {field("Incorporel — Logiciels (TND)", "investments.intangible.0.amount", "number")}
-        {field("Corporel — Matériel industriel (TND)", "investments.tangible.0.amount", "number")}
+        <div className="form-section-header">
+          <h3>CAPEX — Équipements détaillés</h3>
+          {!readOnly && (
+            <button type="button" className="btn btn-secondary" onClick={addEquipment}>
+              + Équipement
+            </button>
+          )}
+        </div>
+        <p className="form-hint">
+          CAPEX total : <strong>{totalCapex.toLocaleString("fr-TN")} TND</strong> — amortissements
+          selon durée et année d&apos;acquisition.
+        </p>
+        {equipment.length === 0 ? (
+          <p className="form-hint">Ajoutez au moins un équipement.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table liasse-table">
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Type</th>
+                  <th className="num">Coût (TND)</th>
+                  <th className="num">Amort. (ans)</th>
+                  <th className="num">Acquisition (an)</th>
+                  {!readOnly && <th />}
+                </tr>
+              </thead>
+              <tbody>
+                {equipment.map((row, i) => (
+                  <tr key={i}>
+                    <td>
+                      <input
+                        className="form-input form-input-inline"
+                        value={row.name ?? ""}
+                        disabled={readOnly}
+                        onChange={(e) => updateEquipment(i, "name", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="form-select form-input-inline"
+                        value={row.assetType ?? "tangible"}
+                        disabled={readOnly}
+                        onChange={(e) => updateEquipment(i, "assetType", e.target.value)}
+                      >
+                        <option value="tangible">Corporel</option>
+                        <option value="intangible">Incorporel</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        className="form-input form-input-inline"
+                        value={row.cost ?? 0}
+                        disabled={readOnly}
+                        onChange={(e) => updateEquipment(i, "cost", e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        className="form-input form-input-inline"
+                        value={row.usefulLifeYears ?? 5}
+                        disabled={readOnly}
+                        onChange={(e) =>
+                          updateEquipment(i, "usefulLifeYears", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min={1}
+                        max={7}
+                        className="form-input form-input-inline"
+                        value={row.acquisitionYear ?? 1}
+                        disabled={readOnly}
+                        onChange={(e) =>
+                          updateEquipment(i, "acquisitionYear", e.target.value)
+                        }
+                      />
+                    </td>
+                    {!readOnly && (
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => removeEquipment(i)}
+                        >
+                          Suppr.
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="form-section">
@@ -132,7 +268,49 @@ export default function LiasseForm({
         {field("Coût matière unitaire", "operations.rawMaterialCost", "number")}
         {field("Coût emballage unitaire", "operations.packagingCost", "number")}
         {field("Prix de vente unitaire", "operations.salePrice", "number")}
-        {field("Taux de déchet (max 1%)", "operations.wasteRate.value", "number")}
+        {field("Taux de déchet max autorisé", "operations.wasteRate.maxAllowed", "number")}
+        <div className="form-subsection">
+          <h4>Taux de déchet par année (%)</h4>
+          <p className="form-hint">
+            Variable par année du plan — impacte la capacité nette et les coûts.
+          </p>
+          <div className="waste-year-grid">
+            {YEAR_LABELS.map((label, yi) => (
+              <div className="form-group" key={yi}>
+                <label htmlFor={`waste-${yi}`}>{label}</label>
+                <input
+                  id={`waste-${yi}`}
+                  type="number"
+                  step="0.001"
+                  min={0}
+                  max={1}
+                  className="form-input"
+                  value={wasteRates[yi] ?? 0.01}
+                  disabled={readOnly}
+                  onChange={(e) => setWasteYear(yi, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="form-section">
+        <h3>BFR — Stocks finaux (en jours)</h3>
+        {field("Stock matières premières (jours)", "workingCapital.rawMaterialStockDays", "number")}
+        {field("Stock emballages (jours)", "workingCapital.packagingStockDays", "number")}
+        {field("Stock produits finis (jours)", "workingCapital.finishedGoodsStockDays", "number")}
+        {field("Créances clients (jours)", "workingCapital.clientPaymentDays", "number")}
+        {field("Dettes fournisseurs (jours)", "workingCapital.supplierPaymentDays", "number")}
+      </section>
+
+      <section className="form-section">
+        <h3>OPEX — Distribution & marketing</h3>
+        <p className="form-hint">Pourcentage du chiffre d&apos;affaires HT (ex. 0,04 = 4 %).</p>
+        {field("Frais de distribution (% CA)", "plAssumptions.distributionExpensePct", "number")}
+        {field("Frais de marketing (% CA)", "plAssumptions.marketingExpensePct", "number")}
+        {field("Autres charges opérationnelles (TND/an)", "plAssumptions.otherOperatingCharges", "number")}
+        {field("Ristourne commerciale (%)", "plAssumptions.commercialDiscount", "number")}
       </section>
 
       <section className="form-section">
@@ -140,13 +318,6 @@ export default function LiasseForm({
         {field("Fonds propres (%)", "financing.equityRatio", "number")}
         {field("Dette (%)", "financing.debtRatio", "number")}
         {field("Taux d'intérêt emprunt", "financing.loan.rate", "number")}
-      </section>
-
-      <section className="form-section">
-        <h3>BFR — Délais de règlement</h3>
-        {field("Créances clients (jours)", "workingCapital.clientPaymentDays", "number")}
-        {field("Dettes fournisseurs (jours)", "workingCapital.supplierPaymentDays", "number")}
-        {field("Ristourne commerciale (%)", "plAssumptions.commercialDiscount", "number")}
       </section>
     </div>
   );

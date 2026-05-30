@@ -119,6 +119,17 @@ export async function getPlan(id: string): Promise<Plan> {
   return api(`/plans/${id}`);
 }
 
+export async function updatePlan(id: string, title: string): Promise<Plan> {
+  return api(`/plans/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+}
+
+export async function deletePlan(id: string): Promise<void> {
+  await api(`/plans/${id}`, { method: "DELETE" });
+}
+
 export async function saveInputs(
   id: string,
   inputs: Record<string, unknown>
@@ -139,21 +150,34 @@ export async function recalculate(id: string) {
   });
 }
 
-export async function getJob(id: string) {
-  return api<{ id: string; status: string; result?: unknown; error?: string }>(
-    `/jobs/${id}`
-  );
+export async function getJob(id: string): Promise<JobStatus> {
+  return api<JobStatus>(`/jobs/${id}`);
+}
+
+export interface JobStatus {
+  id: string;
+  status: string;
+  task_type?: string;
+  result?: {
+    files?: Record<string, string>;
+    formats?: string[];
+    format?: string;
+  };
+  error?: string;
 }
 
 export async function pollJob(
   id: string,
   onStatus?: (status: string) => void,
   maxAttempts = 60
-) {
+): Promise<JobStatus> {
   for (let i = 0; i < maxAttempts; i++) {
     const j = await getJob(id);
     onStatus?.(j.status);
-    if (j.status === "COMPLETED" || j.status === "FAILED") return j;
+    if (j.status === "COMPLETED") return j;
+    if (j.status === "FAILED") {
+      throw new Error(j.error || "Tâche échouée");
+    }
     await new Promise((r) => setTimeout(r, 1500));
   }
   throw new Error("Délai dépassé en attente du calcul");
@@ -192,17 +216,25 @@ export async function exportPlan(id: string) {
   });
 }
 
-export async function downloadExport(planId: string, jobId: string): Promise<void> {
+export async function downloadExport(
+  planId: string,
+  jobId: string,
+  format: "pdf" | "xlsx"
+): Promise<void> {
   const token = getToken();
-  const res = await fetch(`${API_BASE}/plans/${planId}/exports/${jobId}/download`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) throw new Error("Téléchargement impossible");
+  const res = await fetch(
+    `${API_BASE}/plans/${planId}/exports/${jobId}/download?format=${format}`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(typeof err.detail === "string" ? err.detail : "Téléchargement impossible");
+  }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `business-plan-${planId}.${blob.type.includes("pdf") ? "pdf" : "xlsx"}`;
+  a.download = `business-plan-${planId}.${format}`;
   a.click();
   URL.revokeObjectURL(url);
 }
