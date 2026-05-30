@@ -36,6 +36,13 @@ from app.models import (
 from app.realtime import broadcast_plan_event
 from app.export_files import parse_export_files
 from app.audit_log import log_inputs_patch, log_meta_patch
+from app.plan_title import (
+    allocate_plan_title,
+    company_name_from_inputs,
+    is_client_supplied_create_title,
+    maybe_sync_plan_title_from_company,
+    DEFAULT_PLAN_TITLE,
+)
 from app.plan_versions import create_plan_snapshot
 from app.schemas import (
     ExportRequest,
@@ -128,14 +135,25 @@ async def create_plan(
 ):
     if user.role not in ("client", "admin"):
         raise HTTPException(status_code=403, detail="Seuls les clients peuvent créer un plan")
+    inputs_dict = body.inputs or _default_inputs()
+    if is_client_supplied_create_title(body.title):
+        initial_title = body.title.strip()  # type: ignore[union-attr]
+    else:
+        initial_title = DEFAULT_PLAN_TITLE
     plan = BusinessPlan(
-        title=body.title,
+        title=initial_title,
         owner_id=user.id,
-        inputs=body.inputs or _default_inputs(),
+        inputs=inputs_dict,
         status=BusinessPlanStatus.DRAFT.value,
     )
     db.add(plan)
     await db.flush()
+    if not is_client_supplied_create_title(body.title):
+        company = company_name_from_inputs(plan.inputs)
+        if len(company.strip()) >= 2:
+            plan.title = await allocate_plan_title(
+                db, user.id, company, plan_id=plan.id
+            )
     from app.scenario_services import ensure_default_scenarios
 
     await ensure_default_scenarios(db, plan.id)
@@ -291,6 +309,7 @@ async def update_inputs(
     missing = validate_draft_inputs(validated)
     try:
         plan.inputs = validated.model_dump()
+        await maybe_sync_plan_title_from_company(db, plan, plan.inputs)
         await log_inputs_patch(
             db,
             plan_id=plan.id,

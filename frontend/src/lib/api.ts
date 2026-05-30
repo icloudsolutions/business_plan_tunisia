@@ -169,10 +169,10 @@ export async function listPlans(): Promise<Plan[]> {
   return api("/plans");
 }
 
-export async function createPlan(title: string): Promise<Plan> {
+export async function createPlan(title?: string): Promise<Plan> {
   return api("/plans", {
     method: "POST",
-    body: JSON.stringify({ title }),
+    body: JSON.stringify(title != null ? { title } : {}),
   });
 }
 

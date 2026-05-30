@@ -170,7 +170,7 @@ class SystemHealthResponse(BaseModel):
 
 
 class PlanCreate(BaseModel):
-    title: str = "Nouveau Business Plan"
+    title: str | None = None
     inputs: dict | None = None
 
 

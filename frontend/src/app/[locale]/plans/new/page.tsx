@@ -16,9 +16,7 @@ function NewPlanRedirect() {
     let cancelled = false;
     void (async () => {
       try {
-        const p = await createPlan(
-          "Business Plan " + new Date().toLocaleDateString("fr-TN")
-        );
+        const p = await createPlan();
         if (!cancelled) router.replace(`/plans/${p.id}`);
       } catch (e) {
         if (!cancelled) {
