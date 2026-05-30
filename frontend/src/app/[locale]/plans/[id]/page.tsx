@@ -94,11 +94,15 @@ function PlanContent() {
     };
   }, [id, load, setPlanTitle, setPlanId, setPlanCompletion, setRefreshPlan]);
 
+  const refreshPlanRef = useRef(load);
+  refreshPlanRef.current = load;
+
   useEffect(() => {
     setRefreshPlan(() => () => {
-      void load();
+      void refreshPlanRef.current();
     });
-  }, [load, setRefreshPlan]);
+    return () => setRefreshPlan(null);
+  }, [setRefreshPlan]);
 
   useEffect(() => {
     setPlanCompletion(completion);

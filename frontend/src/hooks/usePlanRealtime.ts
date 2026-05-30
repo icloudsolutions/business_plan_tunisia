@@ -12,6 +12,12 @@ import {
 const POLL_MS = 10_000;
 const HEARTBEAT_MS = 20_000;
 
+/** Stable fallbacks — avoid `?? []` creating new refs every render (infinite update loops). */
+const EMPTY_PRESENCE: PresenceUser[] = [];
+const EMPTY_COMMENTS: CollaborationSync["comments"] = [];
+const EMPTY_REVIEWS: CollaborationSync["section_reviews"] = [];
+const EMPTY_ACTIVITY: CollaborationSync["activity"] = [];
+
 type WsHandler = (data: { type: string; payload: unknown }) => void;
 
 export function usePlanRealtime(planId: string, enabled: boolean) {
@@ -136,7 +142,18 @@ export function usePlanRealtime(planId: string, enabled: boolean) {
       closed = true;
       stopPolling();
       if (heartbeatTimer) clearInterval(heartbeatTimer);
-      ws?.close();
+      if (ws) {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onclose = null;
+        ws.onerror = null;
+        if (
+          ws.readyState === WebSocket.CONNECTING ||
+          ws.readyState === WebSocket.OPEN
+        ) {
+          ws.close();
+        }
+      }
     };
   }, [planId, enabled, refresh, dispatch]);
 
@@ -146,9 +163,9 @@ export function usePlanRealtime(planId: string, enabled: boolean) {
     usingPoll,
     refresh,
     onEvent,
-    presence: sync?.presence ?? [],
-    comments: sync?.comments ?? [],
-    sectionReviews: sync?.section_reviews ?? [],
-    activity: sync?.activity ?? [],
+    presence: sync?.presence ?? EMPTY_PRESENCE,
+    comments: sync?.comments ?? EMPTY_COMMENTS,
+    sectionReviews: sync?.section_reviews ?? EMPTY_REVIEWS,
+    activity: sync?.activity ?? EMPTY_ACTIVITY,
   };
 }
