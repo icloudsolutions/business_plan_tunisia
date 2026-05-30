@@ -68,7 +68,7 @@ def compute_initial_bfr_y1(
         units = _capacity_units(inputs.operations, 0)
         growth = 1.0
         raw = raw_y1 if raw_y1 is not None else units * inputs.operations.rawMaterialCost * growth
-        pack = pack_y if pack_y1 is not None else units * inputs.operations.packagingCost * growth
+        pack = pack_y1 if pack_y1 is not None else units * inputs.operations.packagingCost * growth
     else:
         units = _capacity_units(inputs.operations, 0)
         discount = inputs.plAssumptions.commercialDiscount
