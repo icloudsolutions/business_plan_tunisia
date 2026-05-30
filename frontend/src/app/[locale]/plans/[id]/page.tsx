@@ -168,7 +168,7 @@ function PlanContent() {
         )}
       </div>
       <p className="mb-6 text-sm text-navy-600">
-        Parcours guidé en {8} étapes — sauvegarde automatique toutes les 30 secondes.
+        Parcours guidé en {13} étapes — sauvegarde automatique toutes les 30 secondes.
         {collabEnabled && " · Panneau collaboration actif."}
       </p>
 
@@ -185,7 +185,13 @@ function PlanContent() {
         }
       >
         <div className={collabEnabled ? "min-w-0 flex-1 space-y-6" : "space-y-6"}>
-          <div className={collabEnabled ? "" : "plan-grid"}>
+          <div
+            className={
+              collabEnabled
+                ? "grid grid-cols-1 gap-5 xl:grid-cols-2"
+                : "plan-grid"
+            }
+          >
             <div className="card !overflow-visible !p-0 sm:!p-0">
               <LiasseWizard
                 planId={id}

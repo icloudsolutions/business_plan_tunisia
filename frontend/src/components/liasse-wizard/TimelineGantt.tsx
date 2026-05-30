@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { GanttPhaseRow, TimelineMilestone } from "@/lib/timeline-api";
 
 type Props = {
@@ -12,8 +13,10 @@ type Props = {
   onPhaseDatesChange: (phaseId: string, startDate: string, endDate: string) => void;
 };
 
-const LABEL_W = 220;
-const PX_PER_MONTH = 44;
+const LABEL_W_DESKTOP = 200;
+const LABEL_W_MOBILE = 88;
+const PX_PER_MONTH_DESKTOP = 44;
+const PX_PER_MONTH_MOBILE = 28;
 const ROW_H = 40;
 
 function addMonthsIso(iso: string, months: number): string {
@@ -42,7 +45,10 @@ export default function TimelineGantt({
   readOnly,
   onPhaseDatesChange,
 }: Props) {
-  const plotW = horizonMonths * PX_PER_MONTH;
+  const isNarrow = useMediaQuery("(max-width: 639px)");
+  const labelW = isNarrow ? LABEL_W_MOBILE : LABEL_W_DESKTOP;
+  const pxPerMonth = isNarrow ? PX_PER_MONTH_MOBILE : PX_PER_MONTH_DESKTOP;
+  const plotW = horizonMonths * pxPerMonth;
   const [drag, setDrag] = useState<{
     id: string;
     edge: "start" | "end";
@@ -107,9 +113,9 @@ export default function TimelineGantt({
       onPointerUp={() => commitDrag()}
       onPointerLeave={() => commitDrag()}
     >
-      <div style={{ width: LABEL_W + plotW }}>
+      <div style={{ width: labelW + plotW, minWidth: "100%" }}>
         <div className="flex border-b border-navy-100 bg-navy-50/80">
-          <div style={{ width: LABEL_W }} className="shrink-0 px-2 py-2 text-xs font-semibold text-navy-600">
+          <div style={{ width: labelW }} className="shrink-0 px-2 py-2 text-xs font-semibold text-navy-600">
             Phase
           </div>
           <div className="relative shrink-0" style={{ width: plotW, height: 28 }}>
@@ -134,8 +140,8 @@ export default function TimelineGantt({
           return (
             <div key={p.id ?? p.name} className="flex border-b border-navy-50" style={{ height: ROW_H }}>
               <div
-                style={{ width: LABEL_W }}
-                className="flex shrink-0 items-center truncate px-2 text-xs font-medium text-navy-800"
+                style={{ width: labelW }}
+                className="flex shrink-0 items-center truncate px-1.5 text-xs font-medium text-navy-800 sm:px-2"
                 title={p.name}
               >
                 {p.name}

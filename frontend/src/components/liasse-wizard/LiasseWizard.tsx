@@ -38,6 +38,7 @@ import type { PlanCompletion } from "@/lib/completion";
 import { LiasseAiProvider } from "@/context/LiasseAiContext";
 import WizardNavigation from "./WizardNavigation";
 import WizardSidebar from "./WizardSidebar";
+import WizardMobileSteps from "./WizardMobileSteps";
 import PreflightCheck from "./PreflightCheck";
 import StepGeneral from "./steps/StepGeneral";
 import StepInvestments from "./steps/StepInvestments";
@@ -217,6 +218,42 @@ export default function LiasseWizard({
     onRegisterNavigator?.(jumpToField);
   }, [jumpToField, onRegisterNavigator]);
 
+  const renderStepBody = (id: WizardStepId) => {
+    const Body = PLAN_SCOPED_STEPS.includes(id as PlanScopedStep)
+      ? null
+      : STEP_COMPONENTS[id as Exclude<WizardStepId, PlanScopedStep>];
+    return (
+      <>
+        {id === "products" ? (
+          <StepProducts planId={planId} readOnly={readOnly} />
+        ) : id === "pricing" ? (
+          <StepPricing planId={planId} readOnly={readOnly} />
+        ) : id === "productionCosts" ? (
+          <StepProductionCosts
+            planId={planId}
+            planInputs={inputs}
+            readOnly={readOnly}
+          />
+        ) : id === "hr" ? (
+          <StepHr planId={planId} readOnly={readOnly} />
+        ) : id === "otherCharges" ? (
+          <StepOtherCharges planId={planId} readOnly={readOnly} />
+        ) : id === "tva" ? (
+          <StepTva planId={planId} readOnly={readOnly} />
+        ) : id === "financing" ? (
+          <StepFinancing planId={planId} readOnly={readOnly} />
+        ) : id === "timeline" ? (
+          <StepTimeline planId={planId} readOnly={readOnly} />
+        ) : id === "procurement" ? (
+          <StepProcurement planId={planId} readOnly={readOnly} />
+        ) : Body ? (
+          <Body readOnly={readOnly} />
+        ) : null}
+        {id === "financial" && <PreflightCheck items={preflight} />}
+      </>
+    );
+  };
+
   return (
     <FormProvider {...methods}>
       <LiasseAiProvider planId={planId} readOnly={readOnly}>
@@ -226,7 +263,7 @@ export default function LiasseWizard({
         })}
         className="liasse-wizard"
       >
-        <div className="flex flex-col gap-8 lg:flex-row">
+        <div className="flex flex-col gap-6 md:flex-row md:gap-8">
           <WizardSidebar
             currentStep={currentStep}
             onStepClick={(id) => {
@@ -240,30 +277,19 @@ export default function LiasseWizard({
           />
 
           <div className="min-w-0 flex-1">
-            <div className="mb-4 flex gap-1 overflow-x-auto pb-1 lg:hidden">
-              {WIZARD_STEPS.map((id, i) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => void goToStep(i)}
-                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-                    i === stepIndex
-                      ? "bg-gold-500 text-white"
-                      : "bg-navy-100 text-navy-600"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
+            <WizardMobileSteps
+              stepIndex={stepIndex}
+              currentStep={currentStep}
+              onGoTo={(i) => void goToStep(i)}
+            />
 
-            <header className="mb-6 space-y-4">
+            <header className="mb-4 space-y-3 sm:mb-6 sm:space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">
                     Étape {stepIndex + 1} / {WIZARD_STEPS.length}
                   </p>
-                  <h2 className="font-display text-2xl font-semibold text-navy-900">
+                  <h2 className="font-display text-xl font-semibold text-navy-900 sm:text-2xl">
                     {stepMeta.title}
                   </h2>
                 </div>
@@ -274,53 +300,11 @@ export default function LiasseWizard({
               </p>
             </header>
 
-            <div className="overflow-hidden rounded-xl border border-navy-100 bg-white shadow-sm">
-              <div
-                className="flex transition-transform duration-500 ease-in-out"
-                style={{ transform: `translateX(-${stepIndex * 100}%)` }}
-              >
-                {WIZARD_STEPS.map((id) => {
-                  const Body = PLAN_SCOPED_STEPS.includes(id as PlanScopedStep)
-                    ? null
-                    : STEP_COMPONENTS[id as Exclude<WizardStepId, PlanScopedStep>];
-                  return (
-                    <div
-                      key={id}
-                      className="w-full shrink-0 p-5 sm:p-6"
-                      aria-hidden={id !== currentStep}
-                    >
-                      {id === "products" ? (
-                        <StepProducts planId={planId} readOnly={readOnly} />
-                      ) : id === "pricing" ? (
-                        <StepPricing planId={planId} readOnly={readOnly} />
-                      ) : id === "productionCosts" ? (
-                        <StepProductionCosts
-                          planId={planId}
-                          planInputs={inputs}
-                          readOnly={readOnly}
-                        />
-                      ) : id === "hr" ? (
-                        <StepHr planId={planId} readOnly={readOnly} />
-                      ) : id === "otherCharges" ? (
-                        <StepOtherCharges planId={planId} readOnly={readOnly} />
-                      ) : id === "tva" ? (
-                        <StepTva planId={planId} readOnly={readOnly} />
-                      ) : id === "financing" ? (
-                        <StepFinancing planId={planId} readOnly={readOnly} />
-                      ) : id === "timeline" ? (
-                        <StepTimeline planId={planId} readOnly={readOnly} />
-                      ) : id === "procurement" ? (
-                        <StepProcurement planId={planId} readOnly={readOnly} />
-                      ) : Body ? (
-                        <Body readOnly={readOnly} />
-                      ) : null}
-                      {id === "financial" && (
-                        <PreflightCheck items={preflight} />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            <div
+              className="rounded-xl border border-navy-100 bg-white p-4 shadow-sm sm:p-5 md:p-6"
+              role="tabpanel"
+            >
+              {renderStepBody(currentStep)}
             </div>
 
             {saveError && (

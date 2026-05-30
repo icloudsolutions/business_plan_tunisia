@@ -8,18 +8,7 @@ import type { ConsistencyAlert } from "@/lib/liasse-wizard/consistency";
 import type { WizardTotals } from "@/lib/liasse-wizard/totals";
 import SectionCompletionChip from "@/components/completion/SectionCompletionChip";
 import { sectionById, type PlanCompletion } from "@/lib/completion";
-import type { WizardStepId } from "@/lib/liasse-wizard/schema";
-
-const STEP_ORDER: WizardStepId[] = [
-  "general",
-  "investments",
-  "financing",
-  "operations",
-  "products",
-  "productionCosts",
-  "hr",
-  "financial",
-];
+import { WIZARD_STEPS, type WizardStepId } from "@/lib/liasse-wizard/schema";
 
 type Props = {
   currentStep: WizardStepId;
@@ -44,13 +33,13 @@ export default function WizardSidebar({
 }: Props) {
   const locale = useLocale() as AppLocale;
   return (
-    <aside className="sticky top-24 hidden w-64 shrink-0 flex-col gap-6 lg:flex">
+    <aside className="sticky top-20 z-10 hidden w-56 shrink-0 flex-col gap-6 md:top-24 md:flex xl:w-64">
       <nav aria-label="Étapes du formulaire">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-500">
           Parcours
         </p>
         <ol className="space-y-1">
-          {STEP_ORDER.map((id, index) => {
+          {WIZARD_STEPS.map((id, index) => {
             const active = id === currentStep;
             const meta = stepMetaFor(id, locale);
             return (

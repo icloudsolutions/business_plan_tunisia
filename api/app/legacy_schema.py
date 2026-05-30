@@ -31,6 +31,11 @@ _COLUMN_PATCHES: list[tuple[str, str, str]] = [
         "updated_at",
         "ALTER TABLE business_plans ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()",
     ),
+    (
+        "plan_versions",
+        "snapshot",
+        "ALTER TABLE plan_versions ADD COLUMN snapshot JSONB",
+    ),
 ]
 
 

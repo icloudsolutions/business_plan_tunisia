@@ -480,8 +480,8 @@ export default function StepFinancing({ planId, readOnly }: Props) {
           <h4 className="mb-3 text-sm font-semibold text-navy-800">
             Tableau d&apos;amortissement — {selectedSchedule.lender_name}
           </h4>
-          <div className="max-h-80 overflow-auto">
-            <table className="min-w-full text-left text-xs">
+          <div className="max-h-80 overflow-x-auto overflow-y-auto">
+            <table className="min-w-[640px] text-left text-xs">
               <thead className="sticky top-0 bg-navy-50 text-navy-800">
                 <tr>
                   <th className="px-2 py-2">#</th>

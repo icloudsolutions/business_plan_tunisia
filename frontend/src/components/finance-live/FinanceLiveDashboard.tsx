@@ -26,11 +26,13 @@ import ResultsTab from "./tabs/ResultsTab";
 import TreasuryTab from "./tabs/TreasuryTab";
 import InvestmentsTab from "./tabs/InvestmentsTab";
 import BalanceSheetTab from "./tabs/BalanceSheetTab";
+import InventoryTab from "./tabs/InventoryTab";
 
-type TabId = "results" | "treasury" | "investments" | "balance" | "kpis";
+type TabId = "results" | "treasury" | "investments" | "balance" | "kpis" | "inventory";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "kpis", label: "Synthèse" },
+  { id: "inventory", label: "Production & Stocks" },
   { id: "results", label: "Résultats" },
   { id: "treasury", label: "Trésorerie" },
   { id: "investments", label: "Investissements" },
@@ -145,14 +147,19 @@ export default function FinanceLiveDashboard({ planId }: Props) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-          <Link href="/finance" className="text-sm text-slate-500 hover:text-brand-600">
+        <div className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:gap-4 sm:px-6">
+          <Link
+            href="/finance"
+            className="shrink-0 text-xs text-slate-500 hover:text-brand-600 sm:text-sm"
+          >
             Cockpit
           </Link>
-          <ChevronRight className="h-4 w-4 text-slate-300" />
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-lg font-semibold">{planTitle || "…"}</h1>
-            <p className="text-xs text-slate-500">{planStatus}</p>
+          <ChevronRight className="hidden h-4 w-4 shrink-0 text-slate-300 sm:block" />
+          <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+            <h1 className="truncate font-display text-base font-semibold sm:text-lg">
+              {planTitle || "…"}
+            </h1>
+            <p className="truncate text-xs text-slate-500">{planStatus}</p>
           </div>
           <button
             type="button"
@@ -182,14 +189,16 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs font-semibold uppercase text-slate-500">Scénario</span>
+        <div className="-mx-1 flex flex-nowrap items-center gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+          <span className="shrink-0 text-xs font-semibold uppercase text-slate-500">
+            Scénario
+          </span>
           {SCENARIOS.map((s) => (
             <button
               key={s.id}
               type="button"
               onClick={() => setScenario(s.id)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition sm:px-4 ${
                 scenario === s.id
                   ? "bg-brand-600 text-white"
                   : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
@@ -297,13 +306,18 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           </div>
         </div>
 
-        <nav className="flex gap-1 overflow-x-auto border-b border-slate-200">
+        <nav
+          className="-mx-1 flex gap-0.5 overflow-x-auto border-b border-slate-200 px-1 pb-px scrollbar-thin"
+          role="tablist"
+        >
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
+              role="tab"
+              aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
-              className={`shrink-0 border-b-2 px-4 py-2 text-sm font-medium transition ${
+              className={`shrink-0 border-b-2 px-3 py-2 text-xs font-medium transition sm:px-4 sm:text-sm ${
                 tab === t.id
                   ? "border-brand-600 text-brand-700"
                   : "border-transparent text-slate-500 hover:text-slate-800"
@@ -320,6 +334,8 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           <BalanceSheetTab planId={planId} scenario={presetScenario} />
         ) : tab === "treasury" ? (
           <TreasuryTab planId={planId} scenario={presetScenario} />
+        ) : tab === "inventory" && active ? (
+          <InventoryTab data={active} />
         ) : loading || calcStatus ? (
           <ChartSkeleton height={320} />
         ) : !active ? (

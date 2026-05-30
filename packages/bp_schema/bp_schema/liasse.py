@@ -1,6 +1,8 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
+
+DAYS_PER_MONTH = 30.42
 
 
 ALLOWED_TVA_RATES = {0.06, 0.07, 0.13, 0.18, 0.19}
@@ -73,7 +75,8 @@ class WasteRate(BaseModel):
 class Operations(BaseModel):
     capacityPerMinute: float = 0.0
     packagesPerMinute: float | None = None
-    workingDaysPerYear: float = 250.0
+    workingDaysPerYear: float = 310.0
+    productionDaysPerYear: float | None = None
     hoursPerDay: float = 8.0
     rawMaterialCost: float = 0.0
     packagingCost: float = 0.0
@@ -82,6 +85,15 @@ class Operations(BaseModel):
     """Taux de déchet par année (0-6). Si vide, répète wasteRate.value."""
 
     wasteRateByYear: list[float] = Field(default_factory=list)
+    qtySoldY1: float | None = None
+    mpPricePerUnit: float = 0.0
+    mpPriceInflationRate: float = 0.0
+
+    @property
+    def effective_production_days(self) -> float:
+        if self.productionDaysPerYear is not None:
+            return self.productionDaysPerYear
+        return self.workingDaysPerYear * (320.0 / 310.0)
 
     def waste_for_year(self, year_index: int) -> float:
         if self.wasteRateByYear:
@@ -115,8 +127,31 @@ class WorkingCapital(BaseModel):
     clientPaymentDays: int = 30
     supplierPaymentDays: int = 30
     finishedGoodsStockDays: int = 10
-    rawMaterialStockDays: int = 30
-    packagingStockDays: int = 15
+    rawMaterialStockMonths: float = 1.0
+    packagingStockMonths: float = 1.0
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_stock_days_to_months(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        if "rawMaterialStockMonths" not in data and "rawMaterialStockDays" in data:
+            days = float(data["rawMaterialStockDays"])
+            data["rawMaterialStockMonths"] = days / DAYS_PER_MONTH
+        if "packagingStockMonths" not in data and "packagingStockDays" in data:
+            days = float(data["packagingStockDays"])
+            data["packagingStockMonths"] = days / DAYS_PER_MONTH
+        return data
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def rawMaterialStockDays(self) -> float:
+        return self.rawMaterialStockMonths * DAYS_PER_MONTH
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def packagingStockDays(self) -> float:
+        return self.packagingStockMonths * DAYS_PER_MONTH
 
 
 class PersonnelLine(BaseModel):
@@ -170,6 +205,16 @@ class PlanResults(BaseModel):
     marketingExpense: YearlySeries = Field(default_factory=YearlySeries)
     principalRepayment: YearlySeries = Field(default_factory=YearlySeries)
     interestExpense: YearlySeries = Field(default_factory=YearlySeries)
+    qtySold: YearlySeries = Field(default_factory=YearlySeries)
+    qtyProduced: YearlySeries = Field(default_factory=YearlySeries)
+    qtyConsumed: YearlySeries = Field(default_factory=YearlySeries)
+    qtyPurchased: YearlySeries = Field(default_factory=YearlySeries)
+    closingStockPF: YearlySeries = Field(default_factory=YearlySeries)
+    closingStockMP: YearlySeries = Field(default_factory=YearlySeries)
+    openingStockMP: YearlySeries = Field(default_factory=YearlySeries)
+    purchaseValueMP: YearlySeries = Field(default_factory=YearlySeries)
+    stockValueMP: YearlySeries = Field(default_factory=YearlySeries)
+    stockValuePF: YearlySeries = Field(default_factory=YearlySeries)
     totalInvestment: float = 0.0
     indicators: ProfitabilityIndicators = Field(default_factory=ProfitabilityIndicators)
     cashRunwayBreakYear: int | None = None

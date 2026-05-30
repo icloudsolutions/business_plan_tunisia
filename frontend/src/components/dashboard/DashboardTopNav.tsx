@@ -50,7 +50,7 @@ export default function DashboardTopNav() {
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:h-[4.25rem] sm:px-6">
         <button
           type="button"
-          className="rounded-lg border border-navy-100 p-2 text-navy-700 lg:hidden"
+          className="rounded-lg border border-navy-100 p-2 text-navy-700 md:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Menu"
         >
@@ -69,7 +69,7 @@ export default function DashboardTopNav() {
           </span>
         </Link>
 
-        <nav className="ms-4 hidden items-center gap-1 lg:flex">
+        <nav className="ms-2 hidden items-center gap-1 md:flex lg:ms-4">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -85,7 +85,7 @@ export default function DashboardTopNav() {
           ))}
         </nav>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-1 text-sm text-navy-500 lg:justify-center">
+        <div className="hidden min-w-0 flex-1 items-center justify-end gap-1 text-sm text-navy-500 sm:flex md:justify-center">
           <Link href="/" className="shrink-0 hover:text-gold-600">
             {t("breadcrumbHome")}
           </Link>
@@ -188,7 +188,7 @@ export default function DashboardTopNav() {
       <PlanHistoryDrawer />
 
       {menuOpen && (
-        <nav className="border-t border-navy-100 bg-white px-4 py-3 lg:hidden">
+        <nav className="border-t border-navy-100 bg-white px-4 py-3 md:hidden">
           {navLinks.map((link) => (
             <Link
               key={link.href}

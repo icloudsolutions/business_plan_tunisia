@@ -335,7 +335,7 @@ export default function ScenarioManager({ planId, readOnly, onOfficialSet }: Pro
             </label>
           </div>
           <p className="mb-2 text-xs font-medium text-navy-700">Croissance CA par année (% décimal)</p>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
             {YEAR_LABELS.map((lbl, i) => (
               <label key={lbl} className="text-center text-[10px] text-navy-500">
                 {lbl}

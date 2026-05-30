@@ -456,9 +456,15 @@ a:hover {
 /* Plan detail */
 .plan-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1.25rem;
   margin-top: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .plan-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .plan-actions {
@@ -679,15 +685,23 @@ a:hover {
 }
 
 @media (max-width: 768px) {
-  .plan-grid {
-    grid-template-columns: 1fr;
-  }
-
   .header-inner {
     flex-wrap: wrap;
     height: auto;
     min-height: var(--header-h);
     padding: 0.75rem 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .plan-actions.btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .plan-actions.btn-group .btn {
+    width: 100%;
   }
 }
 

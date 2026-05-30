@@ -23,6 +23,19 @@ export type PlYearRow = {
   principalRepayment?: number;
 };
 
+export type InventoryProjection = {
+  qtySold: number[];
+  qtyProduced: number[];
+  qtyConsumed: number[];
+  qtyPurchased: number[];
+  closingStockPF: number[];
+  closingStockMP: number[];
+  openingStockMP: number[];
+  purchaseValueMP: number[];
+  stockValueMP?: number[];
+  stockValuePF?: number[];
+};
+
 export type ProjectionPayload = {
   scenario: string;
   multipliers: Record<string, number>;
@@ -31,6 +44,7 @@ export type ProjectionPayload = {
   treasuryWaterfall: { step: string; value: number; type: string }[];
   investments: { name: string; value: number; category: string }[];
   investmentDetails: { name: string; value: number; category: string }[];
+  inventory?: InventoryProjection | null;
   kpis: {
     van: number;
     tri: number | null;
