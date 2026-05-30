@@ -929,4 +929,106 @@ class PricingSyncResponse(BaseModel):
     projection: dict
 
 
+class RawMaterialResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    name: str
+    unit: str
+    category: str
+    price_per_unit: float
+    supplier_payment_days: int
+    tva_rate: float
+    annual_price_inflation_pct: float
+    sort_order: int
+    created_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class RawMaterialCreate(BaseModel):
+    name: str
+    unit: str = "kg"
+    category: str = "mp"
+    price_per_unit: float = Field(default=0.0, ge=0)
+    supplier_payment_days: int = Field(default=30, ge=0, le=365)
+    tva_rate: float = Field(default=0.18, ge=0, le=0.19)
+    annual_price_inflation_pct: float = Field(default=0.0, ge=0, le=1)
+    sort_order: int | None = None
+
+
+class RawMaterialUpdate(BaseModel):
+    name: str | None = None
+    unit: str | None = None
+    category: str | None = None
+    price_per_unit: float | None = Field(None, ge=0)
+    supplier_payment_days: int | None = Field(None, ge=0, le=365)
+    tva_rate: float | None = Field(None, ge=0, le=0.19)
+    annual_price_inflation_pct: float | None = Field(None, ge=0, le=1)
+    sort_order: int | None = None
+
+
+class RecipeBulkUpdate(BaseModel):
+    entries: list[dict]
+
+
+class PurchaseAssumptionBulkUpdate(BaseModel):
+    assumptions: list[dict]
+
+
+class ProcurementProjectionResponse(BaseModel):
+    projection: dict
+
+
+class TimelineSettingsResponse(BaseModel):
+    plan_id: UUID
+    plan_start_date: date
+    startup_delay_days: int
+    horizon_months: int
+    updated_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class TimelineSettingsUpdate(BaseModel):
+    plan_start_date: date | None = None
+    startup_delay_days: int | None = Field(None, ge=0, le=365)
+    horizon_months: int | None = Field(None, ge=6, le=36)
+
+
+class TimelinePhaseResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    name: str
+    start_date: date
+    end_date: date
+    phase_type: str
+    color: str
+    sort_order: int
+    created_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class TimelinePhaseCreate(BaseModel):
+    name: str
+    start_date: date
+    end_date: date
+    phase_type: str = "investment"
+    color: str = ""
+    sort_order: int | None = None
+
+
+class TimelinePhaseUpdate(BaseModel):
+    name: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    phase_type: str | None = None
+    color: str | None = None
+    sort_order: int | None = None
+
+
+class TimelineProjectionResponse(BaseModel):
+    projection: dict
+
+
 PlanPatchResponse.model_rebuild()

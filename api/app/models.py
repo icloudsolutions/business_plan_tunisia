@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, PrimaryKeyConstraint, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -83,6 +83,11 @@ class BusinessPlan(Base):
     loans: Mapped[list["PlanLoan"]] = relationship(back_populates="plan")
     financing_sources: Mapped[list["PlanFinancingSource"]] = relationship(back_populates="plan")
     pricing_grid: Mapped[list["PlanPricingGrid"]] = relationship(back_populates="plan")
+    raw_materials: Mapped[list["PlanRawMaterial"]] = relationship(back_populates="plan")
+    timeline_settings: Mapped["PlanTimelineSettings | None"] = relationship(
+        back_populates="plan", uselist=False
+    )
+    timeline_phases: Mapped[list["PlanTimelinePhase"]] = relationship(back_populates="plan")
 
 
 class PlanFinancingSource(Base):
@@ -123,6 +128,39 @@ class PlanLoan(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     plan: Mapped["BusinessPlan"] = relationship(back_populates="loans")
+
+
+class PlanTimelineSettings(Base):
+    __tablename__ = "plan_timeline_settings"
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("business_plans.id"), primary_key=True
+    )
+    plan_start_date: Mapped[date] = mapped_column(Date)
+    startup_delay_days: Mapped[int] = mapped_column(Integer, default=90)
+    horizon_months: Mapped[int] = mapped_column(Integer, default=18)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="timeline_settings")
+
+
+class PlanTimelinePhase(Base):
+    __tablename__ = "plan_timeline_phases"
+    __table_args__ = (Index("ix_plan_timeline_phases_plan_id", "plan_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    name: Mapped[str] = mapped_column(String(255), default="")
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date] = mapped_column(Date)
+    phase_type: Mapped[str] = mapped_column(String(32), default="investment")
+    color: Mapped[str] = mapped_column(String(16), default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="timeline_phases")
 
 
 class PlanTvaSettings(Base):
@@ -552,6 +590,49 @@ class EmailNotification(Base):
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PlanRawMaterial(Base):
+    __tablename__ = "plan_raw_materials"
+    __table_args__ = (Index("ix_plan_raw_materials_plan_id", "plan_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    name: Mapped[str] = mapped_column(String(255), default="")
+    unit: Mapped[str] = mapped_column(String(32), default="kg")
+    category: Mapped[str] = mapped_column(String(32), default="mp")
+    price_per_unit: Mapped[float] = mapped_column(Float, default=0.0)
+    supplier_payment_days: Mapped[int] = mapped_column(Integer, default=30)
+    tva_rate: Mapped[float] = mapped_column(Float, default=0.18)
+    annual_price_inflation_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="raw_materials")
+
+
+class PlanProductRecipe(Base):
+    __tablename__ = "plan_product_recipes"
+    __table_args__ = (PrimaryKeyConstraint("product_id", "raw_material_id"),)
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    product_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("plan_products.id"))
+    raw_material_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("plan_raw_materials.id", ondelete="CASCADE")
+    )
+    quantity_per_kg_product: Mapped[float] = mapped_column(Float, default=0.0)
+
+
+class PlanPurchaseAssumption(Base):
+    __tablename__ = "plan_purchase_assumptions"
+
+    plan_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("business_plans.id"), primary_key=True
+    )
+    raw_material_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("plan_raw_materials.id", ondelete="CASCADE"), primary_key=True
+    )
+    stock_days: Mapped[int] = mapped_column(Integer, default=30)
 
 
 class AiSuggestion(Base):
