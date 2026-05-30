@@ -19,6 +19,7 @@ import {
   saveInputs,
   submitPlan,
   transitionPlan,
+  type AuditResult,
   type Plan,
   type SimulationItem,
   type User,
@@ -39,7 +40,7 @@ export default function PlanPage() {
   const [inputs, setInputs] = useState<Record<string, unknown>>({});
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [simulations, setSimulations] = useState<SimulationItem[]>([]);
-  const [audit, setAudit] = useState<Record<string, unknown> | null>(null);
+  const [audit, setAudit] = useState<AuditResult | null>(null);
   const [jobStatus, setJobStatus] = useState("");
   const [exportJobId, setExportJobId] = useState<string | null>(null);
   const [error, setError] = useState("");

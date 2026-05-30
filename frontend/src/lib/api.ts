@@ -42,11 +42,27 @@ export interface PlanPatchResult {
   missingFields: string[];
 }
 
+export interface SimulationDelta {
+  deltaVan?: number;
+  deltaTri?: number | null;
+  baselineCashBreakYear?: number | null;
+  scenarioCashBreakYear?: number | null;
+  baselineVan?: number;
+  scenarioVan?: number;
+}
+
 export interface SimulationItem {
   id: string;
   name: string;
-  deltaVsBaseline: Record<string, unknown> | null;
+  deltaVsBaseline: SimulationDelta | null;
   results: Record<string, unknown> | null;
+}
+
+export interface AuditResult {
+  decision: string;
+  checks: Record<string, boolean>;
+  recommendations: string[];
+  indicators?: Record<string, number | null>;
 }
 
 export async function fetchMe(): Promise<User> {
@@ -130,8 +146,8 @@ export async function listSimulations(id: string): Promise<SimulationItem[]> {
   return api(`/plans/${id}/simulations`);
 }
 
-export async function auditPlan(id: string) {
-  return api(`/plans/${id}/audit`, { method: "POST" });
+export async function auditPlan(id: string): Promise<AuditResult> {
+  return api<AuditResult>(`/plans/${id}/audit`, { method: "POST" });
 }
 
 export async function transitionPlan(id: string, action: string) {

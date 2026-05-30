@@ -21,7 +21,7 @@ export default function SimulationPanel({ simulations }: { simulations: Simulati
         </thead>
         <tbody>
           {simulations.map((s) => {
-            const d = s.deltaVsBaseline || {};
+            const d = s.deltaVsBaseline ?? {};
             return (
               <tr key={s.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: 8 }}>{s.name}</td>
