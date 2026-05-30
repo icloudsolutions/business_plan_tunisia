@@ -17,6 +17,7 @@ from bp_schema.other_charges import (
 )
 from bp_schema.payroll import PayrollProjection
 
+from app.json_dump import pydantic_json_dump
 from app.models import PlanOtherChargesConfig, PlanOtherChargesSettings
 from app.revenue_service import (
     _assumptions_from_orm as revenue_assumptions_from_orm,
@@ -133,7 +134,7 @@ async def compute_other_charges_projection(
         lf2012_exemption_5y=settings.lf2012_exemption_5y,
     )
     projection = calculate_other_charges_projection(configs, drivers, plan_id=plan_id)
-    dump = projection.model_dump()
+    dump = pydantic_json_dump(projection)
     settings.projection_cache = dump
     await db.flush()
     return dump

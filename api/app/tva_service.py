@@ -17,6 +17,7 @@ from bp_schema.tva_module import (
 )
 
 from app.models import PlanTvaConfig, PlanTvaSettings
+from app.json_dump import pydantic_json_dump
 from app.other_charges_service import compute_other_charges_projection
 from app.revenue_service import (
     _assumptions_from_orm as revenue_assumptions_from_orm,
@@ -139,7 +140,7 @@ async def compute_tva_projection(
         purchases,
         plan_id=plan_id,
     )
-    dump = projection.model_dump()
+    dump = pydantic_json_dump(projection)
     settings.projection_cache = dump
     await db.flush()
     return dump

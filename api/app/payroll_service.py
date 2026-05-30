@@ -9,6 +9,7 @@ from bp_calc.payroll import build_headcount_matrix, calculate_payroll_projection
 from bp_schema.liasse import PersonnelLine, PlanInputs, PlAssumptions
 from bp_schema.payroll import HeadcountEntry, PayrollAssumptions, StaffRole
 
+from app.json_dump import pydantic_json_dump
 from app.models import PlanPayrollAssumptions, PlanStaffHeadcount, PlanStaffRole
 
 
@@ -80,7 +81,7 @@ async def compute_payroll_projection(
     assumptions = _assumptions_from_orm(assump_row, plan_id)
     matrix = build_headcount_matrix(roles, entries)
     projection = calculate_payroll_projection(roles, matrix, assumptions, plan_id=plan_id)
-    dump = projection.model_dump()
+    dump = pydantic_json_dump(projection)
     assump_row.projection_cache = dump
     await db.flush()
     return dump
