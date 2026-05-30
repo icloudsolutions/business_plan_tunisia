@@ -16,6 +16,14 @@
       "title": "Exploitation",
       "explainer": "Hypothèses de production et de coûts unitaires. Elles déterminent le chiffre d'affaires et la marge brute année par année."
     },
+    "timeline": {
+      "title": "Planning de réalisation",
+      "explainer": "Diagramme de Gantt (M1–M18), délai de démarrage commercial et jalons. Le délai réduit le CA de la 1re année (ex. 90 j → 75 % d'une année pleine)."
+    },
+    "procurement": {
+      "title": "Approvisionnements",
+      "explainer": "Matières premières, nomenclatures (g/kg), stocks et plan d'achats Y1–Y7. Alimente les achats consommés, le BFR fournisseurs et la TVA déductible."
+    },
     "products": {
       "title": "Produits & Prix",
       "explainer": "Catalogue multi-produits, ristournes, croissance Y2–Y7 et taux d'utilisation de la capacité nominale."

@@ -854,4 +854,47 @@ class KpiDashboardResponse(BaseModel):
     projection: dict
 
 
+class FinancingSourceResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    source_type: str
+    label: str
+    amount: float
+    rate: float
+    term_years: int
+    grace_months: int
+    sort_order: int
+    loan_id: UUID | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class FinancingSourceCreate(BaseModel):
+    source_type: str = "autre"
+    label: str
+    amount: float = 0.0
+    rate: float = 0.0
+    term_years: int = 7
+    grace_months: int = 12
+    sort_order: int | None = None
+
+
+class FinancingSourceUpdate(BaseModel):
+    label: str | None = None
+    amount: float | None = None
+    rate: float | None = None
+    term_years: int | None = None
+    grace_months: int | None = None
+    sort_order: int | None = None
+
+
+class FinancingStructureResponse(BaseModel):
+    projection: dict
+
+
+class FinancingSyncResponse(BaseModel):
+    message: str
+    projection: dict
+
+
 PlanPatchResponse.model_rebuild()

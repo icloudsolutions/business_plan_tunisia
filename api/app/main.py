@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import validate_security_settings
-from app.database import Base, engine
 from app.log_buffer import install_log_buffer
+from app.migrations_runner import ensure_orm_tables, run_startup_migrations
 from app.routers import (
     admin_router,
     ai_router,
@@ -29,6 +29,9 @@ from app.routers import (
     balance_sheet_router,
     cash_flow_router,
     kpi_router,
+    procurement_router,
+    timeline_router,
+    financing_structure_router,
     ws_router,
 )
 
@@ -41,34 +44,13 @@ logging.basicConfig(
 logger = logging.getLogger("bp.api")
 
 
-async def _run_migrations() -> None:
-    if os.getenv("RUN_MIGRATIONS", "true").lower() not in ("1", "true", "yes"):
-        return
-    try:
-        from alembic import command
-        from alembic.config import Config
-
-        from app.config import settings
-
-        alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
-        alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
-
-        def upgrade(connection) -> None:
-            alembic_cfg.attributes["connection"] = connection
-            command.upgrade(alembic_cfg, "head")
-
-        async with engine.connect() as conn:
-            await conn.run_sync(upgrade)
-        logger.info("Alembic migrations applied")
-    except Exception as e:
-        logger.exception("Alembic migration failed: %s", e)
-        raise
-
-
 async def _ensure_schema() -> None:
-    """Fallback for dev when migrations are disabled; migrations are preferred in Docker."""
+    """Fallback when migrations are disabled (local dev without Alembic)."""
     if os.getenv("RUN_MIGRATIONS", "true").lower() in ("1", "true", "yes"):
+        await ensure_orm_tables()
         return
+    from app.database import Base, engine
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("SQLAlchemy create_all applied (RUN_MIGRATIONS=false)")
@@ -79,7 +61,7 @@ async def lifespan(app: FastAPI):
     install_log_buffer()
     validate_security_settings()
     try:
-        await _run_migrations()
+        await run_startup_migrations()
         await _ensure_schema()
         if os.getenv("RUN_SEED", "").lower() in ("1", "true", "yes"):
             from app.init_seed import seed
@@ -119,6 +101,9 @@ app.include_router(loans_router.router, prefix="/api")
 app.include_router(balance_sheet_router.router, prefix="/api")
 app.include_router(cash_flow_router.router, prefix="/api")
 app.include_router(kpi_router.router, prefix="/api")
+app.include_router(procurement_router.router, prefix="/api")
+app.include_router(timeline_router.router, prefix="/api")
+app.include_router(financing_structure_router.router, prefix="/api")
 app.include_router(ai_router.router, prefix="/api")
 app.include_router(email_router.router, prefix="/api")
 app.include_router(collaboration_router.router, prefix="/api")

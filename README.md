@@ -45,6 +45,12 @@ docker compose up --build -d
 
 **Indicateurs clés** : `GET /api/plans/{id}/kpis?scenario=base|pessimistic|optimistic`. VAN, TRI, DRCI, IP, TRC, performances Y1–Y7, capacité, DSCR, badge finançable (onglet Indicateurs / accueil cockpit).
 
+**Planning de réalisation** : `GET/PUT /api/plans/{id}/timeline`, phases CRUD, `GET …/timeline/gantt.svg`. Gantt M1–M18, délai de démarrage (prorata CA Y1), jalons — étape wizard « Planning de réalisation ».
+
+**Approvisionnements** : `GET /api/plans/{id}/procurement`, matières premières, nomenclatures produit×MP, stocks (jours), plan d'achats Y1–Y7 — alimente TVA, bilan et P&L (achats consommés).
+
+**Structure de financement** : `GET /api/plans/{id}/financing-structure`, `GET/POST/PATCH/DELETE /api/plans/{id}/financing-sources`, `POST /api/plans/{id}/financing-structure/sync-liasse`. Migration `016_plan_financing_sources`. Validation : somme des sources = investissement + BFR initial (Y1), ratio fonds propres ≥ 25 %, éligibilité BFPME/SICAR/BTS/SOTUGAR/FOPRODI. Étape Financement : récap besoin, tableau sources, donut structure, checker — CMT/leasing synchronisés vers `plan_loans`.
+
 **Emprunts & amortissement** : `GET/POST/PATCH/DELETE /api/plans/{id}/loans`, `GET /api/plans/{id}/loan-projection`, `POST /api/plans/{id}/loans/sync-liasse`. Migration `013_plan_loans`. Étape Financement : tranches (max 3), tableau trimestriel, pivot annuel, graphique dual-axis. Moteur `bp_calc.loan` alimente P&L / trésorerie (intérêts, principal, encours).
 
 **TVA & fiscalité** : `GET/PUT /api/plans/{id}/tva/config`, `GET/PUT /api/plans/{id}/tva/settings`, `GET /api/plans/{id}/tva/projection`, `GET /api/plans/{id}/tva/export?format=csv|html`. Migration `012_plan_tva`. Étape « TVA & Fiscalité » (taux par produit/poste, solde annuel, waterfall, créances/dettes 1 mois TTC).

@@ -81,6 +81,28 @@ class BusinessPlan(Base):
     tva_config: Mapped[list["PlanTvaConfig"]] = relationship(back_populates="plan")
     tva_settings: Mapped["PlanTvaSettings | None"] = relationship(back_populates="plan", uselist=False)
     loans: Mapped[list["PlanLoan"]] = relationship(back_populates="plan")
+    financing_sources: Mapped[list["PlanFinancingSource"]] = relationship(back_populates="plan")
+
+
+class PlanFinancingSource(Base):
+    __tablename__ = "plan_financing_sources"
+    __table_args__ = (Index("ix_plan_financing_sources_plan_id", "plan_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    source_type: Mapped[str] = mapped_column(String(32), default="fonds_propres")
+    label: Mapped[str] = mapped_column(String(255), default="")
+    amount: Mapped[float] = mapped_column(Float, default=0.0)
+    rate: Mapped[float] = mapped_column(Float, default=0.0)
+    term_years: Mapped[int] = mapped_column(Integer, default=7)
+    grace_months: Mapped[int] = mapped_column(Integer, default=12)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    loan_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("plan_loans.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="financing_sources")
 
 
 class PlanLoan(Base):

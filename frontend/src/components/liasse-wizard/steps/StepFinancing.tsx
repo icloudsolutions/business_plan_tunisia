@@ -1,12 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useFormContext } from "react-hook-form";
 import { Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import FinancingEligibilityChecker from "@/components/liasse-wizard/FinancingEligibilityChecker";
+import FinancingInvestmentSummary from "@/components/liasse-wizard/FinancingInvestmentSummary";
+import FinancingSourcesTable from "@/components/liasse-wizard/FinancingSourcesTable";
+import FinancingStructureDonut from "@/components/liasse-wizard/FinancingStructureDonut";
 import LoanDualAxisChart from "@/components/liasse-wizard/LoanDualAxisChart";
-import WizardField from "@/components/liasse-wizard/WizardField";
 import { useFormat } from "@/hooks/useFormat";
-import type { LiasseFormValues } from "@/lib/liasse-wizard/schema";
+import {
+  fetchFinancingStructure,
+  syncFinancingStructure,
+  updateFinancingSource,
+  type FinancingStructureProjection,
+} from "@/lib/financing-structure-api";
 import {
   createLoan,
   deleteLoan,
@@ -29,25 +36,37 @@ const MAX_LOANS = 3;
 const YEARS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 export default function StepFinancing({ planId, readOnly }: Props) {
-  const { formatCurrency, formatPercent } = useFormat();
-  const { watch } = useFormContext<LiasseFormValues>();
-  const equityRatio = watch("financing.equityRatio");
-  const debtRatio = watch("financing.debtRatio");
+  const { formatCurrency } = useFormat();
 
+  const [structure, setStructure] = useState<FinancingStructureProjection | null>(null);
   const [loans, setLoans] = useState<PlanLoan[]>([]);
   const [projection, setProjection] = useState<CombinedLoanProjection | null>(null);
   const [selectedLoanId, setSelectedLoanId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [structureSaving, setStructureSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [structureSyncing, setStructureSyncing] = useState(false);
   const [error, setError] = useState("");
   const [syncMsg, setSyncMsg] = useState("");
+
+  const refreshStructure = useCallback(async () => {
+    try {
+      setStructure(await fetchFinancingStructure(planId));
+    } catch {
+      setStructure(null);
+    }
+  }, [planId]);
 
   const load = useCallback(async () => {
     setError("");
     try {
-      const rows = await listLoans(planId);
+      const [rows, struct] = await Promise.all([
+        listLoans(planId),
+        fetchFinancingStructure(planId),
+      ]);
       setLoans(rows);
+      setStructure(struct);
       if (rows.length && !selectedLoanId) setSelectedLoanId(rows[0].id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
@@ -139,6 +158,40 @@ export default function StepFinancing({ planId, readOnly }: Props) {
     void refreshProjection();
   };
 
+  const handleSourceUpdate = async (
+    sourceId: string,
+    patch: Parameters<typeof updateFinancingSource>[2]
+  ) => {
+    if (readOnly) return;
+    setStructureSaving(true);
+    setError("");
+    try {
+      await updateFinancingSource(planId, sourceId, patch);
+      await refreshStructure();
+      const rows = await listLoans(planId);
+      setLoans(rows);
+      void refreshProjection();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setStructureSaving(false);
+    }
+  };
+
+  const handleStructureSync = async () => {
+    setStructureSyncing(true);
+    setSyncMsg("");
+    try {
+      const res = await syncFinancingStructure(planId);
+      setStructure(res.projection);
+      setSyncMsg(res.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setStructureSyncing(false);
+    }
+  };
+
   const handleSync = async () => {
     setSyncing(true);
     setSyncMsg("");
@@ -163,8 +216,9 @@ export default function StepFinancing({ planId, readOnly }: Props) {
   return (
     <div className="space-y-6">
       <p className="text-sm text-navy-600">
-        Répartition fonds propres / dette et jusqu&apos;à {MAX_LOANS} tranches d&apos;emprunt avec
-        tableau d&apos;amortissement trimestriel (différé principal, intérêts seuls).
+        Structure de financement (investissement + BFR initial), validation bancaire (≥ 25 %
+        fonds propres) et tableaux d&apos;amortissement des emprunts synchronisés depuis CMT /
+        leasing.
       </p>
 
       {error && (
@@ -174,31 +228,39 @@ export default function StepFinancing({ planId, readOnly }: Props) {
       )}
       {syncMsg && <p className="text-sm text-green-700">{syncMsg}</p>}
 
-      <section className="grid gap-3 rounded-xl border border-navy-100 bg-white p-4 sm:grid-cols-2">
-        <WizardField<LiasseFormValues>
-          name="financing.equityRatio"
-          type="number"
-          step="0.01"
-          min={0}
-          max={1}
-          disabled={readOnly}
-        />
-        <WizardField<LiasseFormValues>
-          name="financing.debtRatio"
-          type="number"
-          step="0.01"
-          min={0}
-          max={1}
-          disabled={readOnly}
-        />
-        <p className="sm:col-span-2 text-xs text-navy-500">
-          Total financement : {formatPercent(equityRatio + debtRatio)} (doit être 100 %)
-        </p>
-      </section>
+      <FinancingInvestmentSummary projection={structure} />
+      <FinancingSourcesTable
+        projection={structure}
+        readOnly={readOnly}
+        saving={structureSaving}
+        onUpdate={(id, patch) => void handleSourceUpdate(id, patch)}
+      />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <FinancingStructureDonut projection={structure} />
+        <FinancingEligibilityChecker projection={structure} />
+      </div>
+
+      {!readOnly && (
+        <button
+          type="button"
+          disabled={structureSyncing || structureSaving}
+          onClick={() => void handleStructureSync()}
+          className="inline-flex items-center gap-2 rounded-lg border border-navy-300 bg-white px-4 py-2 text-sm font-medium text-navy-800 hover:bg-navy-50"
+        >
+          {structureSyncing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Synchroniser ratios avec la liasse
+        </button>
+      )}
 
       <section className="rounded-xl border border-navy-100 bg-white p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h4 className="text-sm font-semibold text-navy-800">Tranches d&apos;emprunt</h4>
+          <h4 className="text-sm font-semibold text-navy-800">
+            Tranches d&apos;emprunt (détail amortissement)
+          </h4>
           {!readOnly && loans.length < MAX_LOANS && (
             <button
               type="button"

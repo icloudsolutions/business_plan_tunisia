@@ -6,6 +6,7 @@ from typing import Any
 
 from bp_calc.capex import all_equipment, total_capex
 from bp_calc.engine import HORIZON, _capacity_units, _personnel_cost, calculate_plan
+from bp_calc.timeline import apply_y1_startup_factor, y1_revenue_startup_factor
 from bp_schema.liasse import PlanInputs, PlanResults
 
 SCENARIO_PRESETS = {
@@ -39,6 +40,7 @@ def compute_yearly_pl_breakdown(
     *,
     revenue_growth_by_year: list[float] | None = None,
     personnel_cost_growth: float = 0.0,
+    startup_delay_days: int = 0,
 ) -> tuple[PlanResults, list[dict[str, Any]]]:
     """Run engine and attach yearly P&L lines for charts."""
     results = calculate_plan(
@@ -75,6 +77,9 @@ def compute_yearly_pl_breakdown(
 
     discount_pct = inputs.plAssumptions.commercialDiscount
     revenue_ht = [g * (1.0 - discount_pct) for g in gross_revenue]
+    if startup_delay_days > 0:
+        revenue_ht = apply_y1_startup_factor(revenue_ht, startup_delay_days)
+        gross_revenue = apply_y1_startup_factor(gross_revenue, startup_delay_days)
     material_unit = inputs.operations.rawMaterialCost
     packaging_unit = inputs.operations.packagingCost
     personnel = _personnel_cost(inputs.plAssumptions)
@@ -89,6 +94,10 @@ def compute_yearly_pl_breakdown(
         growth_f = (1.0 + revenue_growth) ** y
         raw_c = units_by_year[y] * material_unit * growth_f
         pack_c = units_by_year[y] * packaging_unit * growth_f
+        if y == 0 and startup_delay_days > 0:
+            sf = y1_revenue_startup_factor(startup_delay_days)
+            raw_c *= sf
+            pack_c *= sf
         cons = raw_c + pack_c
         vat_payable = max(
             0.0,
@@ -109,6 +118,9 @@ def compute_yearly_pl_breakdown(
             {
                 "year": y + 1,
                 "revenue": rev,
+                "startup_factor_y1": y1_revenue_startup_factor(startup_delay_days)
+                if y == 0 and startup_delay_days > 0
+                else 1.0,
                 "cogs": cons,
                 "personnel": personnel,
                 "otherOpex": other,

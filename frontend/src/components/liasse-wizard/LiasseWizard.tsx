@@ -49,6 +49,8 @@ import StepHr from "./steps/StepHr";
 import StepOtherCharges from "./steps/StepOtherCharges";
 import StepTva from "./steps/StepTva";
 import StepFinancial from "./steps/StepFinancial";
+import StepTimeline from "./steps/StepTimeline";
+import StepProcurement from "./steps/StepProcurement";
 
 const PLAN_SCOPED_STEPS = [
   "products",
@@ -57,6 +59,8 @@ const PLAN_SCOPED_STEPS = [
   "otherCharges",
   "tva",
   "financing",
+  "timeline",
+  "procurement",
 ] as const;
 type PlanScopedStep = (typeof PLAN_SCOPED_STEPS)[number];
 
@@ -280,7 +284,9 @@ export default function LiasseWizard({
                     id === "hr" ||
                     id === "otherCharges" ||
                     id === "tva" ||
-                    id === "financing"
+                    id === "financing" ||
+                    id === "timeline" ||
+                    id === "procurement"
                       ? null
                       : STEP_COMPONENTS[
                           id as Exclude<
@@ -291,6 +297,8 @@ export default function LiasseWizard({
                             | "otherCharges"
                             | "tva"
                             | "financing"
+                            | "timeline"
+                            | "procurement"
                           >
                         ];
                   return (
@@ -315,6 +323,10 @@ export default function LiasseWizard({
                         <StepTva planId={planId} readOnly={readOnly} />
                       ) : id === "financing" ? (
                         <StepFinancing planId={planId} readOnly={readOnly} />
+                      ) : id === "timeline" ? (
+                        <StepTimeline planId={planId} readOnly={readOnly} />
+                      ) : id === "procurement" ? (
+                        <StepProcurement planId={planId} readOnly={readOnly} />
                       ) : Body ? (
                         <Body readOnly={readOnly} />
                       ) : null}

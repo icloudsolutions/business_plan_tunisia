@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from bp_calc.balance import check_balance_sheet
 from bp_calc.bfr import compute_bfr
 from bp_schema.balance_sheet import (
     HORIZON,

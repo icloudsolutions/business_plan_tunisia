@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
+from bp_calc.timeline import apply_y1_startup_factor
 from bp_schema.revenue import (
     HORIZON,
     PRODUCTION_DAY_BASE,
@@ -62,6 +63,7 @@ def calculate_revenue_projection(
     assumptions: RevenueAssumptions,
     *,
     plan_id=None,
+    startup_delay_days: int = 0,
 ) -> RevenueProjection:
     growth = assumptions.growth_rates()
     prod_days = assumptions.production_days
@@ -106,6 +108,21 @@ def calculate_revenue_projection(
                 years=years,
             )
         )
+
+    if startup_delay_days > 0:
+        from bp_calc.timeline import y1_revenue_startup_factor
+
+        sf = y1_revenue_startup_factor(startup_delay_days)
+        total_gross = apply_y1_startup_factor(total_gross, startup_delay_days)
+        total_net = apply_y1_startup_factor(total_net, startup_delay_days)
+        total_qty = apply_y1_startup_factor(total_qty, startup_delay_days)
+        for s in series_list:
+            if s.years:
+                y0 = s.years[0]
+                y0.quantity *= sf
+                y0.revenue_gross *= sf
+                y0.revenue_net *= sf
+                y0.ristourne = y0.revenue_gross - y0.revenue_net
 
     utilization = [
         (total_qty[y] / cap_annual * 100.0) if cap_annual > 0 else 0.0 for y in range(HORIZON)

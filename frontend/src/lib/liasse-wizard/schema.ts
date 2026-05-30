@@ -90,6 +90,8 @@ export const WIZARD_STEPS = [
   "investments",
   "financing",
   "operations",
+  "timeline",
+  "procurement",
   "products",
   "productionCosts",
   "hr",
@@ -139,6 +141,10 @@ export function getStepFieldPaths(step: WizardStepId): string[] {
         "operations.wasteRate.maxAllowed",
         ...Array.from({ length: 7 }, (_, i) => `operations.wasteRateByYear.${i}`),
       ];
+    case "timeline":
+      return [];
+    case "procurement":
+      return [];
     case "products":
       return [];
     case "productionCosts":

@@ -11,6 +11,7 @@ from bp_calc.loan import (
     aggregate_loan_projections,
     build_loan_schedule,
 )
+from bp_calc.balance_sheet import build_balance_sheet, BalanceSheetDrivers
 
 __all__ = [
     "calculate_plan",
@@ -33,4 +34,6 @@ __all__ = [
     "project_loan_schedule",
     "aggregate_loan_projections",
     "build_loan_schedule",
+    "build_balance_sheet",
+    "BalanceSheetDrivers",
 ]
