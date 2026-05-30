@@ -6,6 +6,7 @@ from bp_calc.balance import check_balance_sheet, check_bfr_coherent
 from bp_calc.bfr import bfr_variation_series, compute_bfr
 from bp_calc.capex import annual_depreciation_schedule, total_capex
 from bp_calc.indicators import irr, npv, payback_period_years
+from bp_calc.inventory import inventory_chain
 from bp_calc.loan import build_loan_schedule
 from bp_calc.patch import apply_patch
 from bp_calc.tva import vat_on_amount, weighted_vat_rate
@@ -26,6 +27,24 @@ def _capacity_units(ops, year_index: int) -> float:
 
 def _personnel_cost(pl) -> float:
     return sum(p.headcount * p.annualSalary for p in pl.personnel)
+
+
+def _qty_sold_series(
+    ops,
+    *,
+    revenue_growth: float,
+    revenue_growth_by_year: list[float] | None,
+) -> list[float] | None:
+    if ops.qtySoldY1 is None:
+        return None
+    series = [float(ops.qtySoldY1)]
+    for y in range(1, HORIZON):
+        if revenue_growth_by_year and y - 1 < len(revenue_growth_by_year):
+            g = revenue_growth_by_year[y - 1]
+        else:
+            g = revenue_growth
+        series.append(series[y - 1] * (1.0 + g))
+    return series
 
 
 def calculate_plan(
@@ -66,18 +85,42 @@ def calculate_plan(
     revenue_ht = [g * (1.0 - discount_pct) for g in gross_revenue]
     vat_collected = [vat_on_amount(r, vat_rate) for r in revenue_ht]
 
-    material_unit = inputs.operations.rawMaterialCost
-    packaging_unit = inputs.operations.packagingCost
-    raw_consumption = []
-    packaging_consumption = []
-    consumption = []
-    for y in range(HORIZON):
-        growth = (1.0 + revenue_growth) ** y
-        raw_c = units_by_year[y] * material_unit * growth
-        pack_c = units_by_year[y] * packaging_unit * growth
-        raw_consumption.append(raw_c)
-        packaging_consumption.append(pack_c)
-        consumption.append(raw_c + pack_c)
+    ops = inputs.operations
+    wc = inputs.workingCapital
+    material_unit = ops.rawMaterialCost
+    packaging_unit = ops.packagingCost
+    raw_consumption: list[float] = []
+    packaging_consumption: list[float] = []
+    consumption: list[float] = []
+    inv: dict[str, list[float]] | None = None
+
+    qty_sold_series = _qty_sold_series(
+        ops, revenue_growth=revenue_growth, revenue_growth_by_year=revenue_growth_by_year
+    )
+    if qty_sold_series is not None:
+        mp_price = ops.mpPricePerUnit if ops.mpPricePerUnit > 0 else material_unit
+        inv = inventory_chain(
+            qty_sold=qty_sold_series,
+            stock_days_pf=float(wc.finishedGoodsStockDays),
+            selling_days=ops.workingDaysPerYear,
+            waste_rate=ops.wasteRate.value,
+            mp_price_y1=mp_price,
+            mp_price_inflation=ops.mpPriceInflationRate,
+            opening_stock_mp_y0=0.0,
+            pf_value_per_unit=ops.salePrice,
+        )
+        consumption = list(inv["purchase_value_mp"])
+        for y in range(HORIZON):
+            raw_consumption.append(consumption[y])
+            packaging_consumption.append(0.0)
+    else:
+        for y in range(HORIZON):
+            growth = (1.0 + revenue_growth) ** y
+            raw_c = units_by_year[y] * material_unit * growth
+            pack_c = units_by_year[y] * packaging_unit * growth
+            raw_consumption.append(raw_c)
+            packaging_consumption.append(pack_c)
+            consumption.append(raw_c + pack_c)
 
     vat_deductible = [vat_on_amount(c, vat_rate) for c in consumption]
     vat_net = [vat_collected[y] - vat_deductible[y] for y in range(HORIZON)]
@@ -96,8 +139,9 @@ def calculate_plan(
     marketing_exp = []
     cum = -equity
 
-    wc = inputs.workingCapital
     net_fixed_assets = total_inv
+    raw_stock_days = int(round(wc.rawMaterialStockDays))
+    pack_stock_days = int(round(wc.packagingStockDays))
 
     for y in range(HORIZON):
         if y > 0 and personnel_cost_growth:
@@ -135,8 +179,8 @@ def calculate_plan(
             wc.clientPaymentDays,
             wc.supplierPaymentDays,
             wc.finishedGoodsStockDays,
-            wc.rawMaterialStockDays,
-            wc.packagingStockDays,
+            raw_stock_days,
+            pack_stock_days,
         )
         bfr_levels.append(bfr)
 
@@ -168,6 +212,21 @@ def calculate_plan(
     )
     bfr_ok = check_bfr_coherent(bfr_levels, revenue_ht)
 
+    inv_fields: dict[str, YearlySeries] = {}
+    if inv:
+        inv_fields = {
+            "qtySold": YearlySeries(years=inv["qty_sold"]),
+            "qtyProduced": YearlySeries(years=inv["qty_produced"]),
+            "qtyConsumed": YearlySeries(years=inv["qty_consumed"]),
+            "qtyPurchased": YearlySeries(years=inv["qty_purchased"]),
+            "closingStockPF": YearlySeries(years=inv["closing_stock_pf"]),
+            "closingStockMP": YearlySeries(years=inv["closing_stock_mp"]),
+            "openingStockMP": YearlySeries(years=inv["opening_stock_mp"]),
+            "purchaseValueMP": YearlySeries(years=inv["purchase_value_mp"]),
+            "stockValueMP": YearlySeries(years=inv["stock_value_mp"]),
+            "stockValuePF": YearlySeries(years=inv["stock_value_pf"]),
+        }
+
     return PlanResults(
         revenue=YearlySeries(years=revenue_ht),
         netProfit=YearlySeries(years=net_profit),
@@ -180,6 +239,7 @@ def calculate_plan(
         marketingExpense=YearlySeries(years=marketing_exp),
         principalRepayment=YearlySeries(years=principal_rep),
         interestExpense=YearlySeries(years=interest),
+        **inv_fields,
         totalInvestment=total_inv,
         indicators=ProfitabilityIndicators(
             van=van,
