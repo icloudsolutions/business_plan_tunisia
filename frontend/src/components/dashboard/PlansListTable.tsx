@@ -1,75 +1,39 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useLocale as useIntlLocale, useTranslations } from "next-intl";
 import { formatDate } from "@/lib/format";
 import type { AppLocale } from "@/i18n/routing";
+import StatusBadge from "@/components/StatusBadge";
 import WorkflowStepper from "@/components/plan/WorkflowStepper";
 import { normalizeWorkflowRole } from "@/lib/plan-workflow";
 import { useAuth } from "@/context/AuthContext";
+import PlanListPrimaryAction from "./PlanListPrimaryAction";
+import SortableTableHead from "./SortableTableHead";
 import {
-  getActions,
-  planRoleFromUser,
-  type PlanActionId,
-  type PlanStatus,
-} from "@/components/plan/getPlanActions";
-import { btnPrimary } from "@/components/plan/plan-action-styles";
-import type { Plan } from "@/lib/api";
+  planClientLabel,
+  planUpdatedAt,
+  sortPlanRows,
+  type PlanListRow,
+  type PlanSortKey,
+  type SortDirection,
+} from "./plan-list-utils";
 
-export type PlanListRow = Plan & { created_at?: string; updated_at?: string };
-
-function primaryLabel(
-  id: PlanActionId,
-  tPlan: ReturnType<typeof useTranslations<"plan">>,
-  tDash: ReturnType<typeof useTranslations<"dashboard">>
-): string {
-  const dash: Partial<Record<PlanActionId, string>> = {
-    save: tDash("continueEdit"),
-    submit_for_review: tDash("requestReview"),
-    edit: tDash("openPlan"),
-    resubmit: tDash("resubmitCorrections"),
-  };
-  if (dash[id]) return dash[id]!;
-  const planLabels: Partial<Record<PlanActionId, string>> = {
-    approve: tPlan("approve"),
-    request_adjustment: tPlan("requestAdjustment"),
-    export_pdf: tPlan("exportPdf"),
-    export_xlsx: tPlan("exportXlsx"),
-  };
-  return planLabels[id] ?? tDash("openPlan");
-}
-
-function PlanListPrimaryAction({ plan }: { plan: PlanListRow }) {
-  const { user } = useAuth();
-  const tPlan = useTranslations("plan");
-  const tDash = useTranslations("dashboard");
-  const role = planRoleFromUser(user?.role);
-  const actions = getActions(plan.status as PlanStatus, role);
-  const actionId =
-    actions.primary ?? actions.secondary[0] ?? ("edit" as PlanActionId);
-  const label = primaryLabel(actionId, tPlan, tDash);
-
-  return (
-    <Link href={`/plans/${plan.id}`} className={`${btnPrimary} text-center`}>
-      {label}
-    </Link>
-  );
-}
+type Props = {
+  plans: PlanListRow[];
+  completionPct: (plan: PlanListRow) => number;
+};
 
 function formatUpdated(
   plan: PlanListRow,
   locale: AppLocale,
   fallback: string
 ): string {
-  const raw = plan.updated_at || plan.created_at;
+  const raw = planUpdatedAt(plan);
   if (!raw) return fallback;
   return formatDate(raw, locale, { dateStyle: "medium", timeStyle: "short" });
 }
-
-type Props = {
-  plans: PlanListRow[];
-  completionPct: (plan: PlanListRow) => number;
-};
 
 export default function PlansListTable({ plans, completionPct }: Props) {
   const locale = useIntlLocale() as AppLocale;
@@ -78,51 +42,98 @@ export default function PlansListTable({ plans, completionPct }: Props) {
   const workflowRole = normalizeWorkflowRole(user?.role);
   const unknownDate = "—";
 
+  const [sortKey, setSortKey] = useState<PlanSortKey>("updated");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
+
+  const handleSort = (key: string) => {
+    const k = key as PlanSortKey;
+    if (sortKey === k) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(k);
+      setSortDir(k === "title" ? "asc" : "desc");
+    }
+  };
+
+  const sortedPlans = useMemo(
+    () => sortPlanRows(plans, sortKey, sortDir, completionPct),
+    [plans, sortKey, sortDir, completionPct]
+  );
+
   if (plans.length === 0) return null;
 
   return (
     <>
-      <ul className="space-y-3 md:hidden" aria-label={tDash("allPlans")}>
-        {plans.map((plan) => (
-          <li key={plan.id}>
-            <div className="rounded-xl border border-navy-100 bg-white p-4 shadow-sm">
-              <p className="truncate font-semibold text-navy-900">{plan.title}</p>
-              <div className="mt-3">
-                <WorkflowStepper
-                  status={plan.status}
-                  role={workflowRole}
-                  history={plan.history}
-                />
+      {/* Mobile: card list */}
+      <div className="space-y-3 md:hidden" aria-label={tDash("allPlans")}>
+        {sortedPlans.map((plan) => {
+          const client = planClientLabel(plan);
+          return (
+            <div
+              key={plan.id}
+              className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-gray-900">{plan.title}</p>
+                  {client ? (
+                    <p className="mt-0.5 truncate text-sm text-gray-500">{client}</p>
+                  ) : null}
+                </div>
+                <StatusBadge status={plan.status} />
               </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs text-navy-500">
-                  <span className="font-medium text-navy-600">
-                    {tDash("lastUpdated")}:
-                  </span>{" "}
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-gray-400">
                   {formatUpdated(plan, locale, unknownDate)}
-                </span>
-              </div>
-              <div className="mt-4">
+                </p>
                 <PlanListPrimaryAction plan={plan} />
               </div>
             </div>
-          </li>
-        ))}
-      </ul>
+          );
+        })}
+      </div>
 
+      {/* Desktop: sortable table */}
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
+        <table className="min-w-[640px] w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-navy-100 text-start text-xs font-semibold uppercase tracking-wide text-navy-500">
-              <th className="px-4 py-3">{tDash("planName")}</th>
-              <th className="px-4 py-3">{tDash("status")}</th>
-              <th className="px-4 py-3">{tDash("lastUpdated")}</th>
-              <th className="px-4 py-3 text-end">{tDash("completion")}</th>
-              <th className="px-4 py-3 text-end">{tDash("actions")}</th>
+            <tr className="border-b border-navy-100 text-xs font-semibold">
+              <SortableTableHead
+                label={tDash("planName")}
+                sortKey="title"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                label={tDash("status")}
+                sortKey="status"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                label={tDash("lastUpdated")}
+                sortKey="updated"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+              />
+              <SortableTableHead
+                label={tDash("completion")}
+                sortKey="completion"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+                align="end"
+              />
+              <th className="px-4 py-3 text-end text-xs font-semibold uppercase tracking-wide text-navy-500">
+                {tDash("actions")}
+              </th>
             </tr>
           </thead>
           <tbody>
-            {plans.map((plan) => (
+            {sortedPlans.map((plan) => (
               <tr
                 key={plan.id}
                 className="border-b border-navy-50 transition hover:bg-navy-50/50"
@@ -134,6 +145,11 @@ export default function PlansListTable({ plans, completionPct }: Props) {
                   >
                     {plan.title}
                   </Link>
+                  {planClientLabel(plan) ? (
+                    <p className="mt-0.5 text-xs text-navy-500">
+                      {planClientLabel(plan)}
+                    </p>
+                  ) : null}
                 </td>
                 <td className="min-w-[280px] px-4 py-3">
                   <WorkflowStepper

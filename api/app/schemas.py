@@ -192,6 +192,7 @@ class PlanUpdate(BaseModel):
 class PlanStatusHistoryItem(BaseModel):
     status: str
     changed_at: datetime
+    changed_by: str | None = None
 
 
 class PlanResponse(BaseModel):

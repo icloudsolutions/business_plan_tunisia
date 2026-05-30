@@ -69,7 +69,7 @@ router = APIRouter(prefix="/plans", tags=["plans"])
 
 
 def _default_inputs() -> dict:
-    from bp_schema.liasse import EquipmentItem
+    from bp_schema.liasse import DAYS_PER_MONTH, EquipmentItem
 
     base = PlanInputs()
     if not base.investments.equipment:
@@ -98,7 +98,7 @@ def _default_inputs() -> dict:
         ]
     if not base.operations.wasteRateByYear:
         base.operations.wasteRateByYear = [0.01] * 7
-    base.workingCapital.packagingStockDays = 15
+    base.workingCapital.packagingStockMonths = 15 / DAYS_PER_MONTH
     base.plAssumptions.distributionExpensePct = 0.04
     base.plAssumptions.marketingExpensePct = 0.02
     return base.model_dump()

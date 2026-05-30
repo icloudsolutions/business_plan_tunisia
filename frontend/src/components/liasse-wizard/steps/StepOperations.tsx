@@ -66,7 +66,7 @@ export default function StepOperations({ readOnly }: Props) {
         <p className="mb-3 text-xs text-navy-500">
           Taux en décimal (ex. 0,01 = 1 %). Peut varier chaque année.
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {YEAR_LABELS.map((label, yi) => (
             <div key={label}>
               <label className="text-xs font-medium text-navy-700">{label}</label>

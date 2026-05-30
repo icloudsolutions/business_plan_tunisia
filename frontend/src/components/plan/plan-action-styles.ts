@@ -12,8 +12,10 @@ export const btnSecondary =
 export const btnGhost =
   `inline-flex items-center justify-center gap-2 border border-transparent text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-lg font-medium transition disabled:opacity-55 disabled:cursor-not-allowed ${focus}`;
 export const btnDestructive =
-  "text-red-600 hover:text-red-800 text-sm underline disabled:opacity-55";
+  "text-red-600 hover:underline text-sm disabled:opacity-55";
 
-export const btnSplitMain = `${btnPrimary} rounded-e-none pe-3`;
+export const btnSplitMainPrimary = `${btnPrimary} rounded-e-none pe-3`;
+export const btnSplitTriggerPrimary = `${btnPrimary} rounded-s-none border-s border-indigo-500/40 px-2.5`;
 
-export const btnSplitTrigger = `${btnPrimary} rounded-s-none border-s border-indigo-500/40 px-2.5`;
+export const btnSplitMainSecondary = `${btnSecondary} rounded-e-none pe-3`;
+export const btnSplitTriggerSecondary = `${btnSecondary} rounded-s-none border-s border-indigo-300 px-2.5`;

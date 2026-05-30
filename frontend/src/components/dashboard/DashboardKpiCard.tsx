@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
   KPI_CARD_HINT,
+  KPI_CARD_ICON,
   KPI_CARD_LABEL,
   KPI_CARD_SHELL,
   KPI_CARD_VALUE,
@@ -30,14 +31,19 @@ export default function DashboardKpiCard({
 }: Props) {
   return (
     <div className={cn(KPI_CARD_SHELL, className)}>
-      <div className="flex items-start gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         {icon ? (
-          <div className="flex shrink-0 items-center justify-center text-slate-600">
+          <div
+            className={cn(
+              KPI_CARD_ICON,
+              "flex items-center justify-center text-slate-600"
+            )}
+          >
             {icon}
           </div>
         ) : null}
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
             <p className={KPI_CARD_LABEL}>{label}</p>
             {labelAdornment}
           </div>

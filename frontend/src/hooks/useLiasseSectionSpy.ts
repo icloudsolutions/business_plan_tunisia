@@ -44,16 +44,4 @@ export function useLiasseSectionSpy(
   return activeId;
 }
 
-export function fieldPathToLiasseSection(path: string): LiasseInputSectionId | null {
-  if (path.startsWith("company")) return "identification";
-  if (path.startsWith("investments")) return "investissement";
-  if (path.startsWith("financing")) return "financement";
-  if (
-    path.startsWith("operations") ||
-    path.startsWith("workingCapital") ||
-    path.startsWith("plAssumptions")
-  ) {
-    return "exploitation";
-  }
-  return null;
-}
+export { getSectionId as fieldPathToLiasseSection } from "@/lib/liasse-wizard/liasse-input-sections";

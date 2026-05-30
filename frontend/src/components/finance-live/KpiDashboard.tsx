@@ -19,6 +19,7 @@ import {
   YAxis,
 } from "@/lib/recharts-dynamic";
 import DashboardKpiCard from "@/components/dashboard/DashboardKpiCard";
+import { KPI_CARD_ICON } from "@/components/dashboard/dashboard-cards";
 import KpiSummaryGrid from "@/components/dashboard/KpiSummaryGrid";
 import { useFormat } from "@/hooks/useFormat";
 import { fetchKpiDashboard, type KpiDashboardProjection } from "@/lib/finance/kpi-api";
@@ -62,7 +63,7 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
 
   if (loading && !data) {
     return (
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
         <ChartBarsSkeleton />
         <ChartBarsSkeleton />
       </div>
@@ -117,7 +118,7 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
           className={vanStyle}
           labelAdornment={
             <span className="group relative shrink-0">
-              <HelpCircle className="h-8 w-8 text-slate-500 opacity-60 sm:h-10 sm:w-10" aria-hidden />
+              <HelpCircle className={`${KPI_CARD_ICON} text-slate-500 opacity-60`} aria-hidden />
               <span className="pointer-events-none absolute start-0 top-full z-10 mt-1 hidden w-52 rounded bg-slate-800 px-2 py-1.5 text-xs font-normal text-white group-hover:block">
                 Actualisation au taux de {(p.discount_rate * 100).toFixed(0)} % (hypothèse Excel /
                 paramètre plan). Flux : investissement initial puis CF nets annuels.
@@ -159,7 +160,7 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
         {data.capacity.break_even_callout}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
         <ChartPanel title="CA &amp; résultats (Y1–Y7)" subtitle="CA net, EBIT et résultat net">
           <ChartSuspense>
             <div className="h-64">
@@ -304,7 +305,7 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
         </div>
       </section>
 
-      <KpiSummaryGrid className="lg:grid-cols-3 xl:grid-cols-4">
+      <KpiSummaryGrid dense>
         {data.financing.map((f) => (
           <DashboardKpiCard
             key={f.year}

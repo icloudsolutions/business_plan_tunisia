@@ -285,7 +285,7 @@ export default function ScenarioManager({ planId, readOnly, onOfficialSet }: Pro
       {editingId && draft && (
         <div className="rounded-xl border border-gold-200 bg-gold-50/30 p-4">
           <h4 className="mb-3 text-sm font-semibold text-navy-800">Hypothèses du scénario</h4>
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-xs text-navy-600">
               Croissance masse salariale (annuelle)
               <input
@@ -336,7 +336,7 @@ export default function ScenarioManager({ planId, readOnly, onOfficialSet }: Pro
             </label>
           </div>
           <p className="mb-2 text-xs font-medium text-navy-700">Croissance CA par année (% décimal)</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
             {YEAR_LABELS.map((lbl, i) => (
               <label key={lbl} className="text-center text-[10px] text-navy-500">
                 {lbl}

@@ -2,9 +2,15 @@
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { ChevronDown, FileSpreadsheet, FileText, Loader2, RefreshCw } from "lucide-react";
-import { btnSplitMain, btnSplitTrigger } from "@/components/plan/plan-action-styles";
+import {
+  btnSplitMainPrimary,
+  btnSplitMainSecondary,
+  btnSplitTriggerPrimary,
+  btnSplitTriggerSecondary,
+} from "@/components/plan/plan-action-styles";
 
 type Props = {
+  variant?: "primary" | "secondary";
   label: string;
   pdfLabel: string;
   xlsxLabel: string;
@@ -18,6 +24,7 @@ type Props = {
 };
 
 export default function ExportSplitButton({
+  variant = "primary",
   label,
   pdfLabel,
   xlsxLabel,
@@ -29,6 +36,11 @@ export default function ExportSplitButton({
   onDownloadPdf,
   onDownloadXlsx,
 }: Props) {
+  const mainClass =
+    variant === "secondary" ? btnSplitMainSecondary : btnSplitMainPrimary;
+  const triggerClass =
+    variant === "secondary" ? btnSplitTriggerSecondary : btnSplitTriggerPrimary;
+
   const handleMain = () => {
     if (busy) return;
     if (canPdf) onDownloadPdf();
@@ -40,7 +52,7 @@ export default function ExportSplitButton({
     <div className="inline-flex">
       <button
         type="button"
-        className={btnSplitMain}
+        className={mainClass}
         disabled={busy}
         onClick={handleMain}
       >
@@ -51,7 +63,7 @@ export default function ExportSplitButton({
         <DropdownMenu.Trigger asChild>
           <button
             type="button"
-            className={btnSplitTrigger}
+            className={triggerClass}
             disabled={busy}
             aria-label={label}
           >

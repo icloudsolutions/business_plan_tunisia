@@ -8,10 +8,12 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import PlanActivity
+from app.models import PlanActivity, User
 from app.schemas import PlanStatusHistoryItem
 
 WORKFLOW_STATUSES = ("DRAFT", "UNDER_REVIEW", "ADJUSTMENT", "VALIDATED")
+
+_StatusRecord = tuple[datetime, str | None]
 
 
 def _status_from_activity_message(message: str) -> str | None:
@@ -31,12 +33,24 @@ def _status_from_activity_meta(meta: dict | None) -> str | None:
     return None
 
 
+def _user_label(user: User | None) -> str | None:
+    if user is None:
+        return None
+    if user.display_name and user.display_name.strip():
+        return user.display_name.strip()
+    return user.email
+
+
 def build_status_history_from_activities(
     plan_created_at: datetime,
     activities: list[PlanActivity],
+    users_by_id: dict[UUID, User] | None = None,
 ) -> list[PlanStatusHistoryItem]:
     """Earliest timestamp per status (DRAFT = plan creation)."""
-    by_status: dict[str, datetime] = {"DRAFT": plan_created_at}
+    users_by_id = users_by_id or {}
+    by_status: dict[str, _StatusRecord] = {
+        "DRAFT": (plan_created_at, None),
+    }
 
     for act in sorted(activities, key=lambda a: a.created_at or plan_created_at):
         if act.kind != "status_change":
@@ -45,13 +59,30 @@ def build_status_history_from_activities(
             act.message or ""
         )
         if status and status != "DRAFT":
-            by_status[status] = act.created_at
+            by_status[status] = (
+                act.created_at,
+                _user_label(users_by_id.get(act.user_id)) if act.user_id else None,
+            )
 
     return [
-        PlanStatusHistoryItem(status=s, changed_at=by_status[s])
+        PlanStatusHistoryItem(
+            status=s,
+            changed_at=by_status[s][0],
+            changed_by=by_status[s][1],
+        )
         for s in WORKFLOW_STATUSES
         if s in by_status
     ]
+
+
+async def _load_users_for_activities(
+    db: AsyncSession, activities: list[PlanActivity]
+) -> dict[UUID, User]:
+    user_ids = {act.user_id for act in activities if act.user_id}
+    if not user_ids:
+        return {}
+    result = await db.execute(select(User).where(User.id.in_(user_ids)))
+    return {u.id: u for u in result.scalars().all()}
 
 
 async def fetch_plan_status_history(
@@ -68,7 +99,8 @@ async def fetch_plan_status_history(
         .order_by(PlanActivity.created_at.asc())
     )
     activities = list(result.scalars().all())
-    return build_status_history_from_activities(plan_created_at, activities)
+    users = await _load_users_for_activities(db, activities)
+    return build_status_history_from_activities(plan_created_at, activities, users)
 
 
 async def fetch_status_histories_batch(
@@ -87,12 +119,15 @@ async def fetch_status_histories_batch(
         )
         .order_by(PlanActivity.created_at.asc())
     )
+    all_activities = list(result.scalars().all())
+    users = await _load_users_for_activities(db, all_activities)
+
     grouped: dict[UUID, list[PlanActivity]] = {pid: [] for pid in plan_ids}
-    for act in result.scalars().all():
+    for act in all_activities:
         grouped.setdefault(act.plan_id, []).append(act)
 
     return {
-        pid: build_status_history_from_activities(created[pid], grouped.get(pid, []))
+        pid: build_status_history_from_activities(created[pid], grouped.get(pid, []), users)
         for pid in plan_ids
     }
 

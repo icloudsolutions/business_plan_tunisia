@@ -42,6 +42,7 @@ import StepOtherCharges from "./steps/StepOtherCharges";
 import StepTva from "./steps/StepTva";
 import StepTimeline from "./steps/StepTimeline";
 import { fieldPathToLiasseSection } from "@/hooks/useLiasseSectionSpy";
+import { scrollToFirstErrorSection } from "@/lib/liasse-wizard/liasse-form-errors";
 import { scrollToLiasseSection } from "./LiasseSectionNav";
 import StepProcurement from "./steps/StepProcurement";
 
@@ -122,7 +123,12 @@ export default function LiasseWizard({
     if (target > stepIndex && !readOnly) {
       const paths = getStepFieldPaths(currentStep);
       const ok = await trigger(paths as never);
-      if (!ok) return;
+      if (!ok) {
+        if (currentStep === "liasseInputs") {
+          scrollToFirstErrorSection(methods.formState.errors);
+        }
+        return;
+      }
       await persistWithFeedback(false);
     }
     setStepIndex(Math.max(0, Math.min(WIZARD_STEPS.length - 1, target)));
@@ -134,7 +140,11 @@ export default function LiasseWizard({
       await goToStep(stepIndex + 1);
     } else if (!readOnly) {
       const ok = await trigger();
-      if (ok) await persistWithFeedback(true);
+      if (!ok && currentStep === "liasseInputs") {
+        scrollToFirstErrorSection(methods.formState.errors);
+      } else if (ok) {
+        await persistWithFeedback(true);
+      }
     }
   };
 
@@ -180,7 +190,7 @@ export default function LiasseWizard({
     return (
       <>
         {id === "liasseInputs" ? (
-          <LiasseUnifiedInputForm readOnly={readOnly} completion={completion} />
+          <LiasseUnifiedInputForm readOnly={readOnly} />
         ) : id === "products" ? (
           <StepProducts planId={planId} readOnly={readOnly} />
         ) : id === "pricing" ? (

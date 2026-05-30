@@ -74,6 +74,7 @@ export interface UserProfileUpdate {
 export interface PlanStatusHistoryEntry {
   status: string;
   changed_at: string;
+  changed_by?: string | null;
 }
 
 export interface Plan {

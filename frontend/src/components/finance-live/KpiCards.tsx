@@ -1,21 +1,23 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import DashboardKpiCard from "@/components/dashboard/DashboardKpiCard";
+import { KPI_CARD_ICON } from "@/components/dashboard/dashboard-cards";
 import KpiSummaryGrid from "@/components/dashboard/KpiSummaryGrid";
 import { formatPct, formatTnd, type ProjectionPayload } from "@/lib/finance/projections-api";
 
 function Trend({ value }: { value: number | null | undefined }) {
   if (value == null || Number.isNaN(value)) {
-    return <Minus className="h-8 w-8 text-slate-400 sm:h-10 sm:w-10" aria-hidden />;
+    return <Minus className={cn(KPI_CARD_ICON, "text-slate-400")} aria-hidden />;
   }
   if (value > 0.005) {
-    return <ArrowUp className="h-8 w-8 text-emerald-600 sm:h-10 sm:w-10" aria-hidden />;
+    return <ArrowUp className={cn(KPI_CARD_ICON, "text-emerald-600")} aria-hidden />;
   }
   if (value < -0.005) {
-    return <ArrowDown className="h-8 w-8 text-red-600 sm:h-10 sm:w-10" aria-hidden />;
+    return <ArrowDown className={cn(KPI_CARD_ICON, "text-red-600")} aria-hidden />;
   }
-  return <Minus className="h-8 w-8 text-slate-400 sm:h-10 sm:w-10" aria-hidden />;
+  return <Minus className={cn(KPI_CARD_ICON, "text-slate-400")} aria-hidden />;
 }
 
 const CARDS: {

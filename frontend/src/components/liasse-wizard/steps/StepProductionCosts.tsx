@@ -323,7 +323,7 @@ export default function StepProductionCosts({ planId, planInputs, readOnly }: Pr
                   {ROWS.map((row) => {
                     if (row.field === "utilities") {
                       return (
-                        <div key="util" className="sm:col-span-2 grid grid-cols-3 gap-2">
+                        <div key="util" className="grid grid-cols-1 gap-2 sm:col-span-2 sm:grid-cols-3">
                           {(
                             [
                               ["gas_monthly", "Gaz"],

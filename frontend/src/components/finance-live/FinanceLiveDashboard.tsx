@@ -221,7 +221,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           )}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
             <h3 className="text-sm font-semibold text-slate-800">Simulation interactive</h3>
             <p className="mb-4 text-xs text-slate-500">

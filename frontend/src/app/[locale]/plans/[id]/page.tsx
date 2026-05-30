@@ -238,9 +238,10 @@ function PlanContent() {
 
       <PlanActionBar
         plan={plan}
+        role={user?.role}
         busy={busyAction}
         exportFormats={exportFormats}
-        handlers={{
+        onAction={{
           onSave: async () => {
             setBusyAction("save");
             try {
@@ -291,6 +292,7 @@ function PlanContent() {
           },
           onExportPdf: () => void requestExport("pdf"),
           onExportXlsx: () => void requestExport("xlsx"),
+          onExportGenerate: () => void requestExport("pdf"),
         }}
       />
 

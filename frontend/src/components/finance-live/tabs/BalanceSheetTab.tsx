@@ -96,14 +96,14 @@ function RatioCards({ year }: { year: BalanceSheetYear }) {
     { label: "Trésorerie nette", value: formatCurrency(r.tresorerie_nette) },
   ];
   return (
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
       {cards.map((c) => (
         <div
           key={c.label}
-          className="rounded-lg border border-navy-100 bg-navy-50/50 px-3 py-2"
+          className="min-h-0 overflow-hidden rounded-lg border border-navy-100 bg-navy-50/50 px-3 py-2"
         >
-          <p className="text-[10px] font-medium uppercase text-navy-600">{c.label}</p>
-          <p className="text-sm font-semibold tabular-nums text-navy-900">{c.value}</p>
+          <p className="truncate text-[10px] font-medium uppercase text-navy-600">{c.label}</p>
+          <p className="truncate text-sm font-semibold tabular-nums text-navy-900">{c.value}</p>
         </div>
       ))}
     </div>

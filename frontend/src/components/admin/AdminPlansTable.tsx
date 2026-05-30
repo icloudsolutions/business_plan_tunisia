@@ -1,13 +1,19 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
+import StatusBadge from "@/components/StatusBadge";
 import WorkflowStepper from "@/components/plan/WorkflowStepper";
 import { btnPrimary } from "@/components/plan/plan-action-styles";
+import SortableTableHead from "@/components/dashboard/SortableTableHead";
+import type { PlanSortKey, SortDirection } from "@/components/dashboard/plan-list-utils";
 import type { AdminPlan } from "@/lib/admin-api";
 import type { AdminUser } from "@/lib/admin-api";
 
 const STATES = ["DRAFT", "UNDER_REVIEW", "ADJUSTMENT", "VALIDATED"];
+
+type AdminSortKey = PlanSortKey | "client" | "expert";
 
 type Props = {
   plans: AdminPlan[];
@@ -16,49 +22,172 @@ type Props = {
   onSetStatus: (planId: string, status: string) => Promise<void>;
 };
 
+function sortAdminPlans(
+  plans: AdminPlan[],
+  key: AdminSortKey,
+  direction: SortDirection
+): AdminPlan[] {
+  const dir = direction === "asc" ? 1 : -1;
+  return [...plans].sort((a, b) => {
+    let cmp = 0;
+    switch (key) {
+      case "title":
+        cmp = a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+        break;
+      case "client":
+        cmp = a.owner_email.localeCompare(b.owner_email, undefined, {
+          sensitivity: "base",
+        });
+        break;
+      case "expert":
+        cmp = (a.expert_email ?? "").localeCompare(b.expert_email ?? "", undefined, {
+          sensitivity: "base",
+        });
+        break;
+      case "status":
+        cmp =
+          STATES.indexOf(a.status) - STATES.indexOf(b.status);
+        break;
+      case "updated":
+        cmp = a.updated_at.localeCompare(b.updated_at);
+        break;
+      case "completion":
+        cmp = a.completion_pct - b.completion_pct;
+        break;
+      default:
+        cmp = 0;
+    }
+    return cmp * dir;
+  });
+}
+
+function formatAdminDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("fr-TN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function AdminPlansTable({
   plans,
   experts,
   onAssignExpert,
   onSetStatus,
 }: Props) {
+  const [sortKey, setSortKey] = useState<AdminSortKey>("updated");
+  const [sortDir, setSortDir] = useState<SortDirection>("desc");
+
+  const handleSort = (key: string) => {
+    const k = key as AdminSortKey;
+    if (sortKey === k) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(k);
+      setSortDir(k === "title" || k === "client" ? "asc" : "desc");
+    }
+  };
+
+  const sortedPlans = useMemo(
+    () => sortAdminPlans(plans, sortKey, sortDir),
+    [plans, sortKey, sortDir]
+  );
+
   if (plans.length === 0) {
     return <p className="px-6 py-8 text-sm text-slate-500">Aucun plan.</p>;
   }
 
   return (
     <>
-      <ul className="divide-y divide-slate-100 md:hidden">
-        {plans.map((p) => (
-          <li key={p.id} className="space-y-3 px-4 py-4">
-            <p className="truncate font-semibold text-slate-900">{p.title}</p>
-            <WorkflowStepper status={p.status} role="admin" compact />
-            <span className="text-xs text-slate-500">
-              Màj {new Date(p.updated_at).toLocaleDateString("fr-TN")}
-            </span>
-            <Link href={`/plans/${p.id}`} className={`${btnPrimary} w-full text-center`}>
-              Ouvrir le plan
-            </Link>
-          </li>
+      <div className="space-y-3 p-4 md:hidden" aria-label="Liste des plans">
+        {sortedPlans.map((p) => (
+          <div
+            key={p.id}
+            className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-gray-900">{p.title}</p>
+                <p className="mt-0.5 truncate text-sm text-gray-500">{p.owner_email}</p>
+              </div>
+              <StatusBadge status={p.status} />
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-400">{formatAdminDate(p.updated_at)}</p>
+              <Link
+                href={`/plans/${p.id}`}
+                className={`${btnPrimary} shrink-0 text-center`}
+              >
+                Ouvrir le plan
+              </Link>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
+        <table className="min-w-[640px] w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-start text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <th className="px-4 py-3">Plan</th>
-              <th className="px-4 py-3">Client</th>
-              <th className="px-4 py-3">Expert</th>
-              <th className="px-4 py-3">État</th>
-              <th className="px-4 py-3">Màj</th>
-              <th className="px-4 py-3">Complétion</th>
-              <th className="px-4 py-3">Export</th>
-              <th className="px-4 py-3">Actions</th>
+            <tr className="border-b border-slate-200 text-xs font-semibold">
+              <SortableTableHead
+                label="Plan"
+                sortKey="title"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+                className="text-slate-500"
+              />
+              <SortableTableHead
+                label="Client"
+                sortKey="client"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+                className="text-slate-500"
+              />
+              <SortableTableHead
+                label="Expert"
+                sortKey="expert"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+                className="text-slate-500"
+              />
+              <SortableTableHead
+                label="État"
+                sortKey="status"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+                className="text-slate-500"
+              />
+              <SortableTableHead
+                label="Màj"
+                sortKey="updated"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+                className="text-slate-500"
+              />
+              <SortableTableHead
+                label="Complétion"
+                sortKey="completion"
+                activeKey={sortKey}
+                direction={sortDir}
+                onSort={handleSort}
+                align="end"
+                className="text-slate-500"
+              />
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Export
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
-            {plans.map((p) => (
+            {sortedPlans.map((p) => (
               <tr
                 key={p.id}
                 className="border-b border-slate-100 transition hover:bg-slate-50/80"
@@ -107,10 +236,10 @@ export default function AdminPlansTable({
                   </select>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
-                  {new Date(p.updated_at).toLocaleDateString("fr-TN")}
+                  {formatAdminDate(p.updated_at)}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
+                <td className="px-4 py-3 text-end">
+                  <div className="flex items-center justify-end gap-2">
                     <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
                       <div
                         className="h-full bg-blue-500"
