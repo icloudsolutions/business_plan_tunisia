@@ -32,6 +32,7 @@ from app.routers import (
     procurement_router,
     timeline_router,
     financing_structure_router,
+    pricing_router,
     ws_router,
 )
 
@@ -104,6 +105,7 @@ app.include_router(kpi_router.router, prefix="/api")
 app.include_router(procurement_router.router, prefix="/api")
 app.include_router(timeline_router.router, prefix="/api")
 app.include_router(financing_structure_router.router, prefix="/api")
+app.include_router(pricing_router.router, prefix="/api")
 app.include_router(ai_router.router, prefix="/api")
 app.include_router(email_router.router, prefix="/api")
 app.include_router(collaboration_router.router, prefix="/api")

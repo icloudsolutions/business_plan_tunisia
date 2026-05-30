@@ -82,6 +82,7 @@ class BusinessPlan(Base):
     tva_settings: Mapped["PlanTvaSettings | None"] = relationship(back_populates="plan", uselist=False)
     loans: Mapped[list["PlanLoan"]] = relationship(back_populates="plan")
     financing_sources: Mapped[list["PlanFinancingSource"]] = relationship(back_populates="plan")
+    pricing_grid: Mapped[list["PlanPricingGrid"]] = relationship(back_populates="plan")
 
 
 class PlanFinancingSource(Base):
@@ -265,6 +266,36 @@ class PlanProduct(Base):
 
     plan: Mapped["BusinessPlan"] = relationship(back_populates="products")
     cost_components: Mapped[list["PlanProductCostComponent"]] = relationship(back_populates="product")
+    pricing_row: Mapped["PlanPricingGrid | None"] = relationship(
+        back_populates="product", uselist=False
+    )
+
+
+class PlanPricingGrid(Base):
+    __tablename__ = "plan_pricing_grid"
+    __table_args__ = (
+        Index("ix_plan_pricing_grid_plan_id", "plan_id"),
+        Index("ix_plan_pricing_grid_product_unique", "plan_id", "product_id", unique=True),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("business_plans.id"))
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("plan_products.id", ondelete="CASCADE")
+    )
+    purchase_price_per_kg: Mapped[float] = mapped_column(Float, default=0.0)
+    sell_price_per_unit: Mapped[float] = mapped_column(Float, default=0.0)
+    sell_price_per_kg: Mapped[float] = mapped_column(Float, default=0.0)
+    market_retail_price: Mapped[float] = mapped_column(Float, default=0.0)
+    ristourne_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    unit_weight_g: Mapped[float] = mapped_column(Float, default=1000.0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    plan: Mapped["BusinessPlan"] = relationship(back_populates="pricing_grid")
+    product: Mapped["PlanProduct"] = relationship(back_populates="pricing_row")
 
 
 class PlanProductCostComponent(Base):

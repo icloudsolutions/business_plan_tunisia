@@ -44,6 +44,7 @@ import StepInvestments from "./steps/StepInvestments";
 import StepFinancing from "./steps/StepFinancing";
 import StepOperations from "./steps/StepOperations";
 import StepProducts from "./steps/StepProducts";
+import StepPricing from "./steps/StepPricing";
 import StepProductionCosts from "./steps/StepProductionCosts";
 import StepHr from "./steps/StepHr";
 import StepOtherCharges from "./steps/StepOtherCharges";
@@ -54,6 +55,7 @@ import StepProcurement from "./steps/StepProcurement";
 
 const PLAN_SCOPED_STEPS = [
   "products",
+  "pricing",
   "productionCosts",
   "hr",
   "otherCharges",
@@ -278,29 +280,9 @@ export default function LiasseWizard({
                 style={{ transform: `translateX(-${stepIndex * 100}%)` }}
               >
                 {WIZARD_STEPS.map((id) => {
-                  const Body =
-                    id === "products" ||
-                    id === "productionCosts" ||
-                    id === "hr" ||
-                    id === "otherCharges" ||
-                    id === "tva" ||
-                    id === "financing" ||
-                    id === "timeline" ||
-                    id === "procurement"
-                      ? null
-                      : STEP_COMPONENTS[
-                          id as Exclude<
-                            WizardStepId,
-                            | "products"
-                            | "productionCosts"
-                            | "hr"
-                            | "otherCharges"
-                            | "tva"
-                            | "financing"
-                            | "timeline"
-                            | "procurement"
-                          >
-                        ];
+                  const Body = PLAN_SCOPED_STEPS.includes(id as PlanScopedStep)
+                    ? null
+                    : STEP_COMPONENTS[id as Exclude<WizardStepId, PlanScopedStep>];
                   return (
                     <div
                       key={id}
@@ -309,6 +291,8 @@ export default function LiasseWizard({
                     >
                       {id === "products" ? (
                         <StepProducts planId={planId} readOnly={readOnly} />
+                      ) : id === "pricing" ? (
+                        <StepPricing planId={planId} readOnly={readOnly} />
                       ) : id === "productionCosts" ? (
                         <StepProductionCosts
                           planId={planId}

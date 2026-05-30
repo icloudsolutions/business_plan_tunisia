@@ -39,6 +39,8 @@ docker compose up --build -d
 
 **Revenus multi-produits** : `GET/POST/PATCH/DELETE /api/plans/{id}/products`, `PUT /api/plans/{id}/revenue-assumptions`, `GET /api/plans/{id}/revenue-projection` (aperçu sync ou Celery via `POST`). Migration `008_plan_products_revenue`. Étape Liasse « Produits & Prix ».
 
+**Grille prix & marché** : `GET /api/plans/{id}/pricing`, `PATCH /api/plans/{id}/pricing-grid/{row_id}`, `POST /api/plans/{id}/pricing/sync-products`. Migration `017_plan_pricing_grid`. Étape « Prix de Vente » : grille achat/vente/marché, marge colorée, sensibilité prix, graphique chaîne de prix (coût → distributeur → rayon).
+
 **Bilan prévisionnel** : `GET /api/plans/{id}/balance-sheet?scenario=base|pessimistic|optimistic`. Onglet « Bilan prévisionnel » du cockpit finance (ACTIFS / PASSIFS Y1–Y7, ratios BFR, composition empilée).
 
 **Flux de trésorerie** : `GET /api/plans/{id}/cash-flow?scenario=…&bfr_client_days=20|33|45`. Tableau Y0–Y7 (exploitation, ΔBFR, investissement, dettes), waterfall + BFR empilé, point d’équilibre cumul, sensibilité délai clients (onglet Trésorerie).

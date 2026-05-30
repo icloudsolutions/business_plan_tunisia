@@ -897,4 +897,36 @@ class FinancingSyncResponse(BaseModel):
     projection: dict
 
 
+class PricingGridResponse(BaseModel):
+    id: UUID
+    plan_id: UUID
+    product_id: UUID
+    purchase_price_per_kg: float
+    sell_price_per_unit: float
+    sell_price_per_kg: float
+    market_retail_price: float
+    ristourne_pct: float
+    unit_weight_g: float
+
+    model_config = {"from_attributes": True}
+
+
+class PricingGridUpdate(BaseModel):
+    purchase_price_per_kg: float | None = Field(None, ge=0)
+    sell_price_per_unit: float | None = Field(None, ge=0)
+    sell_price_per_kg: float | None = Field(None, ge=0)
+    market_retail_price: float | None = Field(None, ge=0)
+    ristourne_pct: float | None = Field(None, ge=0, le=1)
+    unit_weight_g: float | None = Field(None, ge=0)
+
+
+class PricingProjectionResponse(BaseModel):
+    projection: dict
+
+
+class PricingSyncResponse(BaseModel):
+    message: str
+    projection: dict
+
+
 PlanPatchResponse.model_rebuild()

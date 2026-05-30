@@ -28,6 +28,10 @@
       "title": "Produits & Prix",
       "explainer": "Catalogue multi-produits, ristournes, croissance Y2–Y7 et taux d'utilisation de la capacité nominale."
     },
+    "pricing": {
+      "title": "Prix de Vente",
+      "explainer": "Grille achat/vente vs. prix marché (rayon), marge brute par produit, sensibilité prix et comparaison distributeur."
+    },
     "productionCosts": {
       "title": "Coûts de production",
       "explainer": "Coût unitaire par produit (MP, arômes, emballage, énergie, MO, amortissement, déchets) et marge brute."

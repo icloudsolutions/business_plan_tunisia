@@ -14,6 +14,7 @@ from app.celery_client import celery_app
 from app.database import get_db
 from app.models import BusinessPlan, CalcJob, PlanProduct, PlanRevenueAssumptions, User
 from app.cost_service import ensure_cost_grid
+from app.pricing_service import ensure_pricing_row
 from app.revenue_service import compute_projection, get_or_create_assumptions, load_products
 from app.schemas import (
     JobResponse,
@@ -74,6 +75,7 @@ async def create_product(
     db.add(row)
     await db.flush()
     await ensure_cost_grid(db, plan_id, row.id)
+    await ensure_pricing_row(db, plan_id, row, plan.inputs)
     await db.commit()
     await db.refresh(row)
     return _product_response(row)

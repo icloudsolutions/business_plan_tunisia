@@ -166,7 +166,7 @@ export default function StepTimeline({ planId, readOnly }: Props) {
         horizonMonths={chart.horizon_months}
         planStartDate={chart.plan_start_date}
         readOnly={readOnly}
-        onPhaseDatesChange={onPhaseDatesChange}
+        onPhaseDatesChange={onPhaseDates}
       />
 
       <div className="flex flex-wrap gap-2">
