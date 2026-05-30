@@ -6,10 +6,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Inputs } from "@/components/liasse-form-utils";
 import { inputsToFormValues } from "@/lib/liasse-wizard/defaults";
-import {
-  buildPreflightReport,
-  getConsistencyAlerts,
-} from "@/lib/liasse-wizard/consistency";
+import { getConsistencyAlerts } from "@/lib/liasse-wizard/consistency";
 import { stepMetaFor } from "@/lib/liasse-wizard/field-meta";
 import { useLocale } from "next-intl";
 import type { AppLocale } from "@/i18n/routing";
@@ -32,7 +29,6 @@ import { LiasseAiProvider } from "@/context/LiasseAiContext";
 import WizardNavigation from "./WizardNavigation";
 import WizardSidebar from "./WizardSidebar";
 import WizardMobileSteps from "./WizardMobileSteps";
-import PreflightCheck from "./PreflightCheck";
 import LiasseUnifiedInputForm from "./LiasseUnifiedInputForm";
 import StepFinancing from "./steps/StepFinancing";
 import StepProducts from "./steps/StepProducts";
@@ -53,7 +49,6 @@ interface Props {
   onChange: (inputs: Inputs) => void;
   onSave: (result: PlanPatchResult) => void;
   readOnly?: boolean;
-  missingFields?: string[];
   completion?: PlanCompletion | null;
   onPlanModuleChange?: () => void;
   onRegisterNavigator?: (fn: (step: WizardStepId, fieldPath: string) => void) => void;
@@ -65,7 +60,6 @@ export default function LiasseWizard({
   onChange,
   onSave,
   readOnly = false,
-  missingFields = [],
   completion = null,
   onPlanModuleChange,
   onRegisterNavigator,
@@ -131,11 +125,6 @@ export default function LiasseWizard({
       }),
     [values, payrollLive.staffRoleCount]
   );
-  const preflight = useMemo(
-    () => buildPreflightReport(values, missingFields),
-    [values, missingFields]
-  );
-
   const goToStep = async (target: number) => {
     if (target > stepIndex && !readOnly) {
       const paths = getStepFieldPaths(currentStep);
@@ -243,7 +232,6 @@ export default function LiasseWizard({
         ) : id === "procurement" ? (
           <StepProcurement planId={planId} readOnly={readOnly} />
         ) : null}
-        {id === "liasseInputs" && <PreflightCheck items={preflight} />}
       </>
     );
   };

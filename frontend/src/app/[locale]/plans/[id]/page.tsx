@@ -50,7 +50,6 @@ function PlanContent() {
   const jumpToFieldRef = useRef<((step: WizardStepId, path: string) => void) | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [inputs, setInputs] = useState<Record<string, unknown>>({});
-  const [missingFields, setMissingFields] = useState<string[]>([]);
   const [simulations, setSimulations] = useState<SimulationItem[]>([]);
   const [audit, setAudit] = useState<AuditResult | null>(null);
   const [busyAction, setBusyAction] = useState<PlanActionBusy>("");
@@ -204,14 +203,12 @@ function PlanContent() {
               planId={id}
               inputs={inputs}
               onChange={setInputs}
-              missingFields={missingFields}
               completion={completion}
               onRegisterNavigator={(fn) => {
                 jumpToFieldRef.current = fn;
               }}
               onSave={(res) => {
                 setPlan(res.plan);
-                setMissingFields(res.missingFields || []);
                 setCompletionKey((k) => k + 1);
               }}
               onPlanModuleChange={bumpCompletion}
@@ -247,7 +244,6 @@ function PlanContent() {
             try {
               const res = await saveInputs(id, inputs);
               setPlan(res.plan);
-              setMissingFields(res.missingFields || []);
               setCompletionKey((k) => k + 1);
             } finally {
               setBusyAction("");
