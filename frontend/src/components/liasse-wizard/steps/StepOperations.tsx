@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
+import { FormField } from "@/components/ui/FormField";
 import WizardField from "../WizardField";
 import type { LiasseFormValues } from "@/lib/liasse-wizard/schema";
 
@@ -68,20 +69,18 @@ export default function StepOperations({ readOnly }: Props) {
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {YEAR_LABELS.map((label, yi) => (
-            <div key={label}>
-              <label className="text-xs font-medium text-navy-700">{label}</label>
-              <input
-                type="number"
-                step="0.001"
-                min={0}
-                max={1}
-                disabled={readOnly}
-                className="mt-1 w-full rounded-lg border border-navy-200 px-2 py-1.5 text-sm"
-                {...register(`operations.wasteRateByYear.${yi}` as const, {
-                  valueAsNumber: true,
-                })}
-              />
-            </div>
+            <FormField
+              key={label}
+              label={label}
+              name={`operations.wasteRateByYear.${yi}`}
+              unit="%"
+              register={register}
+              readOnly={readOnly}
+              step="0.001"
+              min={0}
+              max={1}
+              compact
+            />
           ))}
         </div>
       </div>

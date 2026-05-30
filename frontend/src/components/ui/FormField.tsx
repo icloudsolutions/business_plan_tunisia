@@ -9,48 +9,37 @@ import {
 import { FOCUS_RING_INPUT } from "@/lib/a11y";
 import { cn } from "@/lib/utils";
 import FieldHelpPopover from "@/components/ui/FieldHelpPopover";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+
+export type FormFieldOption = { value: string; label: string };
 
 export interface FormFieldProps {
   label: string;
   name: string;
   unit?: string;
-  /** Plain-text help shown in the popover. Omit to use `tooltipContent`. */
+  /** Plain-text help — shows an info popover beside the label. */
   tooltip?: string;
-  /** Rich help content (overrides `tooltip` when set). */
   tooltipContent?: ReactNode;
-  /** Extra controls on the label row (e.g. AI assist, comments). */
   labelActions?: ReactNode;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: UseFormRegister<any>;
   error?: FieldError;
   readOnly?: boolean;
-  /** Auto-calculated or read-only fields — blue background. */
   highlight?: boolean;
-  /** @default "number" */
-  type?: "text" | "number";
+  type?: "text" | "number" | "select";
+  options?: FormFieldOption[];
   step?: string | number;
   min?: number;
   max?: number;
   className?: string;
-  /** Tighter vertical spacing inside grids. */
   compact?: boolean;
 }
 
-function formatTooltip(text: string): ReactNode {
-  const blocks = text.split(/\n\n+/).filter(Boolean);
-  if (blocks.length <= 1) {
-    return <p>{text}</p>;
-  }
-  return (
-    <div className="space-y-2">
-      {blocks.map((block, i) => (
-        <p key={i}>{block}</p>
-      ))}
-    </div>
-  );
+function fieldId(name: string): string {
+  return name.replace(/\./g, "-");
 }
 
-export default function FormField({
+export function FormField({
   label,
   name,
   unit,
@@ -62,61 +51,88 @@ export default function FormField({
   readOnly = false,
   highlight = false,
   type = "number",
+  options,
   step,
   min,
   max,
   className,
   compact = false,
 }: FormFieldProps) {
-  const locked = readOnly || highlight;
-  const reg = register(
-    name,
-    type === "number" ? ({ valueAsNumber: true } as RegisterOptions) : undefined
-  );
+  const id = fieldId(name);
+  const locked = readOnly;
+  const reg =
+    type === "select"
+      ? register(name)
+      : register(
+          name,
+          type === "number"
+            ? ({ valueAsNumber: true } as RegisterOptions)
+            : undefined
+        );
 
-  const inputClass = cn(
+  const controlClass = cn(
     "w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition",
     FOCUS_RING_INPUT,
-    unit ? "pe-14" : "",
-    locked
-      ? "cursor-not-allowed border-blue-200 bg-blue-50 text-blue-800 focus:border-blue-300 focus:ring-blue-100"
-      : "border-gray-200 bg-white text-gray-900 focus:border-indigo-500 focus:ring-indigo-100",
-    error && !locked && "border-red-400 focus:border-red-500 focus:ring-red-100",
+    unit && type !== "select" ? "pe-12" : "",
+    locked && "cursor-not-allowed border-blue-200 bg-blue-50 text-blue-800",
+    highlight && !locked && "border-blue-200 bg-blue-50 text-blue-800",
+    !locked &&
+      !highlight &&
+      "border-gray-200 bg-white text-gray-900 focus:border-indigo-500 focus:ring-indigo-100",
+    error &&
+      !locked &&
+      "border-red-400 focus:border-red-500 focus:ring-red-100",
     className
   );
 
   return (
     <div className={cn(compact ? "mb-0" : "mb-4")}>
-      <label
-        htmlFor={name}
-        className="flex items-center gap-1 text-sm font-medium text-gray-800"
-      >
-        <span className="min-w-0 flex-1">{label}</span>
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <label htmlFor={id} className="text-sm font-medium text-gray-700">
+          {label}
+        </label>
         {labelActions}
         {tooltipContent ? (
           <FieldHelpPopover label={label}>{tooltipContent}</FieldHelpPopover>
         ) : tooltip ? (
-          <FieldHelpPopover label={label}>{formatTooltip(tooltip)}</FieldHelpPopover>
+          <InfoTooltip text={tooltip} label={label} />
         ) : null}
-      </label>
+      </div>
 
-      <div className="relative mt-1">
-        <input
-          id={name}
-          type={type}
-          step={step}
-          min={min}
-          max={max}
-          className={inputClass}
-          readOnly={locked}
-          disabled={locked}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${name}-error` : undefined}
-          {...reg}
-        />
-        {unit ? (
+      <div className="relative">
+        {type === "select" && options ? (
+          <select
+            id={id}
+            className={controlClass}
+            disabled={locked}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
+            {...reg}
+          >
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            id={id}
+            type={type === "number" ? "number" : "text"}
+            step={step ?? (type === "number" ? "any" : undefined)}
+            min={min}
+            max={max}
+            readOnly={locked}
+            disabled={locked}
+            className={controlClass}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
+            {...reg}
+          />
+        )}
+        {unit && type !== "select" ? (
           <span
-            className="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3 text-xs font-medium text-gray-600"
+            className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-xs text-gray-600"
             aria-hidden
           >
             {unit}
@@ -126,9 +142,9 @@ export default function FormField({
 
       {error?.message ? (
         <p
-          id={`${name}-error`}
-          className="mt-1 text-xs text-red-500"
+          id={`${id}-error`}
           role="alert"
+          className="mt-1 text-xs text-red-500"
         >
           {String(error.message)}
         </p>
@@ -136,3 +152,5 @@ export default function FormField({
     </div>
   );
 }
+
+export default FormField;

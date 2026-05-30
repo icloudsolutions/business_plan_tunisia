@@ -5,9 +5,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { createSafeId } from "@/lib/safe-id";
 import type { LiasseFormValues } from "@/lib/liasse-wizard/schema";
 import FieldTooltip from "../FieldTooltip";
-import FormField from "@/components/ui/FormField";
+import { FormField } from "@/components/ui/FormField";
 import { metaFor } from "@/lib/liasse-wizard/field-meta";
-import { FOCUS_RING_INPUT } from "@/lib/a11y";
 
 type Props = { readOnly?: boolean };
 
@@ -86,23 +85,18 @@ export default function StepInvestments({ readOnly }: Props) {
                 readOnly={readOnly}
                 compact
               />
-              <div className={readOnly ? "mb-0" : "mb-4"}>
-                <label
-                  htmlFor={`investments-equipment-${index}-assetType`}
-                  className="text-sm font-medium text-gray-800"
-                >
-                  Type
-                </label>
-                <select
-                  id={`investments-equipment-${index}-assetType`}
-                  className={`mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 disabled:cursor-not-allowed disabled:border-blue-200 disabled:bg-blue-50 disabled:text-blue-800 ${FOCUS_RING_INPUT}`}
-                  disabled={readOnly}
-                  {...register(`investments.equipment.${index}.assetType` as const)}
-                >
-                  <option value="tangible">Corporel</option>
-                  <option value="intangible">Incorporel</option>
-                </select>
-              </div>
+              <FormField
+                label="Type"
+                name={`investments.equipment.${index}.assetType`}
+                type="select"
+                options={[
+                  { value: "tangible", label: "Corporel" },
+                  { value: "intangible", label: "Incorporel" },
+                ]}
+                register={register}
+                readOnly={readOnly}
+                compact
+              />
               <FormField
                 label="Coût"
                 name={`investments.equipment.${index}.cost`}

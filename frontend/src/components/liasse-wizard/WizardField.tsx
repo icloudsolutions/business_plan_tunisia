@@ -9,13 +9,12 @@ import { MessageSquare, Sparkles } from "lucide-react";
 import { useCollaboration } from "@/context/CollaborationContext";
 import { useLiasseAi } from "@/context/LiasseAiContext";
 import { isAiAssistField } from "@/lib/liasse-wizard/ai-fields";
-import FormField from "@/components/ui/FormField";
-import FieldHelpPopover from "@/components/ui/FieldHelpPopover";
+import { FormField } from "@/components/ui/FormField";
 import { useLocale } from "next-intl";
 import { metaFor, type FieldMeta } from "@/lib/liasse-wizard/field-meta";
 import { unitForField } from "@/lib/liasse-wizard/field-units";
 import type { AppLocale } from "@/i18n/routing";
-import { FOCUS_RING, FOCUS_RING_INPUT } from "@/lib/a11y";
+import { FOCUS_RING } from "@/lib/a11y";
 import { cn } from "@/lib/utils";
 
 type Props<T extends FieldValues> = {
@@ -91,6 +90,7 @@ export default function WizardField<T extends FieldValues>({
     (showAi ?? isAiAssistField(fieldKey)) && liasseAi?.openAiAssist && !disabled;
   const err = fieldError(errors, fieldKey);
   const resolvedUnit = unit ?? unitForField(fieldKey);
+  const locked = disabled || (type === "select" && highlight);
 
   const labelActions = (
     <>
@@ -117,51 +117,6 @@ export default function WizardField<T extends FieldValues>({
     </>
   );
 
-  if (type === "select" && options) {
-    const reg = register(name);
-    const locked = disabled || highlight;
-    const selectClass = cn(
-      "mt-1 w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition",
-      FOCUS_RING_INPUT,
-      locked
-        ? "cursor-not-allowed border-blue-200 bg-blue-50 text-blue-800"
-        : "border-gray-200 bg-white text-gray-900 focus:border-indigo-500 focus:ring-indigo-100",
-      err && !locked && "border-red-400 focus:border-red-500 focus:ring-red-100",
-      className
-    );
-    return (
-      <div
-        className={cn(
-          compact ? "mb-0" : "mb-4",
-          "rounded-lg p-2 transition",
-          hasComment && "bg-orange-50 ring-2 ring-orange-300"
-        )}
-      >
-        <div className="flex items-center gap-1 text-sm font-medium text-gray-800">
-          <label htmlFor={fieldKey} className="flex min-w-0 flex-1 items-center gap-1">
-            <span>{fieldMeta.label}</span>
-          </label>
-          {labelActions}
-          <FieldHelpPopover label={fieldMeta.label}>
-            {metaTooltipContent(fieldMeta)}
-          </FieldHelpPopover>
-        </div>
-        <select id={fieldKey} className={selectClass} disabled={locked} {...reg}>
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        {err?.message && (
-          <p className="mt-1 text-xs text-red-500" role="alert">
-            {String(err.message)}
-          </p>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div
       className={cn(
@@ -177,9 +132,10 @@ export default function WizardField<T extends FieldValues>({
         labelActions={labelActions}
         register={register as never}
         error={err as never}
-        readOnly={disabled}
-        highlight={highlight}
-        type={type === "number" ? "number" : "text"}
+        readOnly={locked}
+        highlight={highlight && type !== "select"}
+        type={type}
+        options={options}
         step={step}
         min={min}
         max={max}
