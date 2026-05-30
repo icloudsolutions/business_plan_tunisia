@@ -1,4 +1,4 @@
-from bp_schema.completion import get_required_missing_paths
+from bp_schema.completion import PlanCompletionContext, compute_plan_completion
 from bp_schema.liasse import PlanInputs
 
 
@@ -9,11 +9,16 @@ def _total_capex_amount(inputs: PlanInputs) -> float:
     return total
 
 
-def validate_draft_inputs(inputs: PlanInputs) -> list[str]:
-    """Return list of missing required field paths (blocks submission)."""
-    missing = get_required_missing_paths(inputs)
+def get_submission_missing_paths(
+    inputs: PlanInputs,
+    context: PlanCompletionContext | None = None,
+) -> list[str]:
+    """Required paths blocking submission (liasse + plan modules when context is provided)."""
+    missing = [
+        item["path"]
+        for item in compute_plan_completion(inputs, context)["required_missing"]
+    ]
 
-    # Extra structural checks on equipment lines
     for i, eq in enumerate(inputs.investments.equipment):
         if eq.cost < 0:
             path = f"investments.equipment.{i}.cost"
@@ -32,3 +37,8 @@ def validate_draft_inputs(inputs: PlanInputs) -> list[str]:
         missing.append("investments.equipment")
 
     return missing
+
+
+def validate_draft_inputs(inputs: PlanInputs) -> list[str]:
+    """Legacy helper without DB context (module rules need PlanCompletionContext)."""
+    return get_submission_missing_paths(inputs, None)

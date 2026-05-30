@@ -4,8 +4,10 @@ import { AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import type { CompletionFieldItem } from "@/lib/completion";
 import { fieldPathToStep } from "@/lib/completion";
@@ -39,16 +41,19 @@ export default function SubmitBlockedModal({
           <div className="flex gap-3 pe-8">
             <AlertCircle className="h-6 w-6 shrink-0 text-red-600" aria-hidden />
             <div>
-              <h2
+              <DialogTitle
                 id="submit-blocked-title"
                 className="font-display text-lg font-semibold text-navy-900"
               >
                 Soumission impossible
-              </h2>
-              <p id="submit-blocked-desc" className="mt-1 text-sm text-navy-600">
+              </DialogTitle>
+              <DialogDescription
+                id="submit-blocked-desc"
+                className="mt-1 text-sm text-navy-600"
+              >
                 Complétez les champs obligatoires suivants avant d&apos;envoyer le plan à
                 l&apos;expert.
-              </p>
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>

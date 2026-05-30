@@ -593,9 +593,15 @@ def compute_plan_completion(
     }
 
 
-def get_required_missing_paths(inputs: PlanInputs) -> list[str]:
+def get_required_missing_paths(
+    inputs: PlanInputs,
+    context: PlanCompletionContext | None = None,
+) -> list[str]:
     """Paths blocking submission (required tier only)."""
-    return [item["path"] for item in compute_plan_completion(inputs)["required_missing"]]
+    return [
+        item["path"]
+        for item in compute_plan_completion(inputs, context)["required_missing"]
+    ]
 
 
 def completion_percent_legacy(inputs: PlanInputs) -> int:

@@ -8,6 +8,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bp_schema.completion import PlanCompletionContext
+from bp_schema.liasse import PlanInputs
+from bp_schema.validation import get_submission_missing_paths
 
 from app.models import (
     PlanFinancingSource,
@@ -98,6 +100,37 @@ async def build_plan_completion_context(db: AsyncSession, plan_id: UUID) -> Plan
         .where(PlanStaffRole.plan_id == plan_id, PlanStaffHeadcount.headcount > 0)
     )
 
+    return _build_context_from_counts(
+        phases=phases,
+        settings=settings,
+        raw_materials=raw_materials,
+        recipes=recipes,
+        products=products,
+        pricing_filled=pricing_filled,
+        cost_rows=cost_rows,
+        other_active=other_active,
+        tva_rows=tva_rows,
+        financing_sources=financing_sources,
+        staff_roles=staff_roles,
+        headcount_active=headcount_active,
+    )
+
+
+def _build_context_from_counts(
+    *,
+    phases,
+    settings,
+    raw_materials,
+    recipes,
+    products,
+    pricing_filled,
+    cost_rows,
+    other_active,
+    tva_rows,
+    financing_sources,
+    staff_roles,
+    headcount_active,
+) -> PlanCompletionContext:
     return PlanCompletionContext(
         timeline_phases_count=int(phases or 0),
         timeline_has_settings=settings is not None,
@@ -112,3 +145,12 @@ async def build_plan_completion_context(db: AsyncSession, plan_id: UUID) -> Plan
         staff_roles_count=int(staff_roles or 0),
         headcount_active_count=int(headcount_active or 0),
     )
+
+
+async def get_plan_submission_missing(
+    db: AsyncSession,
+    plan_id: UUID,
+    inputs: PlanInputs,
+) -> list[str]:
+    ctx = await build_plan_completion_context(db, plan_id)
+    return get_submission_missing_paths(inputs, ctx)

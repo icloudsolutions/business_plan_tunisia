@@ -85,7 +85,9 @@ export function fieldPathToStep(path: string): WizardStepId {
   if (path.startsWith("productionCosts") || path.startsWith("cost.")) {
     return "productionCosts";
   }
-  if (path.startsWith("plAssumptions.personnel")) return "hr";
+  if (path.startsWith("payroll") || path.startsWith("plAssumptions.personnel")) {
+    return "hr";
+  }
   if (
     path.startsWith("otherCharges") ||
     path === "plAssumptions.otherOperatingCharges"

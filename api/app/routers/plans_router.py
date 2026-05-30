@@ -11,7 +11,7 @@ from bp_schema.completion import compute_plan_completion
 from app.plan_completion_service import build_plan_completion_context
 from bp_schema.enums import BusinessPlanStatus
 from bp_schema.liasse import PlanInputs
-from bp_schema.validation import validate_draft_inputs
+from app.plan_completion_service import get_plan_submission_missing
 
 from app.completion_report import build_completeness_report_pdf
 
@@ -306,7 +306,7 @@ async def update_inputs(
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
-    missing = validate_draft_inputs(validated)
+    missing = await get_plan_submission_missing(db, plan.id, validated)
     try:
         plan.inputs = validated.model_dump()
         await maybe_sync_plan_title_from_company(db, plan, plan.inputs)
@@ -336,7 +336,8 @@ async def submit_plan(
 ):
     plan = await get_plan_for_user(plan_id, user, db)
     assert_plan_action(plan, user, PlanAction.SUBMIT)
-    missing = validate_draft_inputs(PlanInputs.model_validate(plan.inputs))
+    inputs = PlanInputs.model_validate(plan.inputs)
+    missing = await get_plan_submission_missing(db, plan.id, inputs)
     if missing:
         raise HTTPException(status_code=422, detail={"missingFields": missing})
 

@@ -5,6 +5,8 @@ import { Loader2, Send, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogTitle,
   DialogFooter,
   DialogHeader,
 } from "@/components/ui/dialog";
@@ -115,16 +117,16 @@ export default function AiAssistModal({
         closeLabel="Fermer l'aide IA"
       >
         <DialogHeader>
-          <h2
+          <DialogTitle
             id="ai-assist-title"
             className="flex items-center gap-2 font-display text-lg font-semibold text-navy-900"
           >
             <Sparkles className="h-5 w-5 text-gold-500" aria-hidden />
             Aide IA
-          </h2>
-          <p id="ai-assist-desc" className="text-sm text-navy-600">
+          </DialogTitle>
+          <DialogDescription id="ai-assist-desc" className="text-sm text-navy-600">
             {meta.label} — {sector} · {companyType} · {location}
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">

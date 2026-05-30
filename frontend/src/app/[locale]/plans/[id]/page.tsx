@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FileBarChart } from "lucide-react";
-import { downloadCompletenessReport } from "@/lib/completion";
+import SubmitBlockedModal from "@/components/completion/SubmitBlockedModal";
+import {
+  downloadCompletenessReport,
+  type CompletionFieldItem,
+} from "@/lib/completion";
+import { isApiHttpError, parseMissingFieldsFromApiError } from "@/lib/api-errors";
 import { usePlanCompletion } from "@/hooks/usePlanCompletion";
 import type { WizardStepId } from "@/lib/liasse-wizard/schema";
 import { useParams } from "next/navigation";
@@ -57,6 +62,8 @@ function PlanContent() {
   const [exportJobId, setExportJobId] = useState<string | null>(null);
   const [exportFormats, setExportFormats] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [submitBlockedOpen, setSubmitBlockedOpen] = useState(false);
+  const [submitBlockedPaths, setSubmitBlockedPaths] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFieldKey, setActiveFieldKey] = useState<string | null>("_global");
 
@@ -104,6 +111,38 @@ function PlanContent() {
 
   const collabEnabled =
     plan?.status === "UNDER_REVIEW" || plan?.status === "ADJUSTMENT";
+
+  const submitBlockedItems: CompletionFieldItem[] = (() => {
+    if (!completion) {
+      return submitBlockedPaths.map((path) => ({
+        path,
+        section: "",
+        tier: "required",
+        label_fr: path,
+        label_ar: path,
+        filled: false,
+      }));
+    }
+    const byPath = new Map(
+      completion.required_missing.map((item) => [item.path, item])
+    );
+    const paths =
+      submitBlockedPaths.length > 0
+        ? submitBlockedPaths
+        : completion.required_missing.map((item) => item.path);
+    return paths.map(
+      (path) =>
+        byPath.get(path) ??
+        ({
+          path,
+          section: "",
+          tier: "required",
+          label_fr: path,
+          label_ar: path,
+          filled: false,
+        } as CompletionFieldItem)
+    );
+  })();
 
   const requestExport = async (format: "pdf" | "xlsx") => {
     if (exportJobId && exportFormats.includes(format)) {
@@ -250,10 +289,23 @@ function PlanContent() {
             }
           },
           onSubmit: async () => {
+            if (completion && !completion.can_submit) {
+              setSubmitBlockedPaths([]);
+              setSubmitBlockedOpen(true);
+              return;
+            }
             setBusyAction("submit");
+            setError("");
             try {
               await submitPlan(id);
               await load();
+            } catch (e) {
+              if (isApiHttpError(e, 422)) {
+                setSubmitBlockedPaths(parseMissingFieldsFromApiError(e));
+                setSubmitBlockedOpen(true);
+              } else {
+                setError(e instanceof Error ? e.message : "Erreur lors de la soumission");
+              }
             } finally {
               setBusyAction("");
             }
@@ -289,6 +341,17 @@ function PlanContent() {
           onExportPdf: () => void requestExport("pdf"),
           onExportXlsx: () => void requestExport("xlsx"),
           onExportGenerate: () => void requestExport("pdf"),
+        }}
+      />
+
+      <SubmitBlockedModal
+        open={submitBlockedOpen}
+        onClose={() => setSubmitBlockedOpen(false)}
+        requiredMissing={submitBlockedItems}
+        onNavigate={(step, path) => {
+          jumpToFieldRef.current?.(step, path);
+          scrollToWizard();
+          setSubmitBlockedOpen(false);
         }}
       />
 
