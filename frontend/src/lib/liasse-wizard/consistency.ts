@@ -7,7 +7,15 @@ export type ConsistencyAlert = {
   message: string;
 };
 
-export function getConsistencyAlerts(values: LiasseFormValues): ConsistencyAlert[] {
+export type ConsistencyOptions = {
+  /** Staff roles from payroll API (preferred over legacy liasse personnel). */
+  staffRoleCount?: number;
+};
+
+export function getConsistencyAlerts(
+  values: LiasseFormValues,
+  options?: ConsistencyOptions
+): ConsistencyAlert[] {
   const alerts: ConsistencyAlert[] = [];
   const { totalInvestissement, capitalPropre, empruntEstime } = computeTotals(values);
   const ratioSum = values.financing.equityRatio + values.financing.debtRatio;
@@ -53,7 +61,9 @@ export function getConsistencyAlerts(values: LiasseFormValues): ConsistencyAlert
     });
   }
 
-  if (values.plAssumptions.personnel.length === 0) {
+  const staffCount =
+    options?.staffRoleCount ?? values.plAssumptions.personnel.length;
+  if (staffCount === 0) {
     alerts.push({
       id: "no-personnel",
       severity: "warning",

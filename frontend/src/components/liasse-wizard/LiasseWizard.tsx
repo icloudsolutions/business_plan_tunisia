@@ -21,6 +21,7 @@ import {
   type WizardStepId,
 } from "@/lib/liasse-wizard/schema";
 import { computeTotals } from "@/lib/liasse-wizard/totals";
+import { usePayrollSidebarTotals } from "@/hooks/usePayrollSidebarTotals";
 import AutoSaveIndicator from "@/components/plan/AutoSaveIndicator";
 import CompletionProgressBar from "@/components/completion/CompletionProgressBar";
 import { useCompletionGamification } from "@/components/completion/CompletionToasts";
@@ -112,8 +113,24 @@ export default function LiasseWizard({
     [persist]
   );
 
-  const totals = useMemo(() => computeTotals(values), [values]);
-  const alerts = useMemo(() => getConsistencyAlerts(values), [values]);
+  const payrollLive = usePayrollSidebarTotals(planId);
+
+  const handlePlanModuleChange = useCallback(() => {
+    onPlanModuleChange?.();
+    void payrollLive.refresh();
+  }, [onPlanModuleChange, payrollLive.refresh]);
+
+  const totals = useMemo(
+    () => computeTotals(values, payrollLive.payrollY1),
+    [values, payrollLive.payrollY1]
+  );
+  const alerts = useMemo(
+    () =>
+      getConsistencyAlerts(values, {
+        staffRoleCount: payrollLive.staffRoleCount,
+      }),
+    [values, payrollLive.staffRoleCount]
+  );
   const preflight = useMemo(
     () => buildPreflightReport(values, missingFields),
     [values, missingFields]
@@ -205,19 +222,19 @@ export default function LiasseWizard({
           <StepHr
             planId={planId}
             readOnly={readOnly}
-            onDataChange={onPlanModuleChange}
+            onDataChange={handlePlanModuleChange}
           />
         ) : id === "otherCharges" ? (
           <StepOtherCharges
             planId={planId}
             readOnly={readOnly}
-            onDataChange={onPlanModuleChange}
+            onDataChange={handlePlanModuleChange}
           />
         ) : id === "tva" ? (
           <StepTva
             planId={planId}
             readOnly={readOnly}
-            onDataChange={onPlanModuleChange}
+            onDataChange={handlePlanModuleChange}
           />
         ) : id === "financing" ? (
           <StepFinancing planId={planId} readOnly={readOnly} />

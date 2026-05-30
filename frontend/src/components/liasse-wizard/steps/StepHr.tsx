@@ -108,6 +108,7 @@ export default function StepHr({ planId, readOnly, onDataChange }: Props) {
     setRaiseRate(row.annual_raise_rate);
     setCnssRate(row.cnss_employer_rate);
     void refreshProjection();
+    onDataChange?.();
   };
 
   const persistHeadcount = async (
@@ -164,6 +165,7 @@ export default function StepHr({ planId, readOnly, onDataChange }: Props) {
     const row = await updateStaffRole(planId, id, patch);
     setRoles((list) => list.map((r) => (r.id === id ? row : r)));
     void refreshProjection();
+    onDataChange?.();
   };
 
   const handleSyncLiasse = async () => {
