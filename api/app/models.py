@@ -62,7 +62,14 @@ class BusinessPlan(Base):
     activities: Mapped[list["PlanActivity"]] = relationship(back_populates="plan")
     export_jobs: Mapped[list["ExportJob"]] = relationship(back_populates="plan")
     versions: Mapped[list["PlanVersion"]] = relationship(back_populates="plan")
-    scenarios: Mapped[list["PlanScenario"]] = relationship(back_populates="plan")
+    scenarios: Mapped[list["PlanScenario"]] = relationship(
+        back_populates="plan",
+        foreign_keys="PlanScenario.plan_id",
+    )
+    official_scenario: Mapped["PlanScenario | None"] = relationship(
+        foreign_keys="BusinessPlan.official_scenario_id",
+        uselist=False,
+    )
     products: Mapped[list["PlanProduct"]] = relationship(back_populates="plan")
     revenue_assumptions: Mapped["PlanRevenueAssumptions | None"] = relationship(
         back_populates="plan", uselist=False
@@ -411,7 +418,10 @@ class PlanScenario(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    plan: Mapped["BusinessPlan"] = relationship(back_populates="scenarios")
+    plan: Mapped["BusinessPlan"] = relationship(
+        back_populates="scenarios",
+        foreign_keys="PlanScenario.plan_id",
+    )
 
 
 class PlanVersion(Base):
