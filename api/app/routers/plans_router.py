@@ -43,6 +43,7 @@ from app.plan_title import (
     maybe_sync_plan_title_from_company,
     DEFAULT_PLAN_TITLE,
 )
+from app.plan_results import plan_results_for_audit
 from app.plan_versions import create_plan_snapshot
 from app.schemas import (
     ExportRequest,
@@ -424,9 +425,10 @@ async def transition_plan(
     if new_status == BusinessPlanStatus.VALIDATED:
         from bp_schema.liasse import PlanResults
 
+        results_raw = await plan_results_for_audit(db, plan)
         audit = run_financial_audit(
             PlanInputs.model_validate(plan.inputs),
-            PlanResults.model_validate(plan.results) if plan.results else None,
+            PlanResults.model_validate(results_raw) if results_raw else None,
         )
         if (
             body.action == "VALIDATE"
@@ -557,7 +559,8 @@ async def audit_plan(
     plan = await get_plan_for_user(plan_id, user, db)
     assert_plan_action(plan, user, PlanAction.AUDIT)
     inputs = PlanInputs.model_validate(plan.inputs)
-    results = PlanResults.model_validate(plan.results) if plan.results else None
+    results_raw = await plan_results_for_audit(db, plan)
+    results = PlanResults.model_validate(results_raw) if results_raw else None
     return run_financial_audit(inputs, results)
 
 

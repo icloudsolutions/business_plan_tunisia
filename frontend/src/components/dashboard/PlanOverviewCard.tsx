@@ -18,6 +18,8 @@ import {
   downloadExport,
   type Plan,
 } from "@/lib/api";
+import { formatApproveBlockedMessage } from "@/lib/api-errors";
+import { runExpertApprove } from "@/lib/expert-approve";
 import { useExportJobs } from "@/context/ExportJobsContext";
 import SubmitBlockedModal from "@/components/completion/SubmitBlockedModal";
 import type { PlanCompletion } from "@/lib/completion";
@@ -124,8 +126,15 @@ export default function PlanOverviewCard({
         },
         onApprove: async () => {
           setBusy("approve");
+          setMessage("");
           try {
-            await transitionPlan(plan.id, "VALIDATE");
+            const outcome = await runExpertApprove(plan.id);
+            if (!outcome.ok) {
+              setMessage(formatApproveBlockedMessage(outcome.audit));
+              openPlan();
+              return;
+            }
+            setMessage("Plan validé.");
             onRefresh?.();
           } catch (e) {
             setMessage(e instanceof Error ? e.message : "Erreur");

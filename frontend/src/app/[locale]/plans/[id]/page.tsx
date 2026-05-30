@@ -10,9 +10,9 @@ import {
 import {
   formatApproveBlockedMessage,
   isApiHttpError,
-  parseAuditFromApiError,
   parseMissingFieldsFromApiError,
 } from "@/lib/api-errors";
+import { runExpertApprove } from "@/lib/expert-approve";
 import { usePlanCompletion } from "@/hooks/usePlanCompletion";
 import type { WizardStepId } from "@/lib/liasse-wizard/schema";
 import { useParams } from "next/navigation";
@@ -33,7 +33,6 @@ import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
 import { userHasRole } from "@/lib/auth-roles";
 import {
-  auditPlan,
   downloadExport,
   getPlan,
   listSimulations,
@@ -335,31 +334,21 @@ function PlanContent() {
             setBusyAction("approve");
             setError("");
             try {
-              const pre = await auditPlan(id);
-              setAudit(pre);
-              if (pre.decision !== "VALIDATE") {
-                setError(formatApproveBlockedMessage(pre));
+              const outcome = await runExpertApprove(id);
+              if (!outcome.ok) {
+                setAudit(outcome.audit);
+                setError(formatApproveBlockedMessage(outcome.audit));
                 document
                   .getElementById("financial-audit-panel")
                   ?.scrollIntoView({ behavior: "smooth" });
                 return;
               }
-              await transitionPlan(id, "VALIDATE");
               setAudit(null);
               await load();
             } catch (e) {
-              const fromApi = parseAuditFromApiError(e);
-              if (fromApi) {
-                setAudit(fromApi);
-                setError(formatApproveBlockedMessage(fromApi));
-                document
-                  .getElementById("financial-audit-panel")
-                  ?.scrollIntoView({ behavior: "smooth" });
-              } else {
-                setError(
-                  e instanceof Error ? e.message : tPlan("approveFailed")
-                );
-              }
+              setError(
+                e instanceof Error ? e.message : tPlan("approveFailed")
+              );
             } finally {
               setBusyAction("");
             }
@@ -415,14 +404,17 @@ function PlanContent() {
             setBusyAction("approve");
             setError("");
             try {
-              await transitionPlan(id, "VALIDATE", undefined, {
-                acknowledgeAuditWarnings: true,
+              const outcome = await runExpertApprove(id, {
+                acknowledgeWarnings: true,
               });
+              if (!outcome.ok) {
+                setAudit(outcome.audit);
+                setError(formatApproveBlockedMessage(outcome.audit));
+                return;
+              }
               setAudit(null);
               await load();
             } catch (e) {
-              const fromApi = parseAuditFromApiError(e);
-              if (fromApi) setAudit(fromApi);
               setError(
                 e instanceof Error ? e.message : tPlan("approveFailed")
               );
