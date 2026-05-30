@@ -196,6 +196,24 @@ def treasury_waterfall(results: PlanResults, total_investment: float) -> list[di
     return steps
 
 
+def inventory_payload(results: PlanResults) -> dict[str, list[float]] | None:
+    """Expose Liasse inventory series for finance cockpit."""
+    if not results.qtyProduced.years:
+        return None
+    return {
+        "qtySold": results.qtySold.years,
+        "qtyProduced": results.qtyProduced.years,
+        "qtyConsumed": results.qtyConsumed.years,
+        "qtyPurchased": results.qtyPurchased.years,
+        "closingStockPF": results.closingStockPF.years,
+        "closingStockMP": results.closingStockMP.years,
+        "openingStockMP": results.openingStockMP.years,
+        "purchaseValueMP": results.purchaseValueMP.years,
+        "stockValueMP": results.stockValueMP.years,
+        "stockValuePF": results.stockValuePF.years,
+    }
+
+
 def build_kpis(
     results: PlanResults,
     yearly: list[dict[str, Any]],
@@ -296,6 +314,7 @@ def build_projection_payload(
             "bfr": results.bfr.years,
             "depreciation": results.depreciation.years,
         },
+        "inventory": inventory_payload(results),
     }
 
 
