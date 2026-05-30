@@ -80,7 +80,9 @@ export default function PlanActionBar({
       allowCancel={Boolean(handlers.onCancel)}
       className={className ?? "plan-actions"}
       onAction={(action) => {
-        void dispatchAction(action, handlers);
+        void dispatchAction(action, handlers)?.catch((err) => {
+          console.error(`Plan action "${action}" failed:`, err);
+        });
       }}
     />
   );

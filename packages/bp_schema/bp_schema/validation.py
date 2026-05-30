@@ -3,10 +3,7 @@ from bp_schema.liasse import PlanInputs
 
 
 def _total_capex_amount(inputs: PlanInputs) -> float:
-    total = sum(e.cost for e in inputs.investments.equipment)
-    total += sum(i.amount for i in inputs.investments.intangible)
-    total += sum(i.amount for i in inputs.investments.tangible)
-    return total
+    return inputs.investments.total_capex()
 
 
 def get_submission_missing_paths(

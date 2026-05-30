@@ -7,7 +7,12 @@ import {
   downloadCompletenessReport,
   type CompletionFieldItem,
 } from "@/lib/completion";
-import { isApiHttpError, parseMissingFieldsFromApiError } from "@/lib/api-errors";
+import {
+  formatApproveBlockedMessage,
+  isApiHttpError,
+  parseAuditFromApiError,
+  parseMissingFieldsFromApiError,
+} from "@/lib/api-errors";
 import { usePlanCompletion } from "@/hooks/usePlanCompletion";
 import type { WizardStepId } from "@/lib/liasse-wizard/schema";
 import { useParams } from "next/navigation";
@@ -28,6 +33,7 @@ import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
 import { userHasRole } from "@/lib/auth-roles";
 import {
+  auditPlan,
   downloadExport,
   getPlan,
   listSimulations,
@@ -108,10 +114,14 @@ function PlanContent() {
     setPlanCompletion(completion);
   }, [completion, setPlanCompletion]);
 
-  const canEditUnderReview = userHasRole(user?.role, ["expert", "admin"]);
+  const isExpert = userHasRole(user?.role, ["expert", "admin"]);
   const readOnly =
     plan?.status === "VALIDATED" ||
-    (plan?.status === "UNDER_REVIEW" && !canEditUnderReview);
+    plan?.status === "UNDER_REVIEW" ||
+    (plan?.status === "ADJUSTMENT" && isExpert);
+  const scenarioReadOnly =
+    plan?.status === "VALIDATED" ||
+    (plan?.status === "UNDER_REVIEW" && !isExpert);
 
   const collabEnabled =
     plan?.status === "UNDER_REVIEW" || plan?.status === "ADJUSTMENT";
@@ -200,7 +210,7 @@ function PlanContent() {
       <div className="card mb-6 !overflow-visible">
         <ScenarioManager
           planId={id}
-          readOnly={readOnly}
+          readOnly={scenarioReadOnly}
           onOfficialSet={load}
         />
       </div>
@@ -232,6 +242,13 @@ function PlanContent() {
         {collabEnabled ? ` ${tPlan("collabActive")}` : ""}
       </p>
 
+      {isExpert && collabEnabled && (
+        <p className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          {plan.status === "ADJUSTMENT"
+            ? tPlan("expertAdjustmentHint")
+            : tPlan("expertReviewHint")}
+        </p>
+      )}
       {error && <p className="form-error">{error}</p>}
       <div
         className={
@@ -316,9 +333,33 @@ function PlanContent() {
           },
           onApprove: async () => {
             setBusyAction("approve");
+            setError("");
             try {
+              const pre = await auditPlan(id);
+              setAudit(pre);
+              if (pre.decision !== "VALIDATE") {
+                setError(formatApproveBlockedMessage(pre));
+                document
+                  .getElementById("financial-audit-panel")
+                  ?.scrollIntoView({ behavior: "smooth" });
+                return;
+              }
               await transitionPlan(id, "VALIDATE");
+              setAudit(null);
               await load();
+            } catch (e) {
+              const fromApi = parseAuditFromApiError(e);
+              if (fromApi) {
+                setAudit(fromApi);
+                setError(formatApproveBlockedMessage(fromApi));
+                document
+                  .getElementById("financial-audit-panel")
+                  ?.scrollIntoView({ behavior: "smooth" });
+              } else {
+                setError(
+                  e instanceof Error ? e.message : tPlan("approveFailed")
+                );
+              }
             } finally {
               setBusyAction("");
             }
@@ -360,7 +401,36 @@ function PlanContent() {
       />
 
       {audit && (
-        <FinancialAuditPanel audit={audit} onClose={() => setAudit(null)} />
+        <FinancialAuditPanel
+          audit={audit}
+          onClose={() => setAudit(null)}
+          showValidateWithReserves={
+            isExpert &&
+            audit.decision === "NEEDS_ADJUSTMENT" &&
+            audit.checks.investmentDefined !== false &&
+            (plan.status === "UNDER_REVIEW" || plan.status === "ADJUSTMENT")
+          }
+          validateWithReservesBusy={busyAction === "approve"}
+          onValidateWithReserves={async () => {
+            setBusyAction("approve");
+            setError("");
+            try {
+              await transitionPlan(id, "VALIDATE", undefined, {
+                acknowledgeAuditWarnings: true,
+              });
+              setAudit(null);
+              await load();
+            } catch (e) {
+              const fromApi = parseAuditFromApiError(e);
+              if (fromApi) setAudit(fromApi);
+              setError(
+                e instanceof Error ? e.message : tPlan("approveFailed")
+              );
+            } finally {
+              setBusyAction("");
+            }
+          }}
+        />
       )}
     </>
   );

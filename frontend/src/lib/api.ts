@@ -292,10 +292,19 @@ export async function auditPlan(id: string): Promise<AuditResult> {
   return api(`/plans/${id}/audit`, { method: "POST" });
 }
 
-export async function transitionPlan(id: string, action: string, message?: string) {
+export async function transitionPlan(
+  id: string,
+  action: string,
+  message?: string,
+  options?: { acknowledgeAuditWarnings?: boolean }
+) {
   return api<Plan>(`/plans/${id}/transition`, {
     method: "POST",
-    body: JSON.stringify({ action, message: message ?? null }),
+    body: JSON.stringify({
+      action,
+      message: message ?? null,
+      acknowledge_audit_warnings: options?.acknowledgeAuditWarnings ?? false,
+    }),
   });
 }
 

@@ -215,6 +215,7 @@ class PlanResponse(BaseModel):
 class TransitionRequest(BaseModel):
     action: str
     message: str | None = None
+    acknowledge_audit_warnings: bool = False
 
 
 class ProjectionsSimulateRequest(BaseModel):

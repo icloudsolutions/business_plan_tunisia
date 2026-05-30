@@ -66,6 +66,13 @@ class Investments(BaseModel):
     intangible: list[InvestmentLine] = Field(default_factory=list)
     tangible: list[InvestmentLine] = Field(default_factory=list)
 
+    def total_capex(self) -> float:
+        return (
+            sum(e.cost for e in self.equipment)
+            + sum(i.amount for i in self.intangible)
+            + sum(i.amount for i in self.tangible)
+        )
+
 
 class WasteRate(BaseModel):
     value: float = 0.01

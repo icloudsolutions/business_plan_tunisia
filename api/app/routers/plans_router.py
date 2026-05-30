@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bp_schema.completion import compute_plan_completion
 from app.plan_completion_service import build_plan_completion_context
-from bp_schema.enums import BusinessPlanStatus
+from bp_schema.enums import AuditDecision, BusinessPlanStatus
 from bp_schema.liasse import PlanInputs
 from app.plan_completion_service import get_plan_submission_missing
 
@@ -428,7 +428,14 @@ async def transition_plan(
             PlanInputs.model_validate(plan.inputs),
             PlanResults.model_validate(plan.results) if plan.results else None,
         )
-        if body.action == "VALIDATE" and audit["decision"] != "VALIDATE":
+        if (
+            body.action == "VALIDATE"
+            and audit["decision"] != "VALIDATE"
+            and not (
+                body.acknowledge_audit_warnings
+                and audit["decision"] != AuditDecision.REJECT.value
+            )
+        ):
             raise HTTPException(
                 status_code=400,
                 detail={"message": "Validation refusée", "audit": audit},

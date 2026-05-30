@@ -1,3 +1,5 @@
+import type { AuditResult } from "./api";
+
 export class ApiHttpError extends Error {
   readonly status: number;
 
@@ -14,7 +16,45 @@ export function isApiHttpError(e: unknown, status?: number): e is ApiHttpError {
   );
 }
 
-/** Parse FastAPI 422 `{ detail: { missingFields: string[] } }` from ApiHttpError message. */
+function extractAuditPayload(parsed: unknown): AuditResult | null {
+  if (!parsed || typeof parsed !== "object") return null;
+  const root = parsed as Record<string, unknown>;
+  const detail = (root.detail ?? root) as Record<string, unknown>;
+  const audit = detail.audit ?? root.audit;
+  if (audit && typeof audit === "object") {
+    return audit as AuditResult;
+  }
+  return null;
+}
+
+/** Parse FastAPI 400 `{ detail: { audit: AuditResult } }` from transition/validate failures. */
+export function parseAuditFromApiError(e: unknown): AuditResult | null {
+  if (!isApiHttpError(e, 400)) return null;
+  try {
+    return extractAuditPayload(JSON.parse(e.message));
+  } catch {
+    /* not JSON */
+  }
+  return null;
+}
+
+/** Short French summary for blocked approval (audit panel shows full detail). */
+export function formatApproveBlockedMessage(audit: AuditResult): string {
+  const lines = audit.recommendations?.length
+    ? audit.recommendations
+    : [];
+  if (audit.decision === "REJECT") {
+    return [
+      "Approbation impossible : données bloquantes.",
+      ...lines,
+    ].join(" ");
+  }
+  return [
+    "Approbation bloquée par l'audit financier.",
+    ...lines,
+  ].join(" ");
+}
+
 export function parseMissingFieldsFromApiError(e: unknown): string[] {
   if (!isApiHttpError(e, 422)) return [];
   try {

@@ -35,6 +35,13 @@ export function getActions(status: PlanStatus, role: PlanRole): PlanActions {
         exports: [],
       };
     }
+    if (status === "ADJUSTMENT") {
+      return {
+        primary: "approve",
+        secondary: [],
+        exports: [],
+      };
+    }
     if (status === "VALIDATED") {
       return {
         primary: null,

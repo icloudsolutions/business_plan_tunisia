@@ -149,7 +149,10 @@ export default function CollaborationSidebar({
     collab.sectionReviews.map((r) => [r.section_key, r.status])
   );
 
+  const canRequestAdjustment = planStatus === "UNDER_REVIEW";
+
   const handleRequestAdjustment = async () => {
+    if (!canRequestAdjustment) return;
     setBusy(true);
     try {
       await transitionPlan(planId, "NEEDS_ADJUSTMENT", globalMessage.trim() || undefined);
@@ -250,47 +253,54 @@ export default function CollaborationSidebar({
 
       <RoleGate role={["expert", "admin"]}>
         <div className="border-b border-navy-100 px-3 py-2">
-          {!adjustOpen ? (
-            <button
-              type="button"
-              className="w-full rounded-lg border border-amber-300 bg-amber-50 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
-              onClick={() => setAdjustOpen(true)}
-            >
-              Demander un ajustement
-            </button>
-          ) : (
-            <div className="space-y-2">
-              <label htmlFor="adjustment-global-message" className="sr-only">
-                Message global pour le client
-              </label>
-              <textarea
-                id="adjustment-global-message"
-                className="w-full rounded-lg border border-navy-200 px-2 py-1.5 text-xs"
-                rows={3}
-                placeholder="Message global pour le client (optionnel)…"
-                value={globalMessage}
-                onChange={(e) => setGlobalMessage(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="flex-1 rounded-lg bg-amber-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                  onClick={handleRequestAdjustment}
-                >
-                  Confirmer
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg border border-navy-200 px-2 py-1.5 text-xs"
-                  onClick={() => setAdjustOpen(false)}
-                  aria-label="Annuler la demande d'ajustement"
-                >
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
+          {canRequestAdjustment ? (
+            !adjustOpen ? (
+              <button
+                type="button"
+                className="w-full rounded-lg border border-amber-300 bg-amber-50 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+                onClick={() => setAdjustOpen(true)}
+              >
+                Demander un ajustement
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <label htmlFor="adjustment-global-message" className="sr-only">
+                  Message global pour le client
+                </label>
+                <textarea
+                  id="adjustment-global-message"
+                  className="w-full rounded-lg border border-navy-200 px-2 py-1.5 text-xs"
+                  rows={3}
+                  placeholder="Message global pour le client (optionnel)…"
+                  value={globalMessage}
+                  onChange={(e) => setGlobalMessage(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="flex-1 rounded-lg bg-amber-600 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                    onClick={handleRequestAdjustment}
+                  >
+                    Confirmer
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-navy-200 px-2 py-1.5 text-xs"
+                    onClick={() => setAdjustOpen(false)}
+                    aria-label="Annuler la demande d'ajustement"
+                  >
+                    <X className="h-4 w-4" aria-hidden />
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          ) : planStatus === "ADJUSTMENT" ? (
+            <p className="rounded-lg bg-navy-50 px-2 py-2 text-xs text-navy-700">
+              En attente de re-soumission du client. Vous pouvez approuver depuis la barre
+              d&apos;actions si le dossier est conforme.
+            </p>
+          ) : null}
         </div>
       </RoleGate>
 

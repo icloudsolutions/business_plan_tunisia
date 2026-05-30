@@ -25,9 +25,18 @@ const CHECK_I18N: Record<(typeof CHECK_KEYS)[number], string> = {
 type Props = {
   audit: AuditResult;
   onClose?: () => void;
+  showValidateWithReserves?: boolean;
+  onValidateWithReserves?: () => void | Promise<void>;
+  validateWithReservesBusy?: boolean;
 };
 
-export default function FinancialAuditPanel({ audit, onClose }: Props) {
+export default function FinancialAuditPanel({
+  audit,
+  onClose,
+  showValidateWithReserves,
+  onValidateWithReserves,
+  validateWithReservesBusy,
+}: Props) {
   const t = useTranslations("audit");
   const tCommon = useTranslations("common");
   const { formatNumber, locale } = useFormat();
@@ -57,7 +66,7 @@ export default function FinancialAuditPanel({ audit, onClose }: Props) {
   const { Icon } = meta;
 
   return (
-    <div className="card mt-5 space-y-4">
+    <div id="financial-audit-panel" className="card mt-5 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span
@@ -143,6 +152,20 @@ export default function FinancialAuditPanel({ audit, onClose }: Props) {
       )}
 
       <p className="text-xs text-navy-500">{t("footnote")}</p>
+
+      {showValidateWithReserves && onValidateWithReserves && (
+        <div className="flex flex-wrap gap-2 border-t border-navy-100 pt-4">
+          <button
+            type="button"
+            className="btn btn-primary text-sm"
+            disabled={validateWithReservesBusy}
+            onClick={() => void onValidateWithReserves()}
+          >
+            {t("validateWithReserves")}
+          </button>
+          <p className="w-full text-xs text-navy-600">{t("validateWithReservesHint")}</p>
+        </div>
+      )}
     </div>
   );
 }

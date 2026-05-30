@@ -150,7 +150,11 @@
     "confirmDelete": "Supprimer définitivement",
     "deleting": "Suppression…",
     "cancel": "Annuler",
-    "actionsToolbar": "Actions du plan"
+    "actionsToolbar": "Actions du plan",
+    "expertReviewHint": "Mode consultation : la liasse est en lecture seule. Utilisez les scénarios (calcul + scénario officiel), l’audit puis Approuver ou Demander des ajustements.",
+    "expertAdjustmentHint": "Le client corrige le dossier. Vous pouvez relancer les scénarios et approuver sans nouvelle demande d’ajustement.",
+    "approveBlockedAudit": "Approbation bloquée — consultez l’audit financier ci-dessous.",
+    "approveFailed": "Échec de l’approbation"
   },
   "history": {
     "title": "Historique",
@@ -298,7 +302,9 @@
     "checkTreasury": "Trésorerie positive sur l’horizon",
     "checkBfr": "BFR cohérent",
     "checkInvestment": "Investissements renseignés",
-    "checkFinancing": "Financement équilibré (FP + dette)"
+    "checkFinancing": "Financement équilibré (FP + dette)",
+    "validateWithReserves": "Valider malgré les réserves",
+    "validateWithReservesHint": "Réservé à l’expert : le dossier présente des alertes mais peut être validé pour export."
   },
   "simulation": {
     "empty": "Aucune simulation. Utilisez « Simuler (+15 % matières) » pour tester un choc sur le coût matière.",

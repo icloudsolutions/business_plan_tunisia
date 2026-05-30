@@ -180,7 +180,8 @@ export default function ActionBar({
   const canSubmit = isClient && status === "DRAFT";
   const canEdit = isClient && status === "ADJUSTMENT";
   const canResubmit = isClient && status === "ADJUSTMENT";
-  const canApprove = isExpert && status === "UNDER_REVIEW";
+  const canApprove =
+    isExpert && (status === "UNDER_REVIEW" || status === "ADJUSTMENT");
   const canRequestAdjustment = isExpert && status === "UNDER_REVIEW";
   const canExport = status === "VALIDATED";
   const canDelete = allowDelete && isClient && status === "DRAFT";

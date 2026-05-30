@@ -12,22 +12,26 @@ def run_financial_audit(inputs: PlanInputs, results: PlanResults | None) -> dict
     }
     recommendations: list[str] = []
 
-    total_inv = sum(i.amount for i in inputs.investments.intangible) + sum(
-        i.amount for i in inputs.investments.tangible
-    )
-    if total_inv <= 0:
+    if inputs.investments.total_capex() <= 0:
         checks["investmentDefined"] = False
-        recommendations.append("Renseigner les investissements incorporels et corporels.")
+        recommendations.append(
+            "Renseigner les investissements (étape Équipements / CAPEX, montants > 0)."
+        )
 
     if abs(inputs.financing.equityRatio + inputs.financing.debtRatio - 1.0) > 0.001:
         checks["financingBalanced"] = False
         recommendations.append("Ajuster la répartition Fonds propres / Dette (total = 100%).")
 
     if results is None:
+        calc_hint = "Lancer un calcul complet du plan sur 7 ans (scénarios → calculer → scénario officiel)."
+        if not checks["investmentDefined"]:
+            decision = AuditDecision.REJECT.value
+        else:
+            decision = AuditDecision.NEEDS_ADJUSTMENT.value
         return {
-            "decision": AuditDecision.NEEDS_ADJUSTMENT.value,
+            "decision": decision,
             "checks": checks,
-            "recommendations": recommendations + ["Lancer un calcul complet du plan sur 7 ans."],
+            "recommendations": recommendations + [calc_hint],
         }
 
     checks["balanceSheetBalanced"] = results.balanceSheetBalanced

@@ -150,7 +150,11 @@
     "confirmDelete": "Delete permanently",
     "deleting": "Deleting…",
     "cancel": "Cancel",
-    "actionsToolbar": "Plan actions"
+    "actionsToolbar": "Plan actions",
+    "expertReviewHint": "Consultation mode: inputs are read-only. Run scenarios (calculate + set official), review the audit, then Approve or Request adjustments.",
+    "expertAdjustmentHint": "The client is updating the file. You can rerun scenarios and approve without sending another adjustment request.",
+    "approveBlockedAudit": "Approval blocked — see the financial audit below.",
+    "approveFailed": "Approval failed"
   },
   "history": {
     "title": "History",
@@ -298,7 +302,9 @@
     "checkTreasury": "Positive cash over the horizon",
     "checkBfr": "Working capital consistent",
     "checkInvestment": "Investments defined",
-    "checkFinancing": "Financing balanced (equity + debt)"
+    "checkFinancing": "Financing balanced (equity + debt)",
+    "validateWithReserves": "Approve with reservations",
+    "validateWithReservesHint": "Expert only: the file has warnings but can be validated for export."
   },
   "simulation": {
     "empty": "No simulations yet. Use « Simulate (+15% materials) » to stress-test raw material cost.",
