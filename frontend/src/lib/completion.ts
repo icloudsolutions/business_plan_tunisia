@@ -55,12 +55,27 @@ export async function downloadCompletenessReport(planId: string): Promise<void> 
   URL.revokeObjectURL(url);
 }
 
+const LIASSE_INPUT_API_SECTIONS = [
+  "general",
+  "investments",
+  "financing",
+  "operations",
+  "financial",
+] as const;
+
 /** Map field path → wizard step for deep-link navigation */
 export function fieldPathToStep(path: string): WizardStepId {
-  if (path.startsWith("company")) return "general";
-  if (path.startsWith("investments")) return "investments";
+  if (path.startsWith("company")) return "liasseInputs";
+  if (path.startsWith("investments")) return "liasseInputs";
+  if (
+    path.startsWith("financing.equity") ||
+    path.startsWith("financing.debt") ||
+    path.startsWith("financing.loan")
+  ) {
+    return "liasseInputs";
+  }
   if (path.startsWith("financing")) return "financing";
-  if (path.startsWith("operations")) return "operations";
+  if (path.startsWith("operations")) return "liasseInputs";
   if (path.startsWith("timeline")) return "timeline";
   if (path.startsWith("procurement") || path.startsWith("rawMaterial")) {
     return "procurement";
@@ -79,14 +94,49 @@ export function fieldPathToStep(path: string): WizardStepId {
   }
   if (path.startsWith("tva")) return "tva";
   if (path.startsWith("workingCapital") || path.startsWith("plAssumptions")) {
-    return "financial";
+    return "liasseInputs";
   }
-  return "general";
+  return "liasseInputs";
 }
 
 export function sectionById(
   completion: PlanCompletion | null,
   section: WizardStepId
 ): SectionCompletion | undefined {
-  return completion?.sections.find((s) => s.section === section);
+  if (!completion) return undefined;
+  if (section === "liasseInputs") {
+    const parts = LIASSE_INPUT_API_SECTIONS.map((key) =>
+      completion.sections.find((s) => s.section === key)
+    ).filter((s): s is SectionCompletion => s != null);
+    if (!parts.length) return undefined;
+
+    let fields_filled = 0;
+    let fields_total = 0;
+    const required_missing: string[] = [];
+    const recommended_missing: string[] = [];
+    for (const p of parts) {
+      fields_filled += p.fields_filled;
+      fields_total += p.fields_total;
+      required_missing.push(...p.required_missing);
+      recommended_missing.push(...p.recommended_missing);
+    }
+    const score_pct =
+      fields_total > 0 ? Math.round((fields_filled / fields_total) * 100) : 0;
+    let status: SectionCompletion["status"] = "incomplete";
+    if (score_pct >= 100 && required_missing.length === 0) status = "complete";
+    else if (required_missing.length === 0) status = "warning";
+
+    return {
+      section: "liasseInputs",
+      title_fr: "Données liasse",
+      title_ar: "",
+      score_pct,
+      status,
+      required_missing,
+      recommended_missing,
+      fields_total,
+      fields_filled,
+    };
+  }
+  return completion.sections.find((s) => s.section === section);
 }

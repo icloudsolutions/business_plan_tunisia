@@ -11,12 +11,13 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import LanguageToggle from "@/components/LanguageToggle";
 import { useAuth } from "@/context/AuthContext";
-import { downloadExport, exportPlan } from "@/lib/api";
+import { downloadExport } from "@/lib/api";
+import { useExportJobs } from "@/context/ExportJobsContext";
 import {
   fetchProjections,
   pollCalcJob,
-  pollExportJob,
   simulateProjections,
   type ProjectionPayload,
   type ScenarioKey,
@@ -58,7 +59,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
   const [scenario, setScenario] = useState<ScenarioKey>("base");
   const [loading, setLoading] = useState(true);
   const [calcStatus, setCalcStatus] = useState("");
-  const [exportStatus, setExportStatus] = useState("");
+  const { startExport } = useExportJobs();
   const [error, setError] = useState("");
   const [planTitle, setPlanTitle] = useState("");
   const [planStatus, setPlanStatus] = useState("");
@@ -134,17 +135,10 @@ export default function FinanceLiveDashboard({ planId }: Props) {
 
   const handleExport = async (format: "pdf" | "xlsx") => {
     setError("");
-    setExportStatus("PENDING");
     try {
-      const job = await exportPlan(planId);
-      const result = await pollExportJob(planId, job.id, setExportStatus, 3000);
-      if (result.formats.includes(format)) {
-        await downloadExport(planId, job.id, format);
-      }
+      await startExport(planId, format, { planTitle: planTitle ?? undefined });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Export impossible");
-    } finally {
-      setExportStatus("");
     }
   };
 
@@ -156,6 +150,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
         <div className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:gap-4 sm:px-6">
           <Link
             href="/finance"
+            prefetch={false}
             className="shrink-0 text-xs text-slate-500 hover:text-brand-600 sm:text-sm"
           >
             {tFinance("cockpitNav")}
@@ -167,6 +162,7 @@ export default function FinanceLiveDashboard({ planId }: Props) {
             </h1>
             <p className="truncate text-xs text-slate-500">{planStatus}</p>
           </div>
+          <LanguageToggle />
           <button
             type="button"
             onClick={() => void load()}
@@ -179,11 +175,16 @@ export default function FinanceLiveDashboard({ planId }: Props) {
             href={`/plans/${planId}`}
             className="hidden rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 sm:inline-flex"
           >
-            <BarChart3 className="mr-1.5 inline h-4 w-4" />
+            <BarChart3 className="me-1.5 inline h-4 w-4" />
             {tFinance("liasseLink")}
           </Link>
-          <button type="button" onClick={logout} className="rounded-lg p-2 text-slate-500">
-            <LogOut className="h-4 w-4" />
+          <button
+            type="button"
+            onClick={logout}
+            className="rounded-lg p-2 text-slate-600"
+            aria-label={tCommon("logout")}
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
           </button>
         </div>
       </header>
@@ -284,12 +285,12 @@ export default function FinanceLiveDashboard({ planId }: Props) {
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="text-sm font-semibold text-slate-800">Exports</h3>
             <p className="mb-3 text-xs text-slate-500">
-              Plan validé requis pour l&apos;export officiel. Polling toutes les 3 s.
+              Plan validé requis pour l&apos;export officiel. Suivi dans la notification
+              en bas à droite.
             </p>
             <div className="flex flex-col gap-2">
               <button
                 type="button"
-                disabled={!!exportStatus}
                 onClick={() => void handleExport("xlsx")}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
               >
@@ -298,16 +299,12 @@ export default function FinanceLiveDashboard({ planId }: Props) {
               </button>
               <button
                 type="button"
-                disabled={!!exportStatus}
                 onClick={() => void handleExport("pdf")}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
               >
                 <Download className="h-4 w-4" />
                 Télécharger PDF
               </button>
-              {exportStatus && (
-                <p className="text-center text-xs text-brand-600">{exportStatus}</p>
-              )}
             </div>
           </div>
         </div>

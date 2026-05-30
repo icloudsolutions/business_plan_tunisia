@@ -41,9 +41,8 @@ export default function StepTva({ planId, readOnly, onDataChange }: Props) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setLoading(false);
-      onDataChange?.();
     }
-  }, [planId, onDataChange]);
+  }, [planId]);
 
   const refreshProjection = useCallback(async () => {
     try {
@@ -107,7 +106,7 @@ export default function StepTva({ planId, readOnly, onDataChange }: Props) {
         {title}
       </h5>
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-full text-start text-sm">
           <thead className="border-b border-navy-100 text-xs text-navy-700">
             <tr>
               <th className="px-2 py-2">Ligne</th>
@@ -212,7 +211,7 @@ export default function StepTva({ planId, readOnly, onDataChange }: Props) {
         <>
           <section className="overflow-x-auto rounded-xl border border-navy-100 bg-white p-4 shadow-sm">
             <h4 className="mb-3 text-sm font-semibold text-navy-800">Solde TVA par année</h4>
-            <table className="min-w-full text-left text-sm">
+            <table className="min-w-full text-start text-sm">
               <thead>
                 <tr className="border-b border-navy-100 text-xs text-navy-700">
                   <th className="px-2 py-2">Année</th>
@@ -257,7 +256,7 @@ export default function StepTva({ planId, readOnly, onDataChange }: Props) {
             <h4 className="mb-3 text-sm font-semibold text-navy-800">
               Détail TVA collectée / déductible par année
             </h4>
-            <table className="min-w-full text-left text-xs sm:text-sm">
+            <table className="min-w-full text-start text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-navy-100 text-navy-700">
                   <th className="px-2 py-2">Poste</th>

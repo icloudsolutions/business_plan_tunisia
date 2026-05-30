@@ -1,6 +1,7 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { useFormat } from "@/hooks/useFormat";
 import type { FinancingStructureProjection } from "@/lib/financing-structure-api";
 
@@ -37,7 +38,8 @@ export default function FinancingStructureDonut({ projection }: Props) {
         </span>
       </div>
       <div className="h-52">
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartLtr className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
@@ -58,6 +60,7 @@ export default function FinancingStructureDonut({ projection }: Props) {
             <Tooltip formatter={(v: number) => formatCurrency(v)} />
           </PieChart>
         </ResponsiveContainer>
+        </ChartLtr>
       </div>
       <ul className="mt-2 space-y-1 text-xs text-navy-600">
         {data.map((d) => (

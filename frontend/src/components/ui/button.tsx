@@ -1,3 +1,4 @@
+import { FOCUS_RING } from "@/lib/a11y";
 import { cn } from "@/lib/utils";
 
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -11,8 +12,10 @@ export function Button({
   size = "md",
   ...props
 }: Props) {
-  const base =
-    "inline-flex items-center justify-center rounded-md font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50";
+  const base = cn(
+    "inline-flex items-center justify-center rounded-md font-medium transition disabled:pointer-events-none disabled:opacity-50",
+    FOCUS_RING
+  );
   const variants = {
     default: "bg-slate-900 text-slate-50 hover:bg-slate-800",
     outline: "border border-slate-200 bg-white hover:bg-slate-50",

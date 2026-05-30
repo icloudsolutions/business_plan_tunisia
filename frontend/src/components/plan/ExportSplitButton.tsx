@@ -1,0 +1,96 @@
+"use client";
+
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { ChevronDown, FileSpreadsheet, FileText, Loader2, RefreshCw } from "lucide-react";
+import { btnSplitMain, btnSplitTrigger } from "@/components/plan/plan-action-styles";
+
+type Props = {
+  label: string;
+  pdfLabel: string;
+  xlsxLabel: string;
+  regenerateLabel: string;
+  busy?: boolean;
+  canPdf: boolean;
+  canXlsx: boolean;
+  onGenerate: () => void;
+  onDownloadPdf: () => void;
+  onDownloadXlsx: () => void;
+};
+
+export default function ExportSplitButton({
+  label,
+  pdfLabel,
+  xlsxLabel,
+  regenerateLabel,
+  busy,
+  canPdf,
+  canXlsx,
+  onGenerate,
+  onDownloadPdf,
+  onDownloadXlsx,
+}: Props) {
+  const handleMain = () => {
+    if (busy) return;
+    if (canPdf) onDownloadPdf();
+    else if (canXlsx) onDownloadXlsx();
+    else onGenerate();
+  };
+
+  return (
+    <div className="inline-flex">
+      <button
+        type="button"
+        className={btnSplitMain}
+        disabled={busy}
+        onClick={handleMain}
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+        {label}
+      </button>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            className={btnSplitTrigger}
+            disabled={busy}
+            aria-label={label}
+          >
+            <ChevronDown className="h-4 w-4" aria-hidden />
+          </button>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            className="z-50 min-w-[11rem] rounded-lg border border-navy-100 bg-white p-1 shadow-lg"
+            sideOffset={4}
+            align="end"
+          >
+            <DropdownMenu.Item
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
+              onSelect={onDownloadPdf}
+              disabled={!canPdf}
+            >
+              <FileText className="h-4 w-4 text-indigo-600" aria-hidden />
+              {pdfLabel}
+            </DropdownMenu.Item>
+            <DropdownMenu.Item
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
+              onSelect={onDownloadXlsx}
+              disabled={!canXlsx}
+            >
+              <FileSpreadsheet className="h-4 w-4 text-indigo-600" aria-hidden />
+              {xlsxLabel}
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator className="my-1 h-px bg-navy-100" />
+            <DropdownMenu.Item
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50"
+              onSelect={onGenerate}
+            >
+              <RefreshCw className="h-4 w-4 text-indigo-600" aria-hidden />
+              {regenerateLabel}
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    </div>
+  );
+}

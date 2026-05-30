@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { userHasRole, type AppRole } from "@/lib/auth-roles";
 
 export default function AuthGuard({
   children,
   roles,
 }: {
   children: React.ReactNode;
-  roles?: string[];
+  roles?: AppRole[];
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function AuthGuard({
       router.replace("/login");
       return;
     }
-    if (roles && !roles.includes(user.role)) {
+    if (roles && !userHasRole(user.role, roles)) {
       router.replace("/");
     }
   }, [user, loading, roles, router]);
@@ -35,7 +36,7 @@ export default function AuthGuard({
   }
 
   if (!user) return null;
-  if (roles && !roles.includes(user.role)) return null;
+  if (roles && !userHasRole(user.role, roles)) return null;
 
   return <>{children}</>;
 }

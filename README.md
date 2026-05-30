@@ -73,7 +73,7 @@ Application : http://localhost:8088 (redirige vers `/fr` ou `/ar` selon la langu
 
 **Internationalisation (next-intl)** : routes `/fr/...` et `/ar/...` (défaut `fr`). Fichiers `frontend/messages/fr.json`, `ar.json` et `liasse-{locale}.json`. Commutateur FR/AR dans la barre supérieure (cookie `NEXT_LOCALE` + `localStorage`). RTL automatique pour l'arabe. Formats : `src/lib/format.ts` (dates, montants DT). Emails : modèles bilingues (`templates/*.html`) + versions arabes seules (`templates/ar/*.html`) via `context.locale`.
 
-**Cockpit coûts (UI démo)** : http://localhost:8088/finance — production, masse salariale, graphiques Recharts (données fictives, calculs côté client).
+**Cockpit coûts** : http://localhost:8088/finance — indicateurs live (`GET /api/plans/{id}/kpis`) pour le premier plan **VALIDATED** ; cockpit détaillé sur `/finance/{id}`.
 
 API health : http://localhost:8088/api/health
 

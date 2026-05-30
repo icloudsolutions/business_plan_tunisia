@@ -3,21 +3,26 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { CheckCircle2, HelpCircle, Loader2, XCircle } from "lucide-react";
+import ChartLtr from "@/components/ui/ChartLtr";
+import ChartSuspense from "@/components/ui/ChartSuspense";
 import {
   Area,
   Bar,
+  BarChart,
   CartesianGrid,
   ComposedChart,
   Legend,
   Line,
-  BarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
+} from "@/lib/recharts-dynamic";
+import DashboardKpiCard from "@/components/dashboard/DashboardKpiCard";
+import KpiSummaryGrid from "@/components/dashboard/KpiSummaryGrid";
 import { useFormat } from "@/hooks/useFormat";
 import { fetchKpiDashboard, type KpiDashboardProjection } from "@/lib/finance/kpi-api";
+import ChartBarsSkeleton from "./ChartBarsSkeleton";
 
 type Props = {
   planId: string;
@@ -30,40 +35,6 @@ const TRI_STYLES = {
   red: "border-red-200 bg-red-50 text-red-800",
   neutral: "border-slate-200 bg-slate-50 text-slate-800",
 };
-
-function HeroCard({
-  label,
-  value,
-  hint,
-  statusClass,
-  tooltip,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  statusClass?: string;
-  tooltip?: string;
-}) {
-  return (
-    <div
-      className={`rounded-2xl border p-5 shadow-sm ${statusClass ?? "border-slate-200 bg-white"}`}
-    >
-      <div className="flex items-center gap-1.5">
-        <p className="text-xs font-semibold uppercase tracking-wide opacity-80">{label}</p>
-        {tooltip && (
-          <span className="group relative">
-            <HelpCircle className="h-3.5 w-3.5 opacity-60" aria-hidden />
-            <span className="pointer-events-none absolute start-0 top-full z-10 mt-1 hidden w-52 rounded bg-slate-800 px-2 py-1.5 text-xs font-normal text-white group-hover:block">
-              {tooltip}
-            </span>
-          </span>
-        )}
-      </div>
-      <p className="mt-2 font-display text-3xl font-bold tabular-nums tracking-tight">{value}</p>
-      {hint && <p className="mt-1 text-xs opacity-75">{hint}</p>}
-    </div>
-  );
-}
 
 export default function KpiDashboard({ planId, scenario = "base" }: Props) {
   const tFinance = useTranslations("finance");
@@ -91,9 +62,9 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
 
   if (loading && !data) {
     return (
-      <div className="flex items-center justify-center gap-2 py-20 text-slate-500">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        Calcul des indicateurs…
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartBarsSkeleton />
+        <ChartBarsSkeleton />
       </div>
     );
   }
@@ -138,18 +109,26 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
         </span>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <HeroCard
+      <KpiSummaryGrid>
+        <DashboardKpiCard
           label="VAN (NPV)"
           value={formatCurrency(p.van)}
-          tooltip={`Actualisation au taux de ${(p.discount_rate * 100).toFixed(0)} % (hypothèse Excel / paramètre plan). Flux : investissement initial puis CF nets annuels.`}
-          statusClass={vanStyle}
           hint={`Taux ${(p.discount_rate * 100).toFixed(0)} %`}
+          className={vanStyle}
+          labelAdornment={
+            <span className="group relative shrink-0">
+              <HelpCircle className="h-8 w-8 text-slate-500 opacity-60 sm:h-10 sm:w-10" aria-hidden />
+              <span className="pointer-events-none absolute start-0 top-full z-10 mt-1 hidden w-52 rounded bg-slate-800 px-2 py-1.5 text-xs font-normal text-white group-hover:block">
+                Actualisation au taux de {(p.discount_rate * 100).toFixed(0)} % (hypothèse Excel /
+                paramètre plan). Flux : investissement initial puis CF nets annuels.
+              </span>
+            </span>
+          }
         />
-        <HeroCard
+        <DashboardKpiCard
           label="TRI (IRR)"
           value={p.tri != null ? formatPercent(p.tri) : "—"}
-          statusClass={triStyle}
+          className={triStyle}
           hint={
             data.tri_status === "green"
               ? "> 15 %"
@@ -158,22 +137,22 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
                 : "< 10 %"
           }
         />
-        <HeroCard
+        <DashboardKpiCard
           label="DRCI"
           value={p.drci_label}
           hint="Délai de récupération de l'investissement"
         />
-        <HeroCard
+        <DashboardKpiCard
           label="IP"
           value={p.profitability_index != null ? p.profitability_index.toFixed(2) : "—"}
           hint="VAN / investissement initial"
         />
-        <HeroCard
+        <DashboardKpiCard
           label="TRC"
           value={p.trc != null ? formatPercent(p.trc) : "—"}
           hint="Résultat net moyen / investissement"
         />
-      </section>
+      </KpiSummaryGrid>
 
       <div className="rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3 text-sm text-amber-950">
         <strong>Point mort — </strong>
@@ -182,93 +161,101 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ChartPanel title="CA &amp; résultats (Y1–Y7)" subtitle="CA net, EBIT et résultat net">
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data.chart_revenue_profit}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={72} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={72} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar yAxisId="left" dataKey="revenue" name="CA net" fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="ebit"
-                  name="EBIT"
-                  stroke="#059669"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="netProfit"
-                  name="Résultat net"
-                  stroke="#7c3aed"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartSuspense>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={data.chart_revenue_profit}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 10 }} width={72} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={72} />
+                  <Tooltip formatter={(value: number | string) => formatCurrency(Number(value))} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar yAxisId="left" dataKey="revenue" name="CA net" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="ebit"
+                    name="EBIT"
+                    stroke="#059669"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="netProfit"
+                    name="Résultat net"
+                    stroke="#7c3aed"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartSuspense>
         </ChartPanel>
 
         <ChartPanel title="Marges (%)" subtitle="Marge brute et marge nette par année">
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.chart_margins}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} unit="%" width={48} />
-                <Tooltip formatter={(v: number) => `${v.toFixed(1)} %`} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="grossMarginPct" name="Marge brute" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="netMarginPct" name="Marge nette" fill="#6366f1" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartSuspense>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.chart_margins}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 10 }} unit="%" width={48} />
+                  <Tooltip formatter={(value: number | string) => `${Number(value).toFixed(1)} %`} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="grossMarginPct" name="Marge brute" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="netMarginPct" name="Marge nette" fill="#6366f1" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartSuspense>
         </ChartPanel>
 
         <ChartPanel title="Utilisation capacité" subtitle="% de la capacité nominale">
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data.chart_capacity}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} unit="%" domain={[0, "auto"]} width={48} />
-                <Tooltip formatter={(v: number) => `${v.toFixed(1)} %`} />
-                <Area
-                  type="monotone"
-                  dataKey="utilization"
-                  name="Taux d'utilisation"
-                  fill="#10b981"
-                  stroke="#059669"
-                  fillOpacity={0.4}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartSuspense>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={data.chart_capacity}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 10 }} unit="%" domain={[0, "auto"]} width={48} />
+                  <Tooltip formatter={(value: number | string) => `${Number(value).toFixed(1)} %`} />
+                  <Area
+                    type="monotone"
+                    dataKey="utilization"
+                    name="Taux d'utilisation"
+                    fill="#10b981"
+                    stroke="#059669"
+                    fillOpacity={0.4}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartSuspense>
         </ChartPanel>
 
         <ChartPanel
           title="Couverture dette"
           subtitle="EBE vs. service de la dette (intérêts + principal)"
         >
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.chart_debt_coverage}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 10 }} width={72} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="ebitda" name="EBE" fill="#2563eb" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="debtService" name="Service dette" fill="#f97316" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartSuspense>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.chart_debt_coverage}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 10 }} width={72} />
+                  <Tooltip formatter={(value: number | string) => formatCurrency(Number(value))} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="ebitda" name="EBE" fill="#2563eb" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="debtService" name="Service dette" fill="#f97316" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartSuspense>
         </ChartPanel>
       </div>
 
@@ -317,23 +304,17 @@ export default function KpiDashboard({ planId, scenario = "base" }: Props) {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <KpiSummaryGrid className="lg:grid-cols-3 xl:grid-cols-4">
         {data.financing.map((f) => (
-          <div
+          <DashboardKpiCard
             key={f.year}
-            className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2 text-xs"
-          >
-            <p className="font-semibold text-slate-700">Y{f.year}</p>
-            <p className="mt-1 text-slate-600">
-              Endettement : {(f.debt_ratio * 100).toFixed(0)} %
-            </p>
-            <p className="text-slate-600">
-              DSCR : {f.dscr != null ? f.dscr.toFixed(2) : "—"}
-            </p>
-            <p className="text-slate-600">CRD : {formatCurrency(f.remaining_debt)}</p>
-          </div>
+            label={`Y${f.year}`}
+            value={`DSCR ${f.dscr != null ? f.dscr.toFixed(2) : "—"}`}
+            hint={`Endettement ${(f.debt_ratio * 100).toFixed(0)} % · CRD ${formatCurrency(f.remaining_debt)}`}
+            className="border-slate-100 bg-slate-50/50"
+          />
         ))}
-      </section>
+      </KpiSummaryGrid>
     </div>
   );
 }
@@ -348,10 +329,10 @@ function ChartPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-      <p className="mb-3 text-xs text-slate-500">{subtitle}</p>
-      {children}
+    <div className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="truncate text-sm font-semibold text-slate-800">{title}</h3>
+      <p className="mb-3 truncate text-xs text-slate-500">{subtitle}</p>
+      <ChartLtr className="min-h-0 overflow-hidden">{children}</ChartLtr>
     </div>
   );
 }

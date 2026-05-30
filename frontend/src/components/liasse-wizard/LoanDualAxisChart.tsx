@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { useFormat } from "@/hooks/useFormat";
 import type { CombinedLoanProjection } from "@/lib/loans-api";
 
@@ -36,7 +37,8 @@ export default function LoanDualAxisChart({ projection }: Props) {
         Encours &amp; intérêts (toutes tranches)
       </h4>
       <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartLtr className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 48, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
@@ -75,6 +77,7 @@ export default function LoanDualAxisChart({ projection }: Props) {
             />
           </ComposedChart>
         </ResponsiveContainer>
+        </ChartLtr>
       </div>
     </div>
   );

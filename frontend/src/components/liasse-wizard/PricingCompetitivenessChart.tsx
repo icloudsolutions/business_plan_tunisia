@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { useFormat } from "@/hooks/useFormat";
 import type { PricingChartBar } from "@/lib/pricing-api";
 
@@ -46,7 +47,8 @@ export default function PricingCompetitivenessChart({ bars, selectedProductId }:
         Chaîne de prix (coût → vous → distributeur → rayon)
       </h4>
       <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartLtr className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis type="number" tickFormatter={(v) => `${v}`} />
@@ -58,6 +60,7 @@ export default function PricingCompetitivenessChart({ bars, selectedProductId }:
             <Bar dataKey="Marge distributeur" stackId="a" fill={COLORS.reseller_margin} />
           </BarChart>
         </ResponsiveContainer>
+        </ChartLtr>
       </div>
       <p className="mt-2 text-xs text-navy-500">
         Prix rayon (référence) :{" "}

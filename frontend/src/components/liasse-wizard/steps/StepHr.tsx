@@ -67,9 +67,8 @@ export default function StepHr({ planId, readOnly, onDataChange }: Props) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setLoading(false);
-      onDataChange?.();
     }
-  }, [planId, onDataChange]);
+  }, [planId]);
 
   const refreshProjection = useCallback(async () => {
     try {

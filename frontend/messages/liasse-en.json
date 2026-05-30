@@ -1,5 +1,9 @@
 {
   "steps": {
+    "liasseInputs": {
+      "title": "Single return — data entry",
+      "explainer": "Identification, investment, financing and operations (years 1–7) grouped by TIA section. Use the side nav or mobile stepper to jump between sections."
+    },
     "general": {
       "title": "General information",
       "explainer": "Company identity as on the commercial register. Feeds the cover page of your business plan."

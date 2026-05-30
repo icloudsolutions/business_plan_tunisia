@@ -1,11 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Send, Sparkles, X } from "lucide-react";
+import { Loader2, Send, Sparkles } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+} from "@/components/ui/dialog";
 import { acceptAiSuggestion, requestAiAssist, type ChatMessage } from "@/lib/ai-assist";
 import { useLocale } from "next-intl";
 import { metaFor } from "@/lib/liasse-wizard/field-meta";
 import type { AppLocale } from "@/i18n/routing";
+import { FOCUS_RING, FOCUS_RING_INPUT } from "@/lib/a11y";
+import { cn } from "@/lib/utils";
 
 type Props = {
   open: boolean;
@@ -87,16 +95,7 @@ export default function AiAssistModal({
     } finally {
       setLoading(false);
     }
-  }, [
-    input,
-    loading,
-    messages,
-    planId,
-    fieldKey,
-    sector,
-    companyType,
-    location,
-  ]);
+  }, [input, loading, messages, planId, fieldKey, sector, companyType, location]);
 
   const apply = async () => {
     if (suggestedValue == null) return;
@@ -107,39 +106,26 @@ export default function AiAssistModal({
     onClose();
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-navy-900/50 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal
-      aria-labelledby="ai-assist-title"
-    >
-      <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-navy-100 bg-white shadow-2xl">
-        <header className="flex items-start justify-between border-b border-navy-100 px-5 py-4">
-          <div>
-            <h2
-              id="ai-assist-title"
-              className="flex items-center gap-2 font-display text-lg font-semibold text-navy-900"
-            >
-              <Sparkles className="h-5 w-5 text-gold-500" aria-hidden />
-              Aide IA
-            </h2>
-            <p className="mt-0.5 text-sm text-navy-600">{meta.label}</p>
-            <p className="text-xs text-navy-400">
-              {sector} · {companyType} · {location}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1 text-navy-500 hover:bg-navy-50"
-            aria-label="Fermer"
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent
+        className="flex max-h-[90vh] max-w-lg flex-col p-0"
+        aria-labelledby="ai-assist-title"
+        aria-describedby="ai-assist-desc"
+        closeLabel="Fermer l'aide IA"
+      >
+        <DialogHeader>
+          <h2
+            id="ai-assist-title"
+            className="flex items-center gap-2 font-display text-lg font-semibold text-navy-900"
           >
-            <X className="h-5 w-5" />
-          </button>
-        </header>
+            <Sparkles className="h-5 w-5 text-gold-500" aria-hidden />
+            Aide IA
+          </h2>
+          <p id="ai-assist-desc" className="text-sm text-navy-600">
+            {meta.label} — {sector} · {companyType} · {location}
+          </p>
+        </DialogHeader>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {messages.length === 0 && (
@@ -166,8 +152,8 @@ export default function AiAssistModal({
             </p>
           )}
           {loading && (
-            <div className="flex items-center gap-2 text-sm text-navy-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="flex items-center gap-2 text-sm text-navy-600">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               Réflexion en cours…
             </div>
           )}
@@ -175,43 +161,57 @@ export default function AiAssistModal({
           <div ref={bottomRef} />
         </div>
 
-        <footer className="space-y-3 border-t border-navy-100 px-5 py-4">
+        <DialogFooter className="space-y-3">
           {suggestedValue != null && !readOnly && (
             <button
               type="button"
               onClick={() => void apply()}
-              className="w-full rounded-lg bg-gold-500 py-2.5 text-sm font-semibold text-navy-900 hover:bg-gold-400"
+              className={cn(
+                "w-full rounded-lg bg-gold-500 py-2.5 text-sm font-semibold text-navy-900 hover:bg-gold-400",
+                FOCUS_RING
+              )}
             >
               Appliquer cette valeur ({String(suggestedValue)})
             </button>
           )}
-          <div className="flex gap-2">
-            <textarea
-              className="min-h-[44px] flex-1 resize-none rounded-lg border border-navy-200 px-3 py-2 text-sm"
-              rows={2}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send();
-                }
-              }}
-              placeholder="Votre question…"
-              disabled={loading}
-            />
-            <button
-              type="button"
-              onClick={() => void send()}
-              disabled={loading || !input.trim()}
-              className="rounded-lg bg-navy-800 px-3 text-white disabled:opacity-50"
-              aria-label="Envoyer"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="ai-assist-input" className="text-xs font-medium text-navy-700">
+              Votre question
+            </label>
+            <div className="flex gap-2">
+              <textarea
+                id="ai-assist-input"
+                className={cn(
+                  "min-h-[44px] flex-1 resize-none rounded-lg border border-navy-200 px-3 py-2 text-sm",
+                  FOCUS_RING_INPUT
+                )}
+                rows={2}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send();
+                  }
+                }}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => void send()}
+                disabled={loading || !input.trim()}
+                className={cn(
+                  "rounded-lg bg-navy-800 px-3 text-white disabled:opacity-50",
+                  FOCUS_RING
+                )}
+                aria-label="Envoyer la question"
+              >
+                <Send className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
           </div>
-        </footer>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

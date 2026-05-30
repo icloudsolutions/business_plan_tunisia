@@ -1,5 +1,9 @@
 "use client";
 
+import ChartLtr from "@/components/ui/ChartLtr";
+import ChartSuspense from "@/components/ui/ChartSuspense";
+import { useFormat } from "@/hooks/useFormat";
+import type { CashFlowProjection } from "@/lib/finance/cash-flow-api";
 import {
   Area,
   CartesianGrid,
@@ -10,9 +14,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
-import { useFormat } from "@/hooks/useFormat";
-import type { CashFlowProjection } from "@/lib/finance/cash-flow-api";
+} from "@/lib/recharts-dynamic";
 
 type Props = {
   projection: CashFlowProjection | null;
@@ -50,52 +52,56 @@ export default function BfrAreaChart({ projection }: Props) {
       <p className="mb-2 text-xs text-slate-500">
         Créances clients + stocks − dettes fournisseurs (TND)
       </p>
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: 8, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 10 }} width={72} />
-            <Tooltip formatter={(v: number) => formatCurrency(v)} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Area
-              type="monotone"
-              dataKey="receivables"
-              name="Créances clients"
-              stackId="bfr"
-              fill="#3b82f6"
-              stroke="#2563eb"
-              fillOpacity={0.75}
-            />
-            <Area
-              type="monotone"
-              dataKey="stocks"
-              name="Stocks"
-              stackId="bfr"
-              fill="#f59e0b"
-              stroke="#d97706"
-              fillOpacity={0.75}
-            />
-            <Area
-              type="monotone"
-              dataKey="payables"
-              name="Fournisseurs"
-              stackId="bfr"
-              fill="#ef4444"
-              stroke="#dc2626"
-              fillOpacity={0.6}
-            />
-            <Line
-              type="monotone"
-              dataKey="total"
-              name="BFR total"
-              stroke="#0f172a"
-              strokeWidth={2}
-              dot={{ r: 3 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      <ChartSuspense>
+        <div className="h-72">
+          <ChartLtr className="h-full w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 10 }} width={72} />
+                <Tooltip formatter={(value: number | string) => formatCurrency(Number(value))} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Area
+                  type="monotone"
+                  dataKey="receivables"
+                  name="Créances clients"
+                  stackId="bfr"
+                  fill="#3b82f6"
+                  stroke="#2563eb"
+                  fillOpacity={0.75}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="stocks"
+                  name="Stocks"
+                  stackId="bfr"
+                  fill="#f59e0b"
+                  stroke="#d97706"
+                  fillOpacity={0.75}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="payables"
+                  name="Fournisseurs"
+                  stackId="bfr"
+                  fill="#ef4444"
+                  stroke="#dc2626"
+                  fillOpacity={0.6}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  name="BFR total"
+                  stroke="#0f172a"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ChartLtr>
+        </div>
+      </ChartSuspense>
     </div>
   );
 }
@@ -118,42 +124,46 @@ function BfrFromSeries({
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <h3 className="text-sm font-semibold text-slate-800">Évolution du BFR</h3>
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: 8, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 10 }} width={72} />
-            <Tooltip formatter={(v: number) => formatCurrency(v)} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Area
-              type="monotone"
-              dataKey="receivables"
-              name="Créances"
-              stackId="bfr"
-              fill="#3b82f6"
-              fillOpacity={0.75}
-            />
-            <Area
-              type="monotone"
-              dataKey="stocks"
-              name="Stocks"
-              stackId="bfr"
-              fill="#f59e0b"
-              fillOpacity={0.75}
-            />
-            <Area
-              type="monotone"
-              dataKey="payables"
-              name="Fournisseurs (−)"
-              stackId="bfr"
-              fill="#ef4444"
-              fillOpacity={0.6}
-            />
-            <Line type="monotone" dataKey="total" name="BFR total" stroke="#0f172a" strokeWidth={2} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      <ChartSuspense>
+        <div className="h-72">
+          <ChartLtr className="h-full w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 12, right: 12, left: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 10 }} width={72} />
+                <Tooltip formatter={(value: number | string) => formatCurrency(Number(value))} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Area
+                  type="monotone"
+                  dataKey="receivables"
+                  name="Créances"
+                  stackId="bfr"
+                  fill="#3b82f6"
+                  fillOpacity={0.75}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="stocks"
+                  name="Stocks"
+                  stackId="bfr"
+                  fill="#f59e0b"
+                  fillOpacity={0.75}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="payables"
+                  name="Fournisseurs (−)"
+                  stackId="bfr"
+                  fill="#ef4444"
+                  fillOpacity={0.6}
+                />
+                <Line type="monotone" dataKey="total" name="BFR total" stroke="#0f172a" strokeWidth={2} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ChartLtr>
+        </div>
+      </ChartSuspense>
     </div>
   );
 }

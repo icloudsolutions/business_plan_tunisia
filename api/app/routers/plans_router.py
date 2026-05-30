@@ -39,6 +39,7 @@ from app.audit_log import log_inputs_patch, log_meta_patch
 from app.plan_versions import create_plan_snapshot
 from app.schemas import (
     ExportRequest,
+    ExportJobSummary,
     JobResponse,
     PlanCreate,
     PlanCompletionResponse,
@@ -55,6 +56,11 @@ from app.email_triggers import (
     notify_corrections_required,
     notify_plan_submitted,
     notify_plan_validated,
+)
+from app.plan_status_history import (
+    fetch_plan_status_history,
+    fetch_status_histories_batch,
+    plan_response_with_history,
 )
 from app.state_machine import next_status
 from app.workflow_policy import PlanAction, assert_plan_action
@@ -105,7 +111,13 @@ async def list_plans(
 ):
     q = apply_plans_list_filter(select(BusinessPlan), user)
     result = await db.execute(q.order_by(BusinessPlan.updated_at.desc()))
-    return result.scalars().all()
+    plans = list(result.scalars().all())
+    histories = await fetch_status_histories_batch(
+        db, [(p.id, p.created_at) for p in plans]
+    )
+    return [
+        plan_response_with_history(p, histories.get(p.id, [])) for p in plans
+    ]
 
 
 @router.post("", response_model=PlanResponse)
@@ -138,7 +150,9 @@ async def get_plan(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await get_plan_for_user(plan_id, user, db)
+    plan = await get_plan_for_user(plan_id, user, db)
+    history = await fetch_plan_status_history(db, plan.id, plan.created_at)
+    return plan_response_with_history(plan, history)
 
 
 @router.get("/{plan_id}/completion", response_model=PlanCompletionResponse)
@@ -265,13 +279,16 @@ async def update_inputs(
     plan = await get_plan_for_user(plan_id, user, db)
     assert_plan_action(plan, user, PlanAction.PATCH_INPUTS)
 
+    old_inputs = dict(plan.inputs or {})
     try:
-        validated = PlanInputs.model_validate(body.inputs)
+        from app.dict_merge import deep_merge
+
+        merged_inputs = deep_merge(old_inputs, body.inputs)
+        validated = PlanInputs.model_validate(merged_inputs)
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
     missing = validate_draft_inputs(validated)
-    old_inputs = dict(plan.inputs or {})
     try:
         plan.inputs = validated.model_dump()
         await log_inputs_patch(
@@ -314,7 +331,7 @@ async def submit_plan(
         user.id,
         "status_change",
         "DRAFT → UNDER_REVIEW (soumission client)",
-        {"action": "submit"},
+        {"action": "submit", "status": plan.status},
         broadcast=False,
     )
 
@@ -346,7 +363,7 @@ async def resubmit_plan(
         user.id,
         "status_change",
         f"{old_status} → {plan.status} (resoumission client)",
-        {"action": "resubmit"},
+        {"action": "resubmit", "status": plan.status},
         broadcast=False,
     )
     await create_plan_snapshot(
@@ -420,7 +437,7 @@ async def transition_plan(
         user.id,
         "status_change",
         f"{old_status} → {new_status.value}",
-        {"action": body.action, "message": msg or None},
+        {"action": body.action, "message": msg or None, "status": plan.status},
         broadcast=False,
     )
     await create_plan_snapshot(
@@ -562,6 +579,35 @@ async def export_plan(
     job.celery_task_id = task.id
     await db.commit()
     return JobResponse(id=job.id, status=job.status, task_type="export")
+
+
+@router.get("/{plan_id}/exports", response_model=list[ExportJobSummary])
+async def list_export_jobs(
+    plan_id: UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await get_plan_for_user(plan_id, user, db)
+    result = await db.execute(
+        select(ExportJob)
+        .where(ExportJob.plan_id == plan_id)
+        .order_by(ExportJob.created_at.desc())
+    )
+    rows = result.scalars().all()
+    out: list[ExportJobSummary] = []
+    for job in rows:
+        files = parse_export_files(job.file_path) if job.file_path else {}
+        out.append(
+            ExportJobSummary(
+                id=job.id,
+                plan_id=job.plan_id,
+                status=job.status,
+                format=job.format,
+                formats=list(files.keys()) if files else [f.strip() for f in job.format.split(",") if f.strip()],
+                created_at=job.created_at,
+            )
+        )
+    return out
 
 
 @router.get("/{plan_id}/exports/{job_id}")

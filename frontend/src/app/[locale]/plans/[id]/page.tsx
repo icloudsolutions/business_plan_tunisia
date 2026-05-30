@@ -18,16 +18,15 @@ import ScenarioManager from "@/components/scenarios/ScenarioManager";
 import ResultsPanel from "@/components/ResultsPanel";
 import SimulationPanel from "@/components/SimulationPanel";
 import FinancialAuditPanel from "@/components/FinancialAuditPanel";
+import PlanActionBar, { type PlanActionBusy } from "@/components/plan/PlanActionBar";
+import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
+import { userHasRole } from "@/lib/auth-roles";
 import {
-  auditPlan,
   downloadExport,
-  exportPlan,
   getPlan,
   listSimulations,
-  pollJob,
-  recalculate,
-  runSimulation,
+  resubmitPlan,
   saveInputs,
   submitPlan,
   transitionPlan,
@@ -35,14 +34,18 @@ import {
   type Plan,
   type SimulationItem,
 } from "@/lib/api";
+import { useExportJobs } from "@/context/ExportJobsContext";
 
 function PlanContent() {
   const params = useParams();
   const id = params.id as string;
   const tPlan = useTranslations("plan");
-  const { isExpert } = useAuth();
+  const { user } = useAuth();
   const { setPlanTitle, setPlanId, setPlanCompletion, setRefreshPlan } = useDashboardNav();
   const [completionKey, setCompletionKey] = useState(0);
+  const bumpCompletion = useCallback(() => {
+    setCompletionKey((k) => k + 1);
+  }, []);
   const { completion } = usePlanCompletion(id, completionKey);
   const jumpToFieldRef = useRef<((step: WizardStepId, path: string) => void) | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -50,8 +53,8 @@ function PlanContent() {
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [simulations, setSimulations] = useState<SimulationItem[]>([]);
   const [audit, setAudit] = useState<AuditResult | null>(null);
-  const [jobStatus, setJobStatus] = useState("");
-  const [busyAction, setBusyAction] = useState<"" | "recalc" | "simulate">("");
+  const [busyAction, setBusyAction] = useState<PlanActionBusy>("");
+  const { startExport } = useExportJobs();
   const [exportJobId, setExportJobId] = useState<string | null>(null);
   const [exportFormats, setExportFormats] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -95,47 +98,36 @@ function PlanContent() {
     setPlanCompletion(completion);
   }, [completion, setPlanCompletion]);
 
+  const canEditUnderReview = userHasRole(user?.role, ["expert", "admin"]);
   const readOnly =
     plan?.status === "VALIDATED" ||
-    (plan?.status === "UNDER_REVIEW" && !isExpert);
+    (plan?.status === "UNDER_REVIEW" && !canEditUnderReview);
 
   const collabEnabled =
     plan?.status === "UNDER_REVIEW" || plan?.status === "ADJUSTMENT";
 
-  const handleRecalc = async () => {
-    if (busyAction) return;
+  const requestExport = async (format: "pdf" | "xlsx") => {
+    if (exportJobId && exportFormats.includes(format)) {
+      await downloadExport(id, exportJobId, format);
+      return;
+    }
     setError("");
-    setBusyAction("recalc");
     try {
-      const job = await recalculate(id);
-      setJobStatus("PENDING");
-      const result = await pollJob(job.id, setJobStatus);
-      if (result.status === "FAILED") setError(result.error || tPlan("calcFailed"));
-      else await load();
-    } finally {
-      setBusyAction("");
-      setJobStatus("");
+      const jobId = await startExport(id, format, {
+        planTitle: plan?.title,
+        onComplete: (formats) => {
+          setExportFormats(formats);
+          setExportJobId(jobId);
+        },
+      });
+      setExportJobId(jobId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tPlan("exportFailed"));
     }
   };
 
-  const handleSimulate = async () => {
-    if (busyAction) return;
-    setError("");
-    setBusyAction("simulate");
-    try {
-      const job = await runSimulation(
-        id,
-        [{ path: "operations/rawMaterialCost", multiplier: 1.15 }],
-        "Inflation matières +15%"
-      );
-      setJobStatus("PENDING");
-      const result = await pollJob(job.id, setJobStatus);
-      if (result.status === "FAILED") setError(result.error || tPlan("simFailed"));
-      else await load();
-    } finally {
-      setBusyAction("");
-      setJobStatus("");
-    }
+  const scrollToWizard = () => {
+    document.getElementById("liasse-wizard")?.scrollIntoView({ behavior: "smooth" });
   };
 
   if (loading) {
@@ -175,11 +167,14 @@ function PlanContent() {
         <ResultsPanel results={plan.results as never} />
       </div>
 
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+      <div
+        id="liasse-wizard"
+        className="mb-2 flex flex-wrap items-center justify-between gap-3"
+      >
         <h2 className="font-display text-xl font-semibold text-navy-800">
           {tPlan("liasseTitle")}
         </h2>
-        {isExpert && (
+        <RoleGate role={["expert", "admin"]}>
           <button
             type="button"
             className="inline-flex items-center gap-2 rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm font-medium text-navy-700 hover:border-gold-400"
@@ -188,7 +183,7 @@ function PlanContent() {
             <FileBarChart className="h-4 w-4" />
             {tPlan("completenessReport")}
           </button>
-        )}
+        </RoleGate>
       </div>
       <p className="mb-6 text-sm text-navy-600">
         {tPlan("wizardIntro", { steps: 13 })}
@@ -196,10 +191,6 @@ function PlanContent() {
       </p>
 
       {error && <p className="form-error">{error}</p>}
-      {jobStatus && (
-        <p className="alert alert-info">{tPlan("processing", { status: jobStatus })}</p>
-      )}
-
       <div
         className={
           collabEnabled
@@ -218,13 +209,12 @@ function PlanContent() {
               onRegisterNavigator={(fn) => {
                 jumpToFieldRef.current = fn;
               }}
-              onSave={async (inp) => {
-                const res = await saveInputs(id, inp);
+              onSave={(res) => {
                 setPlan(res.plan);
                 setMissingFields(res.missingFields || []);
                 setCompletionKey((k) => k + 1);
               }}
-              onPlanModuleChange={() => setCompletionKey((k) => k + 1)}
+              onPlanModuleChange={bumpCompletion}
               readOnly={readOnly}
             />
           </div>
@@ -246,113 +236,63 @@ function PlanContent() {
         )}
       </div>
 
-      <div className="plan-actions btn-group">
-        {!isExpert && plan.status === "DRAFT" && (
-          <>
-            <button type="button" className="btn btn-primary" onClick={handleRecalc}>
-              {tPlan("calc7y")}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={async () => {
-                await submitPlan(id);
-                load();
-              }}
-            >
-              {tPlan("submitExpert")}
-            </button>
-          </>
-        )}
-        {(plan.status === "UNDER_REVIEW" || plan.status === "ADJUSTMENT") && (
-          <>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleRecalc}
-              disabled={!!busyAction}
-            >
-              {busyAction === "recalc" ? `${tPlan("recalc")}…` : tPlan("recalc")}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleSimulate}
-              disabled={!!busyAction}
-            >
-              {busyAction === "simulate" ? "…" : tPlan("simulate")}
-            </button>
-            {isExpert && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={async () => setAudit(await auditPlan(id))}
-                >
-                  {tPlan("financialAudit")}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-success"
-                  onClick={async () => {
-                    await transitionPlan(id, "VALIDATE");
-                    load();
-                  }}
-                >
-                  {tPlan("validate")}
-                </button>
-              </>
-            )}
-          </>
-        )}
-        {plan.status === "VALIDATED" && (
-          <>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={async () => {
-                setError("");
-                setExportFormats([]);
-                const job = await exportPlan(id);
-                setExportJobId(job.id);
-                try {
-                  const result = await pollJob(job.id, setJobStatus);
-                  setExportJobId(job.id);
-                  const formats = result.result?.formats ?? Object.keys(result.result?.files ?? {});
-                  setExportFormats(formats.length ? formats : ["pdf", "xlsx"]);
-                } catch (e) {
-                  setError(e instanceof Error ? e.message : tPlan("exportFailed"));
-                  setExportJobId(null);
-                }
-              }}
-            >
-              {tPlan("exportGenerate")}
-            </button>
-            {exportJobId && exportFormats.length > 0 && (
-              <>
-                {exportFormats.includes("pdf") && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => downloadExport(id, exportJobId, "pdf")}
-                  >
-                    {tPlan("exportPdf")}
-                  </button>
-                )}
-                {exportFormats.includes("xlsx") && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => downloadExport(id, exportJobId, "xlsx")}
-                  >
-                    {tPlan("exportXlsx")}
-                  </button>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </div>
+      <PlanActionBar
+        plan={plan}
+        busy={busyAction}
+        exportFormats={exportFormats}
+        handlers={{
+          onSave: async () => {
+            setBusyAction("save");
+            try {
+              const res = await saveInputs(id, inputs);
+              setPlan(res.plan);
+              setMissingFields(res.missingFields || []);
+              setCompletionKey((k) => k + 1);
+            } finally {
+              setBusyAction("");
+            }
+          },
+          onSubmit: async () => {
+            setBusyAction("submit");
+            try {
+              await submitPlan(id);
+              await load();
+            } finally {
+              setBusyAction("");
+            }
+          },
+          onApprove: async () => {
+            setBusyAction("approve");
+            try {
+              await transitionPlan(id, "VALIDATE");
+              await load();
+            } finally {
+              setBusyAction("");
+            }
+          },
+          onRequestAdjustment: async () => {
+            setBusyAction("request_adjustment");
+            try {
+              await transitionPlan(id, "NEEDS_ADJUSTMENT");
+              await load();
+            } finally {
+              setBusyAction("");
+            }
+          },
+          onEdit: scrollToWizard,
+          onResubmit: async () => {
+            setBusyAction("resubmit");
+            try {
+              await resubmitPlan(id);
+              await load();
+            } finally {
+              setBusyAction("");
+            }
+          },
+          onExportPdf: () => void requestExport("pdf"),
+          onExportXlsx: () => void requestExport("xlsx"),
+        }}
+      />
 
       {audit && (
         <FinancialAuditPanel audit={audit} onClose={() => setAudit(null)} />

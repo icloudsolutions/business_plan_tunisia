@@ -1,7 +1,17 @@
 @tailwind base;
 
 html[dir="rtl"] body {
-  font-family: var(--font-sans-ar), var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-noto-arabic), "Noto Sans Arabic", var(--font-sans-ar),
+    var(--font-sans), system-ui, sans-serif;
+}
+
+html[dir="rtl"] body.font-arabic {
+  font-family: var(--font-noto-arabic), "Noto Sans Arabic", var(--font-sans-ar),
+    sans-serif;
+}
+
+.chart-ltr {
+  direction: ltr;
 }
 
 html[dir="rtl"] .font-display {
@@ -118,7 +128,7 @@ a:hover {
 
 .nav-toggle {
   display: none;
-  margin-left: auto;
+  margin-inline-start: auto;
   width: 40px;
   height: 40px;
   border: 1px solid var(--color-border);
@@ -157,7 +167,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .user-meta {
@@ -229,6 +239,20 @@ a:hover {
   border: 1px solid transparent;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #6366f1;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
 }
 
 .btn:disabled {
@@ -656,8 +680,7 @@ a:hover {
     display: none;
     position: absolute;
     top: var(--header-h);
-    left: 0;
-    right: 0;
+    inset-inline: 0;
     flex-direction: column;
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);

@@ -5,12 +5,17 @@ import { Plus, Trash2 } from "lucide-react";
 import { createSafeId } from "@/lib/safe-id";
 import type { LiasseFormValues } from "@/lib/liasse-wizard/schema";
 import FieldTooltip from "../FieldTooltip";
+import FormField from "@/components/ui/FormField";
 import { metaFor } from "@/lib/liasse-wizard/field-meta";
 
 type Props = { readOnly?: boolean };
 
 export default function StepInvestments({ readOnly }: Props) {
-  const { control, register, formState: { errors } } = useFormContext<LiasseFormValues>();
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useFormContext<LiasseFormValues>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "investments.equipment",
@@ -46,7 +51,7 @@ export default function StepInvestments({ readOnly }: Props) {
         )}
       </div>
       {typeof arrErr === "object" && "message" in (arrErr as object) && (
-        <p className="mb-2 text-xs text-red-600" role="alert">
+        <p className="mb-2 text-xs text-red-500" role="alert">
           {(arrErr as { message?: string }).message}
         </p>
       )}
@@ -72,18 +77,24 @@ export default function StepInvestments({ readOnly }: Props) {
               )}
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <label className="text-xs font-medium text-navy-700">Nom</label>
-                <input
-                  className="mt-1 w-full rounded-lg border border-navy-200 px-3 py-2 text-sm"
-                  disabled={readOnly}
-                  {...register(`investments.equipment.${index}.name` as const)}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-navy-700">Type</label>
+              <FormField
+                label="Nom"
+                name={`investments.equipment.${index}.name`}
+                type="text"
+                register={register}
+                readOnly={readOnly}
+                compact
+              />
+              <div className={readOnly ? "mb-0" : "mb-4"}>
+                <label
+                  htmlFor={`investments-equipment-${index}-assetType`}
+                  className="text-sm font-medium text-gray-800"
+                >
+                  Type
+                </label>
                 <select
-                  className="mt-1 w-full rounded-lg border border-navy-200 px-3 py-2 text-sm"
+                  id={`investments-equipment-${index}-assetType`}
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:border-blue-200 disabled:bg-blue-50 disabled:text-blue-800"
                   disabled={readOnly}
                   {...register(`investments.equipment.${index}.assetType` as const)}
                 >
@@ -91,43 +102,36 @@ export default function StepInvestments({ readOnly }: Props) {
                   <option value="intangible">Incorporel</option>
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-medium text-navy-700">Coût (TND)</label>
-                <input
-                  type="number"
-                  min={0}
-                  className="mt-1 w-full rounded-lg border border-navy-200 px-3 py-2 text-sm"
-                  disabled={readOnly}
-                  {...register(`investments.equipment.${index}.cost` as const, {
-                    valueAsNumber: true,
-                  })}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-navy-700">Amort. (ans)</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="mt-1 w-full rounded-lg border border-navy-200 px-3 py-2 text-sm"
-                  disabled={readOnly}
-                  {...register(`investments.equipment.${index}.usefulLifeYears` as const, {
-                    valueAsNumber: true,
-                  })}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-navy-700">Acquisition (an 1-7)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={7}
-                  className="mt-1 w-full rounded-lg border border-navy-200 px-3 py-2 text-sm"
-                  disabled={readOnly}
-                  {...register(`investments.equipment.${index}.acquisitionYear` as const, {
-                    valueAsNumber: true,
-                  })}
-                />
-              </div>
+              <FormField
+                label="Coût"
+                name={`investments.equipment.${index}.cost`}
+                unit="TND"
+                register={register}
+                error={errors.investments?.equipment?.[index]?.cost}
+                readOnly={readOnly}
+                compact
+              />
+              <FormField
+                label="Amortissement"
+                name={`investments.equipment.${index}.usefulLifeYears`}
+                unit="ans"
+                register={register}
+                error={errors.investments?.equipment?.[index]?.usefulLifeYears}
+                readOnly={readOnly}
+                min={1}
+                compact
+              />
+              <FormField
+                label="Acquisition"
+                name={`investments.equipment.${index}.acquisitionYear`}
+                unit="an"
+                register={register}
+                error={errors.investments?.equipment?.[index]?.acquisitionYear}
+                readOnly={readOnly}
+                min={1}
+                max={7}
+                compact
+              />
             </div>
           </div>
         ))}

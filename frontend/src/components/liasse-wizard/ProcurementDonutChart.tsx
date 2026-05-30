@@ -1,6 +1,7 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { useFormat } from "@/hooks/useFormat";
 
 const COLORS: Record<string, string> = {
@@ -22,7 +23,8 @@ export default function ProcurementDonutChart({ data }: Props) {
     <div className="rounded-xl border border-navy-100 bg-white p-4">
       <h4 className="mb-2 text-sm font-semibold text-navy-800">Composition des achats (Y1–Y7)</h4>
       <div className="h-52">
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartLtr className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
@@ -41,6 +43,7 @@ export default function ProcurementDonutChart({ data }: Props) {
             <Tooltip formatter={(v: number) => formatCurrency(v)} />
           </PieChart>
         </ResponsiveContainer>
+        </ChartLtr>
       </div>
       <ul className="mt-2 flex flex-wrap gap-2 text-xs text-navy-600">
         {data.map((d) => (

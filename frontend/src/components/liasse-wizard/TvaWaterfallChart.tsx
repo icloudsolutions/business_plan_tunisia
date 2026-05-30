@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { useFormat } from "@/hooks/useFormat";
 import type { TvaProjection } from "@/lib/tva-api";
 
@@ -40,7 +41,8 @@ export default function TvaWaterfallChart({ projection }: Props) {
     <div className="rounded-xl border border-navy-100 bg-white p-4">
       <h4 className="mb-3 text-sm font-semibold text-navy-800">Flux TVA Y1–Y7</h4>
       <div className="h-56">
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartLtr className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
@@ -53,6 +55,7 @@ export default function TvaWaterfallChart({ projection }: Props) {
             <Bar dataKey="solde" name="Solde net" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+        </ChartLtr>
       </div>
     </div>
   );

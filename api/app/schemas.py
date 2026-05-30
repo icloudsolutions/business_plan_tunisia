@@ -189,6 +189,11 @@ class PlanUpdate(BaseModel):
         return v.strip() if v else v
 
 
+class PlanStatusHistoryItem(BaseModel):
+    status: str
+    changed_at: datetime
+
+
 class PlanResponse(BaseModel):
     id: UUID
     title: str
@@ -200,6 +205,7 @@ class PlanResponse(BaseModel):
     locked_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    history: list[PlanStatusHistoryItem] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -357,6 +363,15 @@ class JobResponse(BaseModel):
 
 class ExportRequest(BaseModel):
     formats: list[str] = Field(default=["pdf", "xlsx"])
+
+
+class ExportJobSummary(BaseModel):
+    id: UUID
+    plan_id: UUID
+    status: str
+    format: str
+    formats: list[str] = Field(default_factory=list)
+    created_at: datetime
 
 
 class CopilotRequest(BaseModel):

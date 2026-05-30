@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { AuthProvider } from "@/context/AuthContext";
 import { DashboardNavProvider } from "@/context/DashboardNavContext";
+import { ExportJobsProvider } from "@/context/ExportJobsContext";
+import LocaleDirectionSync from "@/components/LocaleDirectionSync";
 import ClientShell from "@/components/dashboard/ClientShell";
 import { LOCALE_STORAGE_KEY, type AppLocale } from "@/i18n/routing";
 
@@ -23,8 +25,11 @@ export default function Providers({
   return (
     <AuthProvider>
       <LocaleStorageSync locale={locale} />
+      <LocaleDirectionSync />
       <DashboardNavProvider>
-        <ClientShell>{children}</ClientShell>
+        <ExportJobsProvider>
+          <ClientShell>{children}</ClientShell>
+        </ExportJobsProvider>
       </DashboardNavProvider>
     </AuthProvider>
   );

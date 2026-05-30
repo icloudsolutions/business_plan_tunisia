@@ -217,7 +217,7 @@ export default function BalanceSheetTab({
 
       <section className="overflow-x-auto rounded-xl border border-navy-100 bg-white p-4 shadow-sm">
         <h4 className="mb-3 text-sm font-semibold text-navy-800">Synthèse annuelle</h4>
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-full text-start text-sm">
           <thead>
             <tr className="border-b border-navy-100 text-xs text-navy-600">
               <th className="px-2 py-2">Poste</th>

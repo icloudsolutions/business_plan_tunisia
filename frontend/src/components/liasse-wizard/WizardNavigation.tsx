@@ -1,6 +1,12 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  btnGhost,
+  btnPrimary,
+  btnSecondary,
+} from "@/components/plan/plan-action-styles";
 
 type Props = {
   stepIndex: number;
@@ -12,6 +18,9 @@ type Props = {
   saving?: boolean;
 };
 
+/**
+ * Wizard footer: one primary (Next / Finish), secondary (Back), ghost (Save draft).
+ */
 export default function WizardNavigation({
   stepIndex,
   totalSteps,
@@ -21,6 +30,7 @@ export default function WizardNavigation({
   readOnly,
   saving,
 }: Props) {
+  const t = useTranslations("wizard");
   const isFirst = stepIndex === 0;
   const isLast = stepIndex === totalSteps - 1;
 
@@ -30,28 +40,28 @@ export default function WizardNavigation({
         type="button"
         onClick={onSaveExit}
         disabled={saving}
-        className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-navy-200 px-4 py-2.5 text-sm font-medium text-navy-700 transition hover:bg-navy-50 disabled:opacity-50 sm:w-auto"
+        className={`${btnGhost} w-full sm:w-auto`}
       >
         <LogOut className="h-4 w-4" aria-hidden />
-        Enregistrer et quitter
+        {t("saveQuit")}
       </button>
       <div className="flex w-full gap-2 sm:w-auto">
         <button
           type="button"
           onClick={onBack}
           disabled={isFirst || readOnly}
-          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-navy-200 px-4 py-2.5 text-sm font-medium text-navy-700 transition hover:bg-navy-50 disabled:opacity-40 sm:flex-none"
+          className={`${btnSecondary} flex-1 sm:flex-none`}
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
-          Retour
+          {t("back")}
         </button>
         <button
           type="button"
           onClick={onNext}
           disabled={readOnly && !isLast}
-          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-navy-800 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-navy-700 disabled:opacity-50 sm:flex-none"
+          className={`${btnPrimary} flex-1 sm:flex-none`}
         >
-          {isLast ? "Terminer la saisie" : "Suivant"}
+          {isLast ? t("finish") : t("next")}
           {!isLast && <ChevronRight className="h-4 w-4" aria-hidden />}
         </button>
       </div>

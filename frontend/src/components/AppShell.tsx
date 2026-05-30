@@ -2,6 +2,8 @@
 
 import { Link } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
+import LanguageToggle from "@/components/LanguageToggle";
+import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -11,7 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout } = useAuth();
   const pathname = usePathname();
   const isFinance = pathname.startsWith("/finance");
   const showNav = user && !pathname.startsWith("/login");
@@ -40,6 +42,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           />
 
           <nav className="app-nav">
+            <LanguageToggle className="me-2 shrink-0" />
             <Link
               href="/"
               className={pathname === "/" ? "nav-link active" : "nav-link"}
@@ -48,18 +51,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
             <Link
               href="/finance"
+              prefetch={false}
               className={pathname.startsWith("/finance") ? "nav-link active" : "nav-link"}
             >
               Cockpit coûts
             </Link>
-            {isAdmin && (
+            <RoleGate role={["admin"]}>
               <Link
                 href="/admin"
                 className={pathname.startsWith("/admin") ? "nav-link active" : "nav-link"}
               >
                 Administration
               </Link>
-            )}
+            </RoleGate>
           </nav>
 
           <div className="header-user">

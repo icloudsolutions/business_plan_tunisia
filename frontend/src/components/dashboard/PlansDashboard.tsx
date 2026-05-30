@@ -1,25 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Link, useRouter } from "@/i18n/navigation";
-import { Plus, RefreshCw, ArrowRight } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { Link } from "@/i18n/navigation";
+import { DocumentPlusIcon } from "@heroicons/react/24/outline";
+import { RefreshCw, ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
+import EmptyState from "@/components/ui/EmptyState";
+import RoleGate from "@/components/auth/RoleGate";
 import { useLocale } from "@/context/LocaleContext";
 import { useDashboardNav } from "@/context/DashboardNavContext";
-import {
-  createPlan,
-  listPlans,
-  type Plan,
-} from "@/lib/api";
+import { listPlans, type Plan } from "@/lib/api";
 import PlanOverviewCard from "./PlanOverviewCard";
+import PlansListTable from "./PlansListTable";
 import { computePlanCompletion } from "@/lib/plan-completion";
 
 type PlanWithMeta = Plan & { created_at?: string; updated_at?: string };
 
 export default function PlansDashboard() {
-  const router = useRouter();
-  const { isExpert, isClient } = useAuth();
   const { t } = useLocale();
+  const tDash = useTranslations("dashboard");
   const { setPlanTitle } = useDashboardNav();
   const [plans, setPlans] = useState<PlanWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,13 +46,6 @@ export default function PlansDashboard() {
     loadPlans();
   }, [loadPlans]);
 
-  const newPlan = async () => {
-    const p = await createPlan(
-      "Business Plan " + new Date().toLocaleDateString("fr-TN")
-    );
-    router.push(`/plans/${p.id}`);
-  };
-
   const featured = plans[0];
 
   return (
@@ -68,16 +60,14 @@ export default function PlansDashboard() {
       </header>
 
       <div className="mb-8 flex flex-wrap gap-3">
-        {isClient && (
-          <button
-            type="button"
-            onClick={newPlan}
+        <RoleGate role={["client"]}>
+          <Link
+            href="/plans/new"
             className="inline-flex items-center gap-2 rounded-xl bg-gold-500 px-5 py-2.5 text-sm font-semibold text-navy-900 shadow-md transition hover:bg-gold-400"
           >
-            <Plus className="h-4 w-4" />
             {t("newPlan")}
-          </button>
-        )}
+          </Link>
+        </RoleGate>
         <button
           type="button"
           onClick={loadPlans}
@@ -88,6 +78,7 @@ export default function PlansDashboard() {
         </button>
         <Link
           href="/finance"
+          prefetch={false}
           className="inline-flex items-center gap-2 rounded-xl border border-navy-200 bg-white px-4 py-2.5 text-sm font-medium text-navy-700 hover:border-gold-400"
         >
           {t("financeCta")}
@@ -104,19 +95,23 @@ export default function PlansDashboard() {
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-navy-200 border-t-gold-500" />
         </div>
       ) : plans.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-navy-200 bg-white/80 p-12 text-center">
-          <p className="text-navy-600">{t("noPlans")}</p>
-          {isClient && (
-            <button
-              type="button"
-              onClick={newPlan}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-navy-800 px-6 py-3 text-sm font-semibold text-gold-300"
-            >
-              <Plus className="h-4 w-4" />
-              {t("createFirst")}
-            </button>
-          )}
-        </div>
+        <RoleGate
+          role={["client"]}
+          fallback={
+            <EmptyState
+              icon={<DocumentPlusIcon />}
+              title={tDash("emptyPlansTitle")}
+              description={tDash("emptyPlansDescription")}
+            />
+          }
+        >
+          <EmptyState
+            icon={<DocumentPlusIcon />}
+            title={tDash("emptyPlansTitle")}
+            description={tDash("emptyPlansDescription")}
+            cta={{ label: tDash("emptyPlansCta"), href: "/plans/new" }}
+          />
+        </RoleGate>
       ) : (
         <div className="space-y-10">
           {featured && (
@@ -132,27 +127,10 @@ export default function PlansDashboard() {
               <h3 className="mb-4 font-display text-lg font-semibold text-navy-800">
                 {t("allPlans")}
               </h3>
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {plans.slice(1).map((p) => {
-                  const { percent } = computePlanCompletion(p);
-                  return (
-                    <li key={p.id}>
-                      <Link
-                        href={`/plans/${p.id}`}
-                        className="flex items-center justify-between rounded-xl border border-navy-100 bg-white p-4 transition hover:border-gold-400 hover:shadow-md"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-navy-800">{p.title}</p>
-                          <p className="mt-1 text-xs text-navy-500">{p.status}</p>
-                        </div>
-                        <span className="ml-3 shrink-0 rounded-full bg-navy-50 px-2.5 py-1 text-xs font-semibold text-navy-700">
-                          {percent}%
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              <PlansListTable
+                plans={plans.slice(1)}
+                completionPct={(p) => computePlanCompletion(p).percent}
+              />
             </section>
           )}
         </div>

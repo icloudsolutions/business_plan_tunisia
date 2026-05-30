@@ -16,6 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { fetchAdminAnalytics, type Analytics } from "@/lib/admin-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 

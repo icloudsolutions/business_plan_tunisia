@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import DashboardKpiCard from "@/components/dashboard/DashboardKpiCard";
+import KpiSummaryGrid from "@/components/dashboard/KpiSummaryGrid";
 import ResponsiveScroll from "@/components/ui/ResponsiveScroll";
 
 interface Results {
@@ -101,45 +103,46 @@ export default function ResultsPanel({ results, defaultExpanded = false }: Props
 
       {expanded && (
         <div className="mt-5 space-y-5 border-t border-navy-100 pt-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="VAN (10 %)" value={`${fmtNum(van)} TND`} />
-            <Metric label="TRI" value={fmtPct(tri)} />
-            <Metric
+          <KpiSummaryGrid>
+            <DashboardKpiCard label="VAN (10 %)" value={`${fmtNum(van)} TND`} />
+            <DashboardKpiCard label="TRI" value={fmtPct(tri)} />
+            <DashboardKpiCard
               label="DRCI"
               value={drci != null ? `${drci.toFixed(1)} ans` : "N/A"}
             />
             {runway != null && runway > 0 && (
-              <Metric
+              <DashboardKpiCard
                 label="Trésorerie"
                 value={`Alerte année ${runway}`}
-                variant="danger"
+                className="border-red-200 bg-red-50/80"
+                valueClassName="text-red-700"
               />
             )}
             {results.bfrCoherent != null && (
-              <Metric
+              <DashboardKpiCard
                 label="BFR cohérent"
                 value={results.bfrCoherent ? "Oui" : "Non"}
               />
             )}
             {results.balanceSheetBalanced != null && (
-              <Metric
+              <DashboardKpiCard
                 label="Bilan équilibré"
                 value={results.balanceSheetBalanced ? "Oui" : "Non"}
               />
             )}
             {results.distributionExpense?.years?.[0] != null && (
-              <Metric
+              <DashboardKpiCard
                 label="Distribution (an 1)"
                 value={`${fmtNum(results.distributionExpense.years[0])} TND`}
               />
             )}
             {results.marketingExpense?.years?.[0] != null && (
-              <Metric
+              <DashboardKpiCard
                 label="Marketing (an 1)"
                 value={`${fmtNum(results.marketingExpense.years[0])} TND`}
               />
             )}
-          </div>
+          </KpiSummaryGrid>
 
           <div>
             <h4 className="mb-2 text-sm font-semibold text-navy-800">
@@ -176,33 +179,3 @@ export default function ResultsPanel({ results, defaultExpanded = false }: Props
   );
 }
 
-function Metric({
-  label,
-  value,
-  variant,
-}: {
-  label: string;
-  value: string;
-  variant?: "danger";
-}) {
-  return (
-    <div
-      className={`rounded-lg border px-3 py-2 ${
-        variant === "danger"
-          ? "border-red-200 bg-red-50/80"
-          : "border-navy-100 bg-navy-50/50"
-      }`}
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-navy-500">
-        {label}
-      </p>
-      <p
-        className={`mt-0.5 text-sm font-semibold tabular-nums ${
-          variant === "danger" ? "text-red-700" : "text-navy-900"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}

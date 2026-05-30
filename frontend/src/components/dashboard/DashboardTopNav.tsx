@@ -1,10 +1,10 @@
 "use client";
 
 import { Link, usePathname } from "@/i18n/navigation";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import LanguageToggle from "@/components/LanguageToggle";
+import { FOCUS_RING } from "@/lib/a11y";
 import {
   Bell,
-  ChevronRight,
   Clock,
   LayoutGrid,
   LogOut,
@@ -13,8 +13,10 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import Breadcrumb from "@/components/nav/Breadcrumb";
 import PlanHistoryDrawer from "@/components/history/PlanHistoryDrawer";
 import { useEffect, useState } from "react";
+import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
 import CompletionProgressBar from "@/components/completion/CompletionProgressBar";
 import { useDashboardNav } from "@/context/DashboardNavContext";
@@ -34,26 +36,39 @@ const NAV_ICONS = {
   "/admin": Settings,
 } as const;
 
+const navLinkActive =
+  "border-b-2 border-indigo-600 text-indigo-700 font-semibold";
+const navLinkInactive = "text-gray-600 hover:text-indigo-600";
+
 function iconBtn(active: boolean) {
-  return `flex h-9 w-9 items-center justify-center rounded-lg border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400/80 ${
+  return `flex h-9 w-9 items-center justify-center rounded-lg border transition ${FOCUS_RING} ${
     active
-      ? "border-gold-400 bg-gold-50 text-gold-800"
+      ? "border-indigo-200 bg-indigo-50 text-indigo-700"
       : "border-navy-100 bg-white text-navy-700 shadow-sm hover:border-navy-200 hover:bg-navy-50"
   }`;
 }
 
+function isNavActive(href: string, pathname: string): boolean {
+  if (href === "/") {
+    return (
+      pathname === "/" ||
+      pathname === "" ||
+      pathname.startsWith("/plans")
+    );
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function DashboardTopNav() {
   const pathname = usePathname();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout } = useAuth();
   const {
-    planTitle,
     planId,
     planCompletion,
     historyOpen,
     setHistoryOpen,
     unreadNotifications,
     markNotificationsRead,
-    presenceOthers,
   } = useDashboardNav();
   const { t } = useLocale();
   const tNav = useTranslations("nav");
@@ -63,17 +78,11 @@ export default function DashboardTopNav() {
   const roleKey = ROLE_KEYS[user?.role as keyof typeof ROLE_KEYS] ?? "roleClient";
 
   const navLinks = [
-    { href: "/", label: t("navPlans"), active: pathname === "/" || pathname === "" },
-    { href: "/finance", label: t("navFinance"), active: pathname.startsWith("/finance") },
-    {
-      href: "/settings",
-      label: tNav("navSettings"),
-      active: pathname.startsWith("/settings"),
-    },
-    ...(isAdmin
-      ? [{ href: "/admin", label: t("navAdmin"), active: pathname.startsWith("/admin") }]
-      : []),
+    { href: "/", label: t("navPlans") },
+    { href: "/finance", label: t("navFinance") },
+    { href: "/settings", label: tNav("navSettings") },
   ];
+  const adminNavLink = { href: "/admin", label: t("navAdmin") };
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -113,19 +122,19 @@ export default function DashboardTopNav() {
         </Link>
 
         <nav
-          className="ms-1 hidden items-center gap-0.5 rounded-xl border border-navy-100/80 bg-navy-50/50 p-0.5 md:flex"
+          className="ms-1 hidden items-stretch gap-1 md:flex"
           aria-label={tNav("menu")}
         >
           {navLinks.map((link) => {
             const Icon = NAV_ICONS[link.href as keyof typeof NAV_ICONS] ?? LayoutGrid;
+            const active = isNavActive(link.href, pathname);
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition ${
-                  link.active
-                    ? "bg-navy-800 text-gold-300 shadow-sm"
-                    : "text-navy-600 hover:bg-white hover:text-navy-800"
+                prefetch={link.href === "/finance" ? false : undefined}
+                className={`flex items-center gap-1.5 border-b-2 px-2.5 py-2 text-sm transition ${
+                  active ? navLinkActive : navLinkInactive
                 }`}
               >
                 <Icon className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
@@ -133,34 +142,25 @@ export default function DashboardTopNav() {
               </Link>
             );
           })}
+          <RoleGate role={["admin"]}>
+            <Link
+              href={adminNavLink.href}
+              className={`flex items-center gap-1.5 border-b-2 px-2.5 py-2 text-sm transition ${
+                isNavActive(adminNavLink.href, pathname)
+                  ? navLinkActive
+                  : navLinkInactive
+              }`}
+            >
+              <Settings className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+              <span className="max-w-[6.5rem] truncate xl:max-w-none">
+                {adminNavLink.label}
+              </span>
+            </Link>
+          </RoleGate>
         </nav>
 
-        <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 px-2 text-sm text-navy-500 lg:flex">
-          <Link href="/" className="shrink-0 hover:text-gold-600">
-            {t("breadcrumbHome")}
-          </Link>
-          {planTitle && (
-            <>
-              <ChevronRight className="h-4 w-4 shrink-0 opacity-50 rtl:rotate-180" />
-              <span className="flex min-w-0 items-center gap-2">
-                {presenceOthers.length > 0 && (
-                  <span
-                    className="relative flex h-2.5 w-2.5 shrink-0"
-                    title={presenceOthers.map((p) => p.email).join(", ")}
-                  >
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                    <span
-                      className="relative inline-flex h-2.5 w-2.5 rounded-full ring-2 ring-white"
-                      style={{
-                        backgroundColor: presenceOthers[0]?.color ?? "#059669",
-                      }}
-                    />
-                  </span>
-                )}
-                <span className="truncate font-medium text-navy-800">{planTitle}</span>
-              </span>
-            </>
-          )}
+        <div className="hidden min-w-0 flex-1 items-center justify-center px-2 lg:flex">
+          <Breadcrumb />
         </div>
 
         <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
@@ -176,14 +176,14 @@ export default function DashboardTopNav() {
             </button>
           )}
 
-          {planTitle && planCompletion && (
+          {planId && planCompletion && (
             <div className="hidden sm:block">
               <CompletionProgressBar completion={planCompletion} compact />
             </div>
           )}
 
           <div className="flex items-center gap-1 rounded-xl border border-navy-100/80 bg-navy-50/40 p-0.5">
-            <LanguageSwitcher />
+            <LanguageToggle />
 
             <Link
               href="/settings"
@@ -239,9 +239,9 @@ export default function DashboardTopNav() {
             type="button"
             onClick={logout}
             className="hidden h-9 items-center gap-1.5 rounded-lg border border-navy-100 bg-white px-2.5 text-sm text-navy-600 shadow-sm transition hover:bg-navy-50 sm:inline-flex"
-            title={t("logout")}
+            aria-label={t("logout")}
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            <LogOut className="h-4 w-4 shrink-0" aria-hidden />
             <span className="hidden xl:inline">{t("logout")}</span>
           </button>
         </div>
@@ -258,21 +258,23 @@ export default function DashboardTopNav() {
             <span className="text-xs font-semibold uppercase tracking-wide text-navy-500">
               {tNav("language")}
             </span>
-            <LanguageSwitcher />
+            <LanguageToggle />
           </div>
 
           <ul className="space-y-0.5">
             {navLinks.map((link) => {
               const Icon = NAV_ICONS[link.href as keyof typeof NAV_ICONS] ?? LayoutGrid;
+              const active = isNavActive(link.href, pathname);
               return (
                 <li key={link.href}>
                   <Link
                     href={link.href}
+                    prefetch={link.href === "/finance" ? false : undefined}
                     onClick={() => setMenuOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${
-                      link.active
-                        ? "bg-navy-800 text-gold-300"
-                        : "text-navy-700 hover:bg-navy-50"
+                    className={`flex items-center gap-3 border-s-2 px-3 py-2.5 text-sm ${
+                      active
+                        ? "border-indigo-600 font-semibold text-indigo-700"
+                        : "border-transparent text-gray-600 hover:text-indigo-600"
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0 opacity-80" />
@@ -281,7 +283,27 @@ export default function DashboardTopNav() {
                 </li>
               );
             })}
+            <RoleGate role={["admin"]}>
+              <li>
+                <Link
+                  href={adminNavLink.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 border-s-2 px-3 py-2.5 text-sm ${
+                    isNavActive(adminNavLink.href, pathname)
+                      ? "border-indigo-600 font-semibold text-indigo-700"
+                      : "border-transparent text-gray-600 hover:text-indigo-600"
+                  }`}
+                >
+                  <Settings className="h-4 w-4 shrink-0 opacity-80" />
+                  {adminNavLink.label}
+                </Link>
+              </li>
+            </RoleGate>
           </ul>
+
+          <div className="mt-3 border-t border-navy-100 px-1 pt-3 lg:hidden">
+            <Breadcrumb />
+          </div>
 
           <div className="mt-3 border-t border-navy-100 pt-3">
             <button

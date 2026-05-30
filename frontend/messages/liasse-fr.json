@@ -1,5 +1,9 @@
 {
   "steps": {
+    "liasseInputs": {
+      "title": "Liasse Unique — saisie",
+      "explainer": "Identification, investissement, financement et exploitation (années 1 à 7) regroupés par section TIA. Utilisez la navigation latérale ou le stepper mobile pour vous déplacer."
+    },
     "general": {
       "title": "Informations générales",
       "explainer": "Identité de votre société telle qu'elle figure sur le registre du commerce. Ces données alimentent la page de garde du business plan."

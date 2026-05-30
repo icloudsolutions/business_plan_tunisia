@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { useFormat } from "@/hooks/useFormat";
 import type { PayrollProjection } from "@/lib/payroll-api";
 
@@ -52,6 +53,7 @@ export default function PayrollCharts({ projection }: Props) {
       <div className="rounded-xl border border-navy-100 bg-white p-4">
         <h4 className="mb-3 text-sm font-semibold text-navy-800">Effectifs totaux</h4>
         <div className="h-52">
+        <ChartLtr className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={headcountData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -61,12 +63,14 @@ export default function PayrollCharts({ projection }: Props) {
               <Bar dataKey="effectifs" fill="#1e3a5f" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </ChartLtr>
         </div>
       </div>
 
       <div className="rounded-xl border border-navy-100 bg-white p-4">
         <h4 className="mb-3 text-sm font-semibold text-navy-800">Masse salariale &amp; CNSS</h4>
         <div className="h-52">
+        <ChartLtr className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={payrollData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -78,6 +82,7 @@ export default function PayrollCharts({ projection }: Props) {
               <Bar dataKey="cnss" name="CNSS" fill="#64748b" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </ChartLtr>
         </div>
       </div>
 
@@ -86,6 +91,7 @@ export default function PayrollCharts({ projection }: Props) {
           Répartition imputable production / autres charges
         </h4>
         <div className="h-52">
+        <ChartLtr className="h-full w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={splitData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -107,6 +113,7 @@ export default function PayrollCharts({ projection }: Props) {
               />
             </BarChart>
           </ResponsiveContainer>
+        </ChartLtr>
         </div>
       </div>
     </div>

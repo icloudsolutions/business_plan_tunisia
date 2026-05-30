@@ -24,6 +24,7 @@ import {
   locales,
   type AppLocale,
 } from "@/i18n/routing";
+import { userHasRole } from "@/lib/auth-roles";
 
 type AuthContextValue = {
   user: User | null;
@@ -123,9 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register,
       logout,
       refreshUser,
-      isAdmin: user?.role === "admin",
-      isExpert: user?.role === "expert",
-      isClient: user?.role === "client",
+      isAdmin: userHasRole(user?.role, ["admin"]),
+      isExpert: userHasRole(user?.role, ["expert"]),
+      isClient: userHasRole(user?.role, ["client"]),
     }),
     [user, loading, login, register, logout, refreshUser]
   );

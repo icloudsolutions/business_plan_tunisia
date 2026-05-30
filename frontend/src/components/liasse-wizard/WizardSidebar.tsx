@@ -48,7 +48,7 @@ export default function WizardSidebar({
                   type="button"
                   disabled={readOnly && !active}
                   onClick={() => onStepClick(id)}
-                  className={`flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left text-sm transition ${
+                  className={`flex w-full items-start gap-2 rounded-lg px-2 py-2 text-start text-sm transition ${
                     active
                       ? "bg-gold-50 font-semibold text-navy-900 ring-1 ring-gold-200"
                       : "text-navy-600 hover:bg-navy-50"

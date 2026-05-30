@@ -9,7 +9,7 @@ export default function AiContextFields({ readOnly }: Props) {
   if (!ctx) return null;
 
   const inputClass =
-    "mt-1 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm text-navy-900 shadow-sm focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-200 disabled:bg-navy-50";
+    "mt-1 w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm text-navy-900 shadow-sm focus:border-gold-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:bg-navy-50";
 
   return (
     <div className="mb-6 rounded-xl border border-violet-100 bg-violet-50/40 p-4 sm:col-span-2">
@@ -21,8 +21,11 @@ export default function AiContextFields({ readOnly }: Props) {
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <div>
-          <label className="text-xs font-medium text-navy-700">Secteur d&apos;activité</label>
+          <label htmlFor="ai-context-sector" className="text-xs font-medium text-navy-700">
+            Secteur d&apos;activité
+          </label>
           <input
+            id="ai-context-sector"
             type="text"
             className={inputClass}
             value={ctx.sector}
@@ -32,8 +35,11 @@ export default function AiContextFields({ readOnly }: Props) {
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-700">Type d&apos;entreprise</label>
+          <label htmlFor="ai-context-company-type" className="text-xs font-medium text-navy-700">
+            Type d&apos;entreprise
+          </label>
           <select
+            id="ai-context-company-type"
             className={inputClass}
             value={ctx.companyType}
             onChange={(e) => ctx.setCompanyType(e.target.value as "PME" | "GE")}
@@ -44,8 +50,11 @@ export default function AiContextFields({ readOnly }: Props) {
           </select>
         </div>
         <div>
-          <label className="text-xs font-medium text-navy-700">Localisation</label>
+          <label htmlFor="ai-context-location" className="text-xs font-medium text-navy-700">
+            Localisation
+          </label>
           <input
+            id="ai-context-location"
             type="text"
             className={inputClass}
             value={ctx.location}

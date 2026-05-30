@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Play, Plus, Star } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import RoleGate from "@/components/auth/RoleGate";
 import {
   calculateAllScenarios,
   calculateScenario,
@@ -32,7 +32,6 @@ function fmt(n: number | null | undefined) {
 }
 
 export default function ScenarioManager({ planId, readOnly, onOfficialSet }: Props) {
-  const { isExpert } = useAuth();
   const [compare, setCompare] = useState<ScenarioCompare | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -193,7 +192,7 @@ export default function ScenarioManager({ planId, readOnly, onOfficialSet }: Pro
       )}
 
       <div className="overflow-x-auto rounded-xl border border-navy-100">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="w-full min-w-[640px] text-start text-sm">
           <thead className="bg-navy-50 text-xs font-semibold uppercase text-navy-600">
             <tr>
               <th className="px-3 py-2">Scénario</th>
@@ -214,7 +213,7 @@ export default function ScenarioManager({ planId, readOnly, onOfficialSet }: Pro
                   <td className={`px-3 py-2 font-medium ${color}`}>
                     {row.name}
                     {row.is_official && (
-                      <span className="ml-2 rounded-full bg-gold-200 px-2 py-0.5 text-[10px] text-navy-800">
+                      <span className="ms-2 rounded-full bg-gold-200 px-2 py-0.5 text-[10px] text-navy-800">
                         Officiel
                       </span>
                     )}
@@ -248,22 +247,24 @@ export default function ScenarioManager({ planId, readOnly, onOfficialSet }: Pro
                           Calculer
                         </button>
                       )}
-                      {isExpert && row.status === "COMPLETED" && (
-                        <button
-                          type="button"
-                          disabled={busy !== null || row.is_official}
-                          title="Recommander pour la liasse officielle"
-                          className="inline-flex items-center gap-0.5 text-xs font-semibold text-violet-700 hover:underline disabled:opacity-40"
-                          onClick={() => void recommend(row.id)}
-                        >
-                          {busy === `official-${row.id}` ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Star className="h-3 w-3" />
-                          )}
-                          Recommander
-                        </button>
-                      )}
+                      <RoleGate role={["expert", "admin"]}>
+                        {row.status === "COMPLETED" && (
+                          <button
+                            type="button"
+                            disabled={busy !== null || row.is_official}
+                            title="Recommander pour la liasse officielle"
+                            className="inline-flex items-center gap-0.5 text-xs font-semibold text-violet-700 hover:underline disabled:opacity-40"
+                            onClick={() => void recommend(row.id)}
+                          >
+                            {busy === `official-${row.id}` ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Star className="h-3 w-3" />
+                            )}
+                            Recommander
+                          </button>
+                        )}
+                      </RoleGate>
                     </div>
                   </td>
                 </tr>

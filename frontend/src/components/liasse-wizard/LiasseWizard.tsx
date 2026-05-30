@@ -1,21 +1,11 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Inputs } from "@/components/liasse-form-utils";
-import {
-  formValuesToInputs,
-  inputsToFormValues,
-} from "@/lib/liasse-wizard/defaults";
+import { inputsToFormValues } from "@/lib/liasse-wizard/defaults";
 import {
   buildPreflightReport,
   getConsistencyAlerts,
@@ -31,63 +21,38 @@ import {
   type WizardStepId,
 } from "@/lib/liasse-wizard/schema";
 import { computeTotals } from "@/lib/liasse-wizard/totals";
-import SaveToast from "./SaveToast";
+import AutoSaveIndicator from "@/components/plan/AutoSaveIndicator";
 import CompletionProgressBar from "@/components/completion/CompletionProgressBar";
 import { useCompletionGamification } from "@/components/completion/CompletionToasts";
 import type { PlanCompletion } from "@/lib/completion";
+import type { PlanPatchResult } from "@/lib/api";
+import { useDebouncedPlanSave } from "@/hooks/useDebouncedPlanSave";
 import { LiasseAiProvider } from "@/context/LiasseAiContext";
 import WizardNavigation from "./WizardNavigation";
 import WizardSidebar from "./WizardSidebar";
 import WizardMobileSteps from "./WizardMobileSteps";
 import PreflightCheck from "./PreflightCheck";
-import StepGeneral from "./steps/StepGeneral";
-import StepInvestments from "./steps/StepInvestments";
+import LiasseUnifiedInputForm from "./LiasseUnifiedInputForm";
 import StepFinancing from "./steps/StepFinancing";
-import StepOperations from "./steps/StepOperations";
 import StepProducts from "./steps/StepProducts";
 import StepPricing from "./steps/StepPricing";
 import StepProductionCosts from "./steps/StepProductionCosts";
 import StepHr from "./steps/StepHr";
 import StepOtherCharges from "./steps/StepOtherCharges";
 import StepTva from "./steps/StepTva";
-import StepFinancial from "./steps/StepFinancial";
 import StepTimeline from "./steps/StepTimeline";
+import { fieldPathToLiasseSection } from "@/hooks/useLiasseSectionSpy";
+import { scrollToLiasseSection } from "./LiasseSectionNav";
 import StepProcurement from "./steps/StepProcurement";
-
-const PLAN_SCOPED_STEPS = [
-  "products",
-  "pricing",
-  "productionCosts",
-  "hr",
-  "otherCharges",
-  "tva",
-  "financing",
-  "timeline",
-  "procurement",
-] as const;
-type PlanScopedStep = (typeof PLAN_SCOPED_STEPS)[number];
-
-const STEP_COMPONENTS: Record<
-  Exclude<WizardStepId, PlanScopedStep>,
-  ComponentType<{ readOnly?: boolean }>
-> = {
-  general: StepGeneral,
-  investments: StepInvestments,
-  operations: StepOperations,
-  financial: StepFinancial,
-};
-
-const AUTO_SAVE_MS = 30_000;
 
 interface Props {
   planId: string;
   inputs: Inputs;
   onChange: (inputs: Inputs) => void;
-  onSave: (inputs: Inputs) => Promise<void>;
+  onSave: (result: PlanPatchResult) => void;
   readOnly?: boolean;
   missingFields?: string[];
   completion?: PlanCompletion | null;
-  /** Refresh sidebar completion after plan-scoped module saves (RH, TVA, …). */
   onPlanModuleChange?: () => void;
   onRegisterNavigator?: (fn: (step: WizardStepId, fieldPath: string) => void) => void;
 }
@@ -107,10 +72,7 @@ export default function LiasseWizard({
   const locale = useLocale() as AppLocale;
   const [stepIndex, setStepIndex] = useState(0);
   const [highlightField, setHighlightField] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const baseRef = useRef(inputs);
 
   const currentStep = WIZARD_STEPS[stepIndex];
 
@@ -120,45 +82,34 @@ export default function LiasseWizard({
     mode: "onBlur",
   });
 
-  const { watch, reset, trigger, getValues, handleSubmit } = methods;
+  const { watch, reset, trigger, handleSubmit } = methods;
   const values = watch();
 
   useEffect(() => {
-    baseRef.current = inputs;
     reset(inputsToFormValues(inputs));
   }, [inputs, reset]);
 
-  const persist = useCallback(
-    async (showToast = true) => {
-      if (readOnly) return;
-      const vals = getValues();
-      const payload = formValuesToInputs(vals, baseRef.current);
-      setSaving(true);
-      setSaveError("");
-      try {
-        await onSave(payload);
-        onChange(payload);
-        baseRef.current = payload;
-        if (showToast) {
-          setToastVisible(true);
-          window.setTimeout(() => setToastVisible(false), 2500);
-        }
-      } catch (err) {
-        setSaveError(err instanceof Error ? err.message : "Erreur de sauvegarde");
-      } finally {
-        setSaving(false);
-      }
-    },
-    [getValues, onChange, onSave, readOnly]
-  );
+  const { status: autoSaveStatus, persist, saving } = useDebouncedPlanSave({
+    planId,
+    readOnly,
+    inputs,
+    watchedValues: values,
+    debounceMs: 1500,
+    onChange,
+    onSaved: onSave,
+  });
 
-  useEffect(() => {
-    if (readOnly) return;
-    const id = window.setInterval(() => {
-      void persist(true);
-    }, AUTO_SAVE_MS);
-    return () => window.clearInterval(id);
-  }, [persist, readOnly]);
+  const persistWithFeedback = useCallback(
+    async (showStatus = true) => {
+      setSaveError("");
+      const result = await persist(showStatus);
+      if (result === "failed") {
+        setSaveError("Erreur de sauvegarde");
+      }
+      return result === "saved";
+    },
+    [persist]
+  );
 
   const totals = useMemo(() => computeTotals(values), [values]);
   const alerts = useMemo(() => getConsistencyAlerts(values), [values]);
@@ -172,7 +123,7 @@ export default function LiasseWizard({
       const paths = getStepFieldPaths(currentStep);
       const ok = await trigger(paths as never);
       if (!ok) return;
-      await persist(false);
+      await persistWithFeedback(false);
     }
     setStepIndex(Math.max(0, Math.min(WIZARD_STEPS.length - 1, target)));
   };
@@ -183,14 +134,14 @@ export default function LiasseWizard({
       await goToStep(stepIndex + 1);
     } else if (!readOnly) {
       const ok = await trigger();
-      if (ok) await persist(true);
+      if (ok) await persistWithFeedback(true);
     }
   };
 
   const onSaveExit = async () => {
     if (!readOnly) {
       const ok = await trigger();
-      if (ok) await persist(true);
+      if (ok) await persistWithFeedback(true);
     }
     router.push("/");
   };
@@ -203,7 +154,11 @@ export default function LiasseWizard({
     const idx = WIZARD_STEPS.indexOf(step);
     if (idx >= 0) setStepIndex(idx);
     setHighlightField(fieldPath);
+    const liasseSection = fieldPathToLiasseSection(fieldPath);
     window.setTimeout(() => {
+      if (step === "liasseInputs" && liasseSection) {
+        scrollToLiasseSection(liasseSection);
+      }
       const el = document.getElementById(fieldPath);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
       el?.classList.add("ring-2", "ring-gold-400");
@@ -222,12 +177,11 @@ export default function LiasseWizard({
   }, [jumpToField, onRegisterNavigator]);
 
   const renderStepBody = (id: WizardStepId) => {
-    const Body = PLAN_SCOPED_STEPS.includes(id as PlanScopedStep)
-      ? null
-      : STEP_COMPONENTS[id as Exclude<WizardStepId, PlanScopedStep>];
     return (
       <>
-        {id === "products" ? (
+        {id === "liasseInputs" ? (
+          <LiasseUnifiedInputForm readOnly={readOnly} completion={completion} />
+        ) : id === "products" ? (
           <StepProducts planId={planId} readOnly={readOnly} />
         ) : id === "pricing" ? (
           <StepPricing planId={planId} readOnly={readOnly} />
@@ -261,10 +215,8 @@ export default function LiasseWizard({
           <StepTimeline planId={planId} readOnly={readOnly} />
         ) : id === "procurement" ? (
           <StepProcurement planId={planId} readOnly={readOnly} />
-        ) : Body ? (
-          <Body readOnly={readOnly} />
         ) : null}
-        {id === "financial" && <PreflightCheck items={preflight} />}
+        {id === "liasseInputs" && <PreflightCheck items={preflight} />}
       </>
     );
   };
@@ -272,76 +224,76 @@ export default function LiasseWizard({
   return (
     <FormProvider {...methods}>
       <LiasseAiProvider planId={planId} readOnly={readOnly}>
-      <form
-        onSubmit={handleSubmit(async () => {
-          await persist(true);
-        })}
-        className="liasse-wizard"
-      >
-        <div className="flex flex-col gap-6 md:flex-row md:gap-8">
-          <WizardSidebar
-            currentStep={currentStep}
-            onStepClick={(id) => {
-              const idx = WIZARD_STEPS.indexOf(id);
-              void goToStep(idx);
-            }}
-            totals={totals}
-            alerts={alerts}
-            readOnly={readOnly}
-            completion={completion}
-          />
+        <form
+          onSubmit={handleSubmit(async () => {
+            await persistWithFeedback(true);
+          })}
+          className="liasse-wizard"
+        >
+          <AutoSaveIndicator status={autoSaveStatus} />
 
-          <div className="min-w-0 flex-1">
-            <WizardMobileSteps
-              stepIndex={stepIndex}
+          <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+            <WizardSidebar
               currentStep={currentStep}
-              onGoTo={(i) => void goToStep(i)}
-            />
-
-            <header className="mb-4 space-y-3 sm:mb-6 sm:space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">
-                    Étape {stepIndex + 1} / {WIZARD_STEPS.length}
-                  </p>
-                  <h2 className="font-display text-xl font-semibold text-navy-900 sm:text-2xl">
-                    {stepMeta.title}
-                  </h2>
-                </div>
-                <CompletionProgressBar completion={completion} />
-              </div>
-              <p className="max-w-2xl text-sm leading-relaxed text-navy-600">
-                {stepMeta.explainer}
-              </p>
-            </header>
-
-            <div
-              className="rounded-xl border border-navy-100 bg-white p-4 shadow-sm sm:p-5 md:p-6"
-              role="tabpanel"
-            >
-              {renderStepBody(currentStep)}
-            </div>
-
-            {saveError && (
-              <p className="mt-3 text-sm text-red-600" role="alert">
-                {saveError}
-              </p>
-            )}
-
-            <WizardNavigation
-              stepIndex={stepIndex}
-              totalSteps={WIZARD_STEPS.length}
-              onBack={onBack}
-              onNext={onNext}
-              onSaveExit={onSaveExit}
+              onStepClick={(id) => {
+                const idx = WIZARD_STEPS.indexOf(id);
+                void goToStep(idx);
+              }}
+              totals={totals}
+              alerts={alerts}
               readOnly={readOnly}
-              saving={saving}
+              completion={completion}
             />
-          </div>
-        </div>
 
-        <SaveToast visible={toastVisible} saving={saving} />
-      </form>
+            <div className="min-w-0 flex-1">
+              <WizardMobileSteps
+                stepIndex={stepIndex}
+                currentStep={currentStep}
+                onGoTo={(i) => void goToStep(i)}
+              />
+
+              <header className="mb-4 space-y-3 sm:mb-6 sm:space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gold-600">
+                      Étape {stepIndex + 1} / {WIZARD_STEPS.length}
+                    </p>
+                    <h2 className="font-display text-xl font-semibold text-navy-900 sm:text-2xl">
+                      {stepMeta.title}
+                    </h2>
+                  </div>
+                  <CompletionProgressBar completion={completion} />
+                </div>
+                <p className="max-w-2xl text-sm leading-relaxed text-navy-600">
+                  {stepMeta.explainer}
+                </p>
+              </header>
+
+              <div
+                className="rounded-xl border border-navy-100 bg-white p-4 shadow-sm sm:p-5 md:p-6"
+                role="tabpanel"
+              >
+                {renderStepBody(currentStep)}
+              </div>
+
+              {saveError && (
+                <p className="mt-3 text-sm text-red-600" role="alert">
+                  {saveError}
+                </p>
+              )}
+
+              <WizardNavigation
+                stepIndex={stepIndex}
+                totalSteps={WIZARD_STEPS.length}
+                onBack={onBack}
+                onNext={onNext}
+                onSaveExit={onSaveExit}
+                readOnly={readOnly}
+                saving={saving}
+              />
+            </div>
+          </div>
+        </form>
       </LiasseAiProvider>
     </FormProvider>
   );

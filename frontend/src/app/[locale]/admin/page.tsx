@@ -3,6 +3,7 @@
 import { Link } from "@/i18n/navigation";
 import { LayoutDashboard, LogOut, Shield } from "lucide-react";
 import AuthGuard from "@/components/AuthGuard";
+import RoleGate from "@/components/auth/RoleGate";
 import AnalyticsSection from "@/components/admin/AnalyticsSection";
 import HealthSection from "@/components/admin/HealthSection";
 import NotificationsSection from "@/components/admin/NotificationsSection";
@@ -40,8 +41,9 @@ function AdminPanel() {
               type="button"
               onClick={logout}
               className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
+              aria-label="Déconnexion"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" aria-hidden />
             </button>
           </div>
         </div>
@@ -80,8 +82,10 @@ function AdminPanel() {
 
 export default function AdminPage() {
   return (
-    <AuthGuard roles={["admin"]}>
-      <AdminPanel />
+    <AuthGuard>
+      <RoleGate role={["admin"]} redirect="/">
+        <AdminPanel />
+      </RoleGate>
     </AuthGuard>
   );
 }

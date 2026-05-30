@@ -12,7 +12,9 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+import RoleGate from "@/components/auth/RoleGate";
 import { useAuth } from "@/context/AuthContext";
+import { userHasRole } from "@/lib/auth-roles";
 import { useCollaboration } from "@/context/CollaborationContext";
 import {
   WIZARD_SECTIONS,
@@ -76,7 +78,7 @@ function ThreadBlock({
         {root.user_email} · {formatTime(root.created_at)}
       </p>
       {replies.map((r) => (
-        <div key={r.id} className="mt-2 border-l-2 border-orange-300 pl-3 text-xs text-navy-800">
+        <div key={r.id} className="mt-2 border-s-2 border-orange-300 ps-3 text-xs text-navy-800">
           <p>{r.content}</p>
           <p className="text-[10px] text-navy-500">
             {r.user_email} · {formatTime(r.created_at)}
@@ -98,7 +100,7 @@ function ThreadBlock({
             void onReply(root.id, replyText.trim());
             setReplyText("");
           }}
-          aria-label="Envoyer"
+          aria-label="Envoyer le commentaire"
         >
           <Send className="h-3.5 w-3.5" />
         </button>
@@ -122,7 +124,8 @@ export default function CollaborationSidebar({
   planStatus,
   onPlanUpdated,
 }: Props) {
-  const { isExpert, user } = useAuth();
+  const { user } = useAuth();
+  const isExpert = userHasRole(user?.role, ["expert", "admin"]);
   const collab = useCollaboration();
   const [tab, setTab] = useState<"comments" | "activity">("comments");
   const [globalMessage, setGlobalMessage] = useState("");
@@ -188,7 +191,7 @@ export default function CollaborationSidebar({
         <p className="mt-0.5 text-xs text-navy-500">Statut : {planStatus}</p>
       </div>
 
-      {isExpert && (
+      <RoleGate role={["expert", "admin"]}>
         <div className="border-b border-navy-100 px-3 py-2">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-navy-500">
             Annotation par section
@@ -230,9 +233,9 @@ export default function CollaborationSidebar({
             })}
           </div>
         </div>
-      )}
+      </RoleGate>
 
-      {isExpert && (
+      <RoleGate role={["expert", "admin"]}>
         <div className="border-b border-navy-100 px-3 py-2">
           {!adjustOpen ? (
             <button
@@ -271,7 +274,7 @@ export default function CollaborationSidebar({
             </div>
           )}
         </div>
-      )}
+      </RoleGate>
 
       <div className="flex border-b border-navy-100 text-xs font-medium">
         <button
@@ -279,7 +282,7 @@ export default function CollaborationSidebar({
           className={`flex-1 py-2 ${tab === "comments" ? "border-b-2 border-gold-500 text-navy-900" : "text-navy-500"}`}
           onClick={() => setTab("comments")}
         >
-          <MessageSquare className="mr-1 inline h-3.5 w-3.5" />
+          <MessageSquare className="me-1 inline h-3.5 w-3.5" />
           Fil
         </button>
         <button
@@ -287,7 +290,7 @@ export default function CollaborationSidebar({
           className={`flex-1 py-2 ${tab === "activity" ? "border-b-2 border-gold-500 text-navy-900" : "text-navy-500"}`}
           onClick={() => setTab("activity")}
         >
-          <RefreshCw className="mr-1 inline h-3.5 w-3.5" />
+          <RefreshCw className="me-1 inline h-3.5 w-3.5" />
           Activité
         </button>
       </div>
@@ -348,7 +351,7 @@ export default function CollaborationSidebar({
                     <button
                       key={thread[0].id}
                       type="button"
-                      className="block w-full rounded-lg border border-navy-100 px-2 py-2 text-left text-xs hover:border-orange-300"
+                      className="block w-full rounded-lg border border-navy-100 px-2 py-2 text-start text-xs hover:border-orange-300"
                       onClick={() => collab.setActiveFieldKey(fk)}
                     >
                       <span className="font-mono text-[10px] text-navy-500">{fk}</span>

@@ -85,10 +85,14 @@ export default function SettingsPage() {
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium text-navy-600">
+                <label
+                  htmlFor="settings-email"
+                  className="mb-1 block text-xs font-medium text-navy-600"
+                >
                   {t("emailReadOnly")}
                 </label>
                 <input
+                  id="settings-email"
                   type="email"
                   readOnly
                   value={user?.email ?? ""}
@@ -96,16 +100,20 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-navy-600">
+                <label
+                  htmlFor="settings-display-name"
+                  className="mb-1 block text-xs font-medium text-navy-600"
+                >
                   {t("displayName")}
                 </label>
                 <input
+                  id="settings-display-name"
                   type="text"
                   maxLength={255}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder={t("displayNamePlaceholder")}
-                  className="w-full rounded-lg border border-navy-200 px-3 py-2 text-sm focus:border-gold-400 focus:outline-none focus:ring-1 focus:ring-gold-400"
+                  className="w-full rounded-lg border border-navy-200 px-3 py-2 text-sm focus:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 />
               </div>
               <div className="flex flex-wrap gap-6 text-sm text-navy-600">
@@ -141,14 +149,18 @@ export default function SettingsPage() {
                 <LanguageSwitcher syncProfile variant="panel" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-navy-600">
+                <label
+                  htmlFor="settings-timezone"
+                  className="mb-1 block text-xs font-medium text-navy-600"
+                >
                   {t("timezone")}
                 </label>
-                <p className="mb-2 text-[11px] text-navy-500">{t("timezoneHint")}</p>
+                <p className="mb-2 text-[11px] text-navy-600">{t("timezoneHint")}</p>
                 <select
+                  id="settings-timezone"
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full rounded-lg border border-navy-200 px-3 py-2 text-sm focus:border-gold-400 focus:outline-none"
+                  className="w-full rounded-lg border border-navy-200 px-3 py-2 text-sm focus:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   {TIMEZONES.map((tz) => (
                     <option key={tz} value={tz}>

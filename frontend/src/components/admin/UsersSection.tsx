@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Mail, UserPlus } from "lucide-react";
+import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { Download, Mail, Search, UserPlus } from "lucide-react";
+import { useTranslations } from "next-intl";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   bulkResetPassword,
   createAdminUser,
@@ -21,11 +24,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import LegacyExpertSection from "@/components/admin/LegacyExpertSection";
 
 const ROLES = ["client", "expert", "admin"] as const;
 
 export default function UsersSection() {
+  const tAdmin = useTranslations("admin");
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,14 +54,26 @@ export default function UsersSection() {
     void load();
   }, [load]);
 
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(
+      (u) =>
+        u.email.toLowerCase().includes(q) ||
+        (u.display_name ?? "").toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q)
+    );
+  }, [users, search]);
+
   const allSelected = useMemo(
-    () => users.length > 0 && selected.size === users.length,
-    [users, selected]
+    () =>
+      filteredUsers.length > 0 && selected.size === filteredUsers.length,
+    [filteredUsers, selected]
   );
 
   const toggleAll = () => {
     if (allSelected) setSelected(new Set());
-    else setSelected(new Set(users.map((u) => u.id)));
+    else setSelected(new Set(filteredUsers.map((u) => u.id)));
   };
 
   const toggleOne = (id: string) => {
@@ -87,7 +105,7 @@ export default function UsersSection() {
 
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => void downloadUsersCsv()}>
-          <Download className="mr-2 h-4 w-4" />
+          <Download className="me-2 h-4 w-4" />
           Export CSV
         </Button>
         <Button
@@ -99,7 +117,7 @@ export default function UsersSection() {
             alert("Emails de réinitialisation envoyés (journal API).");
           }}
         >
-          <Mail className="mr-2 h-4 w-4" />
+          <Mail className="me-2 h-4 w-4" />
           Réinitialiser MDP ({selected.size})
         </Button>
       </div>
@@ -114,31 +132,50 @@ export default function UsersSection() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="space-y-3">
-              <input
-                type="email"
-                placeholder="Email"
-                className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <input
-                type="password"
-                placeholder="Mot de passe (8+)"
-                className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={8}
-                required
-              />
-              <select
-                className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                value={role}
-                onChange={(e) => setRole(e.target.value as "client" | "expert")}
-              >
+              <div>
+                <label htmlFor="admin-new-email" className="text-sm font-medium text-slate-700">
+                  Email
+                </label>
+                <input
+                  id="admin-new-email"
+                  type="email"
+                  autoComplete="email"
+                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="admin-new-password" className="text-sm font-medium text-slate-700">
+                  Mot de passe
+                </label>
+                <input
+                  id="admin-new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={8}
+                  required
+                />
+                <p className="mt-0.5 text-xs text-slate-600">8 caractères minimum</p>
+              </div>
+              <div>
+                <label htmlFor="admin-new-role" className="text-sm font-medium text-slate-700">
+                  Rôle
+                </label>
+                <select
+                  id="admin-new-role"
+                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as "client" | "expert")}
+                >
                 <option value="client">Client</option>
                 <option value="expert">Expert</option>
-              </select>
+                </select>
+              </div>
               <Button type="submit" className="w-full">
                 Créer
               </Button>
@@ -147,12 +184,40 @@ export default function UsersSection() {
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="space-y-3">
             <CardTitle>Utilisateurs ({users.length})</CardTitle>
+            <div className="relative max-w-md">
+              <label htmlFor="admin-users-search" className="text-sm font-medium text-slate-700">
+                {tAdmin("usersSearchPlaceholder")}
+              </label>
+              <Search
+                className="pointer-events-none absolute start-3 top-[2.15rem] h-4 w-4 -translate-y-1/2 text-slate-600"
+                aria-hidden
+              />
+              <input
+                id="admin-users-search"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-200 py-2 ps-9 pe-3 text-sm"
+              />
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
               <p className="px-6 py-8 text-sm text-slate-500">Chargement…</p>
+            ) : search.trim() && filteredUsers.length === 0 ? (
+              <EmptyState
+                icon={<UserGroupIcon />}
+                title={tAdmin("usersSearchEmptyTitle")}
+                description={tAdmin("usersSearchEmptyDescription")}
+              />
+            ) : users.length === 0 ? (
+              <EmptyState
+                icon={<UserGroupIcon />}
+                title={tAdmin("usersEmptyTitle")}
+                description={tAdmin("usersEmptyDescription")}
+              />
             ) : (
               <Table>
                 <TableHeader>
@@ -174,7 +239,7 @@ export default function UsersSection() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((u) => (
+                  {filteredUsers.map((u) => (
                     <TableRow key={u.id}>
                       <TableCell>
                         <input
@@ -234,6 +299,8 @@ export default function UsersSection() {
           </CardContent>
         </Card>
       </div>
+
+      <LegacyExpertSection onExpertCreated={() => void load()} />
     </div>
   );
 }

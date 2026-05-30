@@ -1,5 +1,9 @@
 "use client";
 
+import ChartLtr from "@/components/ui/ChartLtr";
+import ChartSuspense from "@/components/ui/ChartSuspense";
+import { useFormat } from "@/hooks/useFormat";
+import type { BalanceSheetProjection } from "@/lib/finance/balance-sheet-api";
 import {
   Bar,
   BarChart,
@@ -9,9 +13,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts";
-import { useFormat } from "@/hooks/useFormat";
-import type { BalanceSheetProjection } from "@/lib/finance/balance-sheet-api";
+} from "@/lib/recharts-dynamic";
 
 type Props = {
   projection: BalanceSheetProjection | null;
@@ -33,29 +35,33 @@ export default function BalanceCompositionChart({ projection }: Props) {
       <h4 className="mb-3 text-sm font-semibold text-navy-800">
         Composition des actifs Y1–Y7
       </h4>
-      <div className="h-52">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 10 }} width={72} />
-            <Tooltip formatter={(v: number) => formatCurrency(v)} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Bar
-              dataKey="immobilisations"
-              name="Immobilisations nettes"
-              stackId="a"
-              fill="#1e3a5f"
-            />
-            <Bar
-              dataKey="actifsCourants"
-              name="Actifs courants"
-              stackId="a"
-              fill="#b8860b"
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <ChartSuspense>
+        <div className="h-52">
+          <ChartLtr className="h-full w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 10 }} width={72} />
+                <Tooltip formatter={(value: number | string) => formatCurrency(Number(value))} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar
+                  dataKey="immobilisations"
+                  name="Immobilisations nettes"
+                  stackId="a"
+                  fill="#1e3a5f"
+                />
+                <Bar
+                  dataKey="actifsCourants"
+                  name="Actifs courants"
+                  stackId="a"
+                  fill="#b8860b"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartLtr>
+        </div>
+      </ChartSuspense>
     </div>
   );
 }

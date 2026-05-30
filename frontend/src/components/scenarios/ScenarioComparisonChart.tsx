@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { SCENARIO_COLORS } from "@/lib/scenarios-api";
 
 type Props = {
@@ -34,7 +35,8 @@ export default function ScenarioComparisonChart({ series, labels }: Props) {
 
   return (
     <div className="h-80 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+        <ChartLtr className="h-full w-full">
+          <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="year" tick={{ fontSize: 11 }} />
@@ -54,6 +56,7 @@ export default function ScenarioComparisonChart({ series, labels }: Props) {
           ))}
         </LineChart>
       </ResponsiveContainer>
+        </ChartLtr>
     </div>
   );
 }

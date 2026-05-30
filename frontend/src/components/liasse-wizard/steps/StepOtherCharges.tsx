@@ -50,9 +50,8 @@ export default function StepOtherCharges({ planId, readOnly, onDataChange }: Pro
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
       setLoading(false);
-      onDataChange?.();
     }
-  }, [planId, onDataChange]);
+  }, [planId]);
 
   const refreshProjection = useCallback(async () => {
     try {
@@ -101,6 +100,7 @@ export default function StepOtherCharges({ planId, readOnly, onDataChange }: Pro
         setConfigs((list) => list.map((c) => (c.id === updated.id ? updated : c)));
       }
       void refreshProjection();
+      onDataChange?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -126,6 +126,7 @@ export default function StepOtherCharges({ planId, readOnly, onDataChange }: Pro
       setSyncMsg(
         `${res.message} — ${formatCurrency(res.other_operating_charges_y1)} en Y1`
       );
+      onDataChange?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -187,7 +188,7 @@ export default function StepOtherCharges({ planId, readOnly, onDataChange }: Pro
       )}
 
       <section className="overflow-x-auto rounded-xl border border-navy-100 bg-white shadow-sm">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-full text-start text-sm">
           <thead className="border-b border-navy-100 bg-navy-50/80 text-xs font-semibold text-navy-800">
             <tr>
               <th className="px-3 py-2">Catégorie</th>
@@ -307,7 +308,7 @@ export default function StepOtherCharges({ planId, readOnly, onDataChange }: Pro
         {!projection ? (
           <p className="text-sm text-navy-500">Projection indisponible.</p>
         ) : (
-          <table className="min-w-full text-left text-xs sm:text-sm">
+          <table className="min-w-full text-start text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-navy-100 text-navy-700">
                 <th className="px-2 py-2">Poste</th>

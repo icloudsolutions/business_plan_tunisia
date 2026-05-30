@@ -108,19 +108,15 @@ export async function pollCalcJob(
 }
 
 export async function getExportStatus(planId: string, jobId: string) {
-  return api<{
-    id: string;
-    status: string;
-    formats: string[];
-    files: Record<string, string>;
-  }>(`/plans/${planId}/exports/${jobId}`);
+  const { getExportJob } = await import("@/lib/export-job-api");
+  return getExportJob(planId, jobId);
 }
 
 export async function pollExportJob(
   planId: string,
   jobId: string,
   onStatus?: (s: string) => void,
-  intervalMs = 3000,
+  intervalMs = 2000,
   maxAttempts = 40
 ): Promise<{ status: string; formats: string[] }> {
   for (let i = 0; i < maxAttempts; i++) {

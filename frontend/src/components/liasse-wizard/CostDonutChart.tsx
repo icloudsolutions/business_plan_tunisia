@@ -1,6 +1,7 @@
 "use client";
 
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import ChartLtr from "@/components/ui/ChartLtr";
 import { DONUT_COLORS } from "@/lib/cost-api";
 import type { ProductUnitCost } from "@/lib/cost-api";
 import { useFormat } from "@/hooks/useFormat";

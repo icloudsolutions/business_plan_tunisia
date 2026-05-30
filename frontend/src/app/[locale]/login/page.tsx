@@ -88,24 +88,34 @@ export default function LoginPage() {
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase text-navy-500">
+                <label
+                  htmlFor="login-email"
+                  className="mb-1 block text-xs font-medium uppercase text-navy-500"
+                >
                   {t("email")}
                 </label>
                 <input
+                  id="login-email"
                   type="email"
-                  className="w-full rounded-lg border border-navy-200 px-3 py-2.5 text-sm focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
+                  autoComplete="email"
+                  className="w-full rounded-lg border border-navy-200 px-3 py-2.5 text-sm focus:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase text-navy-500">
+                <label
+                  htmlFor="login-password"
+                  className="mb-1 block text-xs font-medium uppercase text-navy-500"
+                >
                   {t("password")}
                 </label>
                 <input
+                  id="login-password"
                   type="password"
-                  className="w-full rounded-lg border border-navy-200 px-3 py-2.5 text-sm focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
+                  className="w-full rounded-lg border border-navy-200 px-3 py-2.5 text-sm focus:border-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   minLength={8}

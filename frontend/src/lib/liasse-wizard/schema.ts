@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LIASSE_INPUT_FIELD_PATHS } from "./liasse-input-sections";
 
 export const equipmentSchema = z.object({
   _clientId: z.string().optional(),
@@ -86,10 +87,8 @@ export const liasseFormSchema = z
 export type LiasseFormValues = z.infer<typeof liasseFormSchema>;
 
 export const WIZARD_STEPS = [
-  "general",
-  "investments",
+  "liasseInputs",
   "financing",
-  "operations",
   "timeline",
   "procurement",
   "products",
@@ -98,16 +97,20 @@ export const WIZARD_STEPS = [
   "hr",
   "otherCharges",
   "tva",
-  "financial",
 ] as const;
 
 export type WizardStepId = (typeof WIZARD_STEPS)[number];
 
 const stepFields: Record<WizardStepId, (keyof LiasseFormValues | string)[]> = {
-  general: ["company"],
-  investments: ["investments"],
+  liasseInputs: [
+    "company",
+    "investments",
+    "financing",
+    "operations",
+    "workingCapital",
+    "plAssumptions",
+  ],
   financing: ["financing"],
-  operations: ["operations"],
   timeline: [],
   procurement: [],
   products: [],
@@ -116,35 +119,14 @@ const stepFields: Record<WizardStepId, (keyof LiasseFormValues | string)[]> = {
   hr: ["plAssumptions.personnel"],
   otherCharges: [],
   tva: [],
-  financial: ["workingCapital", "plAssumptions"],
 };
 
 export function getStepFieldPaths(step: WizardStepId): string[] {
   switch (step) {
-    case "general":
-      return ["company.name", "company.legalForm"];
-    case "investments":
-      return ["investments.equipment"];
+    case "liasseInputs":
+      return [...LIASSE_INPUT_FIELD_PATHS];
     case "financing":
-      return [
-        "financing.equityRatio",
-        "financing.debtRatio",
-        "financing.loan.rate",
-        "financing.loan.years",
-        "financing.loan.graceMonthsPrincipal",
-      ];
-    case "operations":
-      return [
-        "operations.capacityPerMinute",
-        "operations.workingDaysPerYear",
-        "operations.hoursPerDay",
-        "operations.rawMaterialCost",
-        "operations.packagingCost",
-        "operations.salePrice",
-        "operations.wasteRate.value",
-        "operations.wasteRate.maxAllowed",
-        ...Array.from({ length: 7 }, (_, i) => `operations.wasteRateByYear.${i}`),
-      ];
+      return [];
     case "timeline":
       return [];
     case "procurement":
@@ -161,19 +143,6 @@ export function getStepFieldPaths(step: WizardStepId): string[] {
       return [];
     case "tva":
       return [];
-    case "financial":
-      return [
-        "workingCapital.clientPaymentDays",
-        "workingCapital.supplierPaymentDays",
-        "workingCapital.rawMaterialStockDays",
-        "workingCapital.packagingStockDays",
-        "workingCapital.finishedGoodsStockDays",
-        "plAssumptions.commercialDiscount",
-        "plAssumptions.distributionExpensePct",
-        "plAssumptions.marketingExpensePct",
-        "plAssumptions.otherOperatingCharges",
-        "plAssumptions.corporateTaxRate",
-      ];
     default:
       return [];
   }

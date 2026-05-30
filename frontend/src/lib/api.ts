@@ -1,3 +1,4 @@
+import { ApiHttpError } from "./api-errors";
 import { clearToken, getToken } from "./auth-storage";
 import { locales, type AppLocale } from "@/i18n/routing";
 
@@ -46,7 +47,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
         "Trop de requêtes — patientez quelques secondes avant de réessayer."
       );
     }
-    throw new Error(detail);
+    throw new ApiHttpError(detail, res.status);
   }
   if (res.status === 204) return {} as T;
   return res.json();
@@ -70,6 +71,11 @@ export interface UserProfileUpdate {
   email_notifications_enabled?: boolean;
 }
 
+export interface PlanStatusHistoryEntry {
+  status: string;
+  changed_at: string;
+}
+
 export interface Plan {
   id: string;
   title: string;
@@ -80,6 +86,7 @@ export interface Plan {
   locked_at: string | null;
   created_at?: string;
   updated_at?: string;
+  history?: PlanStatusHistoryEntry[];
 }
 
 export interface PlanPatchResult {
@@ -187,9 +194,34 @@ export async function saveInputs(
   id: string,
   inputs: Record<string, unknown>
 ): Promise<PlanPatchResult> {
+  return patchPlanInputs(id, inputs);
+}
+
+/** PATCH plan inputs with a partial diff (server merges into stored inputs). */
+export async function patchPlanInputs(
+  id: string,
+  inputsPatch: Record<string, unknown>
+): Promise<PlanPatchResult> {
   return api(`/plans/${id}/inputs`, {
     method: "PATCH",
-    body: JSON.stringify({ inputs }),
+    body: JSON.stringify({ inputs: inputsPatch }),
+  });
+}
+
+/** Best-effort save on tab close / unmount (fetch keepalive). */
+export function flushPlanInputs(
+  id: string,
+  inputsPatch: Record<string, unknown>
+): void {
+  if (typeof window === "undefined") return;
+  const token = getToken();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  void fetch(`${API_BASE}/plans/${id}/inputs`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ inputs: inputsPatch }),
+    keepalive: true,
   });
 }
 
