@@ -21,4 +21,8 @@ def test_filled_plan_improves_score():
     inputs.operations.wasteRateByYear = [0.01] * 7
     report = compute_plan_completion(inputs)
     assert report["overall_pct"] > 50
-    assert len(report["sections"]) == 6
+    assert len(report["sections"]) == 13
+    section_ids = {s["section"] for s in report["sections"]}
+    assert "timeline" in section_ids
+    assert "products" in section_ids
+    assert "pricing" in section_ids

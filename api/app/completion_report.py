@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import io
 
-from bp_schema.completion import SECTION_TITLES, compute_plan_completion
+from bp_schema.completion import (
+    PlanCompletionContext,
+    SECTION_TITLES,
+    compute_plan_completion,
+)
 from bp_schema.liasse import PlanInputs
 
 
@@ -18,11 +22,12 @@ def build_completeness_report_pdf(
     plan_status: str,
     owner_email: str,
     inputs: PlanInputs,
+    context: PlanCompletionContext | None = None,
 ) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
 
-    report = compute_plan_completion(inputs)
+    report = compute_plan_completion(inputs, context)
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4)
     width, height = A4

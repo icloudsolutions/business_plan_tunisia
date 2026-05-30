@@ -61,13 +61,24 @@ export function fieldPathToStep(path: string): WizardStepId {
   if (path.startsWith("investments")) return "investments";
   if (path.startsWith("financing")) return "financing";
   if (path.startsWith("operations")) return "operations";
-  if (path.startsWith("plAssumptions.personnel") || path.startsWith("plAssumptions.other")) {
-    return "hr";
+  if (path.startsWith("timeline")) return "timeline";
+  if (path.startsWith("procurement") || path.startsWith("rawMaterial")) {
+    return "procurement";
   }
+  if (path.startsWith("products")) return "products";
+  if (path.startsWith("pricing")) return "pricing";
+  if (path.startsWith("productionCosts") || path.startsWith("cost.")) {
+    return "productionCosts";
+  }
+  if (path.startsWith("plAssumptions.personnel")) return "hr";
   if (
-    path.startsWith("workingCapital") ||
-    path.startsWith("plAssumptions")
+    path.startsWith("otherCharges") ||
+    path === "plAssumptions.otherOperatingCharges"
   ) {
+    return "otherCharges";
+  }
+  if (path.startsWith("tva")) return "tva";
+  if (path.startsWith("workingCapital") || path.startsWith("plAssumptions")) {
     return "financial";
   }
   return "general";

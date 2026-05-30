@@ -8,6 +8,7 @@ from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bp_schema.completion import compute_plan_completion
+from app.plan_completion_service import build_plan_completion_context
 from bp_schema.enums import BusinessPlanStatus
 from bp_schema.liasse import PlanInputs
 from bp_schema.validation import validate_draft_inputs
@@ -148,7 +149,8 @@ async def get_plan_completion(
 ):
     plan = await get_plan_for_user(plan_id, user, db)
     inputs = PlanInputs.model_validate(plan.inputs or {})
-    return PlanCompletionResponse.model_validate(compute_plan_completion(inputs))
+    ctx = await build_plan_completion_context(db, plan_id)
+    return PlanCompletionResponse.model_validate(compute_plan_completion(inputs, ctx))
 
 
 @router.get("/{plan_id}/completion/report.pdf")
@@ -162,11 +164,13 @@ async def download_completeness_report(
     plan = await get_plan_for_user(plan_id, user, db)
     owner = await db.get(User, plan.owner_id)
     inputs = PlanInputs.model_validate(plan.inputs or {})
+    ctx = await build_plan_completion_context(db, plan_id)
     pdf_bytes = build_completeness_report_pdf(
         plan_title=plan.title,
         plan_status=plan.status,
         owner_email=owner.email if owner else "—",
         inputs=inputs,
+        context=ctx,
     )
     safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in plan.title)[:40]
     return Response(
