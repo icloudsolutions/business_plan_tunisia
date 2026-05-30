@@ -12,7 +12,16 @@ from app.access_control import get_plan_for_user
 from app.auth import get_current_user
 from app.celery_client import celery_app
 from app.database import get_db
-from app.models import BusinessPlan, CalcJob, PlanProduct, PlanRevenueAssumptions, User
+from app.models import (
+    BusinessPlan,
+    CalcJob,
+    PlanProduct,
+    PlanProductCostComponent,
+    PlanProductRecipe,
+    PlanPricingGrid,
+    PlanRevenueAssumptions,
+    User,
+)
 from app.cost_service import ensure_cost_grid
 from app.pricing_service import ensure_pricing_row
 from app.revenue_service import compute_projection, get_or_create_assumptions, load_products
@@ -118,6 +127,25 @@ async def delete_product(
     row = await db.get(PlanProduct, product_id)
     if not row or row.plan_id != plan_id:
         raise HTTPException(status_code=404, detail="Produit introuvable")
+    # Delete dependents first (ORM may otherwise null FKs on NOT NULL columns).
+    await db.execute(
+        delete(PlanPricingGrid).where(
+            PlanPricingGrid.plan_id == plan_id,
+            PlanPricingGrid.product_id == product_id,
+        )
+    )
+    await db.execute(
+        delete(PlanProductCostComponent).where(
+            PlanProductCostComponent.plan_id == plan_id,
+            PlanProductCostComponent.product_id == product_id,
+        )
+    )
+    await db.execute(
+        delete(PlanProductRecipe).where(
+            PlanProductRecipe.plan_id == plan_id,
+            PlanProductRecipe.product_id == product_id,
+        )
+    )
     await db.delete(row)
     await db.commit()
 

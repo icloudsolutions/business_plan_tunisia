@@ -310,9 +310,14 @@ class PlanProduct(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     plan: Mapped["BusinessPlan"] = relationship(back_populates="products")
-    cost_components: Mapped[list["PlanProductCostComponent"]] = relationship(back_populates="product")
+    cost_components: Mapped[list["PlanProductCostComponent"]] = relationship(
+        back_populates="product", cascade="all, delete-orphan"
+    )
     pricing_row: Mapped["PlanPricingGrid | None"] = relationship(
-        back_populates="product", uselist=False
+        back_populates="product",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
 
