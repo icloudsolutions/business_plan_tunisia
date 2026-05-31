@@ -425,16 +425,30 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                 job.status = "STARTED"
                 db.commit()
 
-            inputs = PlanInputs.model_validate(plan.inputs)
+            raw_inputs = plan.inputs if isinstance(plan.inputs, dict) else {}
+            inputs = PlanInputs.model_validate(raw_inputs)
             results = PlanResults.model_validate(results_data)
+            extra_inputs = {
+                k: v
+                for k, v in raw_inputs.items()
+                if k not in PlanInputs.model_fields
+            }
             files: dict[str, str] = {}
             if "pdf" in formats:
                 files["pdf"] = _export_pdf(
-                    plan_id, inputs, results, plan_title=plan.title
+                    plan_id,
+                    inputs,
+                    results,
+                    plan_title=plan.title,
+                    extra_inputs=extra_inputs,
                 )
             if "xlsx" in formats:
                 files["xlsx"] = _export_xlsx(
-                    plan_id, inputs, results, plan_title=plan.title
+                    plan_id,
+                    inputs,
+                    results,
+                    plan_title=plan.title,
+                    extra_inputs=extra_inputs,
                 )
             if "docx" in formats:
                 from worker.feasibility_docx import build_feasibility_docx
@@ -445,6 +459,7 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                     results,
                     export_dir=EXPORT_DIR,
                     plan_title=plan.title,
+                    extra_inputs=extra_inputs,
                 )
 
             if not files:
@@ -467,11 +482,17 @@ def _export_xlsx(
     results: PlanResults,
     *,
     plan_title: str | None = None,
+    extra_inputs: dict | None = None,
 ) -> str:
     from worker.export_builders import build_export_xlsx
 
     return build_export_xlsx(
-        plan_id, inputs, results, EXPORT_DIR, plan_title=plan_title
+        plan_id,
+        inputs,
+        results,
+        EXPORT_DIR,
+        plan_title=plan_title,
+        extra_inputs=extra_inputs,
     )
 
 
@@ -481,9 +502,15 @@ def _export_pdf(
     results: PlanResults,
     *,
     plan_title: str | None = None,
+    extra_inputs: dict | None = None,
 ) -> str:
     from worker.export_builders import build_export_pdf
 
     return build_export_pdf(
-        plan_id, inputs, results, EXPORT_DIR, plan_title=plan_title
+        plan_id,
+        inputs,
+        results,
+        EXPORT_DIR,
+        plan_title=plan_title,
+        extra_inputs=extra_inputs,
     )

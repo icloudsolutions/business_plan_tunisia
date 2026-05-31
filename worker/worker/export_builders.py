@@ -152,132 +152,18 @@ def build_export_xlsx(
     path: Path,
     *,
     plan_title: str | None = None,
+    extra_inputs: dict | None = None,
 ) -> str:
-    company = inputs.company.name.strip() or "Projet"
-    ind = results.indicators
-    ops = inputs.operations
-    fin = inputs.financing
-    wc = inputs.workingCapital
-    loan = fin.loan
+    from worker.feasibility_study_render import build_feasibility_xlsx
 
-    wb = Workbook()
-    # —— Synthèse ——
-    ws0 = wb.active
-    ws0.title = "Synthèse"
-    _xlsx_write_kv_sheet(
-        ws0,
-        plan_title or f"Business Plan — {company}",
-        [
-            ("Société", company),
-            ("Forme juridique", inputs.company.legalForm),
-            ("Référence", plan_id[:8].upper()),
-            ("Date export", datetime.now().strftime("%d/%m/%Y %H:%M")),
-            ("Investissement total (TND)", _fmt(results.totalInvestment)),
-            ("VAN (TND)", _fmt(ind.van)),
-            ("TRI", _pct(ind.tri)),
-            ("DRCI (ans)", _fmt(ind.drciYears, digits=1) if ind.drciYears else "—"),
-            ("Taux actualisation", _pct(ind.discountRate)),
-            ("Bilan équilibré", "Oui" if results.balanceSheetBalanced else "Non"),
-            ("BFR cohérent", "Oui" if results.bfrCoherent else "Non"),
-            (
-                "Trésorerie",
-                "Positive sur 7 ans"
-                if results.cashRunwayBreakYear is None
-                else f"Rupture an {results.cashRunwayBreakYear}",
-            ),
-            ("Jours ouvrés / an", _fmt(ops.workingDaysPerYear, digits=0)),
-            ("Prix de vente unitaire (TND)", _fmt(ops.salePrice)),
-            ("Fonds propres", _pct(fin.equityRatio)),
-            ("Dette", _pct(fin.debtRatio)),
-            ("Taux emprunt", _pct(loan.rate)),
-            ("Durée emprunt (ans)", str(loan.years)),
-        ],
+    return build_feasibility_xlsx(
+        plan_id,
+        inputs,
+        results,
+        path,
+        plan_title=plan_title,
+        extra_inputs=extra_inputs,
     )
-
-    # —— Investissements ——
-    ws1 = wb.create_sheet("Investissements")
-    inv = _investment_rows(inputs)
-    if inv:
-        _xlsx_write_table(
-            ws1,
-            ["Désignation", "Nature", "Montant TND", "Amort. ans", "Mise en service"],
-            inv,
-        )
-    else:
-        ws1.append(["Aucun investissement détaillé"])
-    ws1.append([])
-    ws1.append(["Total CAPEX (TND)", _fmt(results.totalInvestment)])
-
-    # —— Hypothèses ——
-    ws2 = wb.create_sheet("Hypothèses")
-    _xlsx_write_kv_sheet(
-        ws2,
-        "Hypothèses d'exploitation et de financement",
-        [
-            ("Heures / jour", _fmt(ops.hoursPerDay, digits=1)),
-            ("Coût matière unitaire", _fmt(ops.rawMaterialCost)),
-            ("Coût conditionnement", _fmt(ops.packagingCost)),
-            ("Taux déchet", _pct(ops.wasteRate.value)),
-            ("Délai clients (j)", str(wc.clientPaymentDays)),
-            ("Délai fournisseurs (j)", str(wc.supplierPaymentDays)),
-            ("Stock PF (j)", str(wc.finishedGoodsStockDays)),
-            ("Stock MP (mois)", _fmt(wc.rawMaterialStockMonths, digits=1)),
-            ("Montant emprunt (TND)", _fmt(loan.amount or results.totalInvestment * fin.debtRatio)),
-            ("Différé principal (mois)", str(loan.graceMonthsPrincipal)),
-            ("IS", _pct(inputs.plAssumptions.corporateTaxRate)),
-            ("Frais distribution % CA", _pct(inputs.plAssumptions.distributionExpensePct)),
-            ("Frais marketing % CA", _pct(inputs.plAssumptions.marketingExpensePct)),
-        ],
-    )
-
-    # —— P&L 7 ans ——
-    ws3 = wb.create_sheet("Compte resultat 7 ans")
-    pl_rows = [[label, *vals] for label, vals in _pl_metric_rows(results)]
-    _xlsx_write_table(ws3, ["Poste", *_YEAR_HEADERS], pl_rows)
-    for row in ws3.iter_rows(min_row=4, max_row=ws3.max_row, min_col=2, max_col=1 + HORIZON):
-        for cell in row:
-            cell.number_format = '#,##0'
-
-    # —— Trésorerie détail ——
-    ws4 = wb.create_sheet("Tresorerie BFR")
-    treas_rows = [
-        [
-            "Trésorerie cumulée",
-            *[_fmt(_year_val(results.cumulativeTreasury, y)) for y in range(HORIZON)],
-        ],
-        ["BFR", *[_fmt(_year_val(results.bfr, y)) for y in range(HORIZON)]],
-        [
-            "Variation BFR",
-            *[_fmt(_year_val(results.bfrVariation, y)) for y in range(HORIZON)],
-        ],
-    ]
-    _xlsx_write_table(ws4, ["Poste", *_YEAR_HEADERS], treas_rows)
-
-    # —— Personnel ——
-    pers = _personnel_rows(inputs)
-    if pers:
-        ws5 = wb.create_sheet("Personnel")
-        _xlsx_write_table(ws5, ["Poste", "Effectif", "Salaire annuel TND"], pers)
-
-    # —— Volumes (if present) ——
-    if any(_year_val(results.qtySold, y) > 0 for y in range(HORIZON)):
-        ws6 = wb.create_sheet("Volumes")
-        vol_rows = [
-            ["Quantités vendues", *[_fmt(_year_val(results.qtySold, y), digits=0) for y in range(HORIZON)]],
-            [
-                "Quantités produites",
-                *[_fmt(_year_val(results.qtyProduced, y), digits=0) for y in range(HORIZON)],
-            ],
-            [
-                "Stock PF clôture",
-                *[_fmt(_year_val(results.closingStockPF, y), digits=0) for y in range(HORIZON)],
-            ],
-        ]
-        _xlsx_write_table(ws6, ["Indicateur", *_YEAR_HEADERS], vol_rows)
-
-    out = path / f"business_plan_{plan_id}.xlsx"
-    wb.save(out)
-    return str(out.resolve())
 
 
 def _pdf_table(data: list[list], col_widths: list[float] | None = None) -> Table:
@@ -310,8 +196,9 @@ def build_export_pdf(
     path: Path,
     *,
     plan_title: str | None = None,
+    extra_inputs: dict | None = None,
 ) -> str:
-    from worker.feasibility_pdf import build_etude_faisabilite_pdf
+    from worker.feasibility_study_render import build_etude_faisabilite_pdf
 
     return build_etude_faisabilite_pdf(
         plan_id,
@@ -319,4 +206,7 @@ def build_export_pdf(
         results,
         path,
         plan_title=plan_title,
+        extra_inputs=extra_inputs,
     )
+
+
