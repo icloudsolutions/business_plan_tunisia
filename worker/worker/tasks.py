@@ -429,9 +429,13 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
             results = PlanResults.model_validate(results_data)
             files: dict[str, str] = {}
             if "pdf" in formats:
-                files["pdf"] = _export_pdf(plan_id, inputs, results)
+                files["pdf"] = _export_pdf(
+                    plan_id, inputs, results, plan_title=plan.title
+                )
             if "xlsx" in formats:
-                files["xlsx"] = _export_xlsx(plan_id, inputs, results)
+                files["xlsx"] = _export_xlsx(
+                    plan_id, inputs, results, plan_title=plan.title
+                )
             if "docx" in formats:
                 from worker.feasibility_docx import build_feasibility_docx
 
@@ -457,81 +461,29 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
             raise
 
 
-def _export_xlsx(plan_id: str, inputs: PlanInputs, results: PlanResults) -> str:
-    from openpyxl import Workbook
+def _export_xlsx(
+    plan_id: str,
+    inputs: PlanInputs,
+    results: PlanResults,
+    *,
+    plan_title: str | None = None,
+) -> str:
+    from worker.export_builders import build_export_xlsx
 
-    path = EXPORT_DIR / f"plan_{plan_id}.xlsx"
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "P&L"
-    ws.append(["Année", "CA HT", "Résultat Net", "CF Exploitation", "Trésorerie cumulée", "BFR"])
-    for y in range(7):
-        ws.append([
-            y + 1,
-            results.revenue.years[y] if y < len(results.revenue.years) else 0,
-            results.netProfit.years[y] if y < len(results.netProfit.years) else 0,
-            results.operatingCashFlow.years[y] if y < len(results.operatingCashFlow.years) else 0,
-            results.cumulativeTreasury.years[y] if y < len(results.cumulativeTreasury.years) else 0,
-            results.bfr.years[y] if y < len(results.bfr.years) else 0,
-        ])
-    ws2 = wb.create_sheet("Indicateurs")
-    ws2.append(["VAN", results.indicators.van])
-    ws2.append(["TRI", results.indicators.tri or "N/A"])
-    ws2.append(["DRCI", results.indicators.drciYears or "N/A"])
-    ws2.append(["Bilan équilibré", results.balanceSheetBalanced])
-    ws2.append(["BFR cohérent", results.bfrCoherent])
-    wb.save(path)
-    return str(path.resolve())
+    return build_export_xlsx(
+        plan_id, inputs, results, EXPORT_DIR, plan_title=plan_title
+    )
 
 
-def _pdf_safe(text: str) -> str:
-    """Helvetica only supports Latin-1; replace unsupported chars."""
-    return text.encode("latin-1", errors="replace").decode("latin-1")
+def _export_pdf(
+    plan_id: str,
+    inputs: PlanInputs,
+    results: PlanResults,
+    *,
+    plan_title: str | None = None,
+) -> str:
+    from worker.export_builders import build_export_pdf
 
-
-def _export_pdf(plan_id: str, inputs: PlanInputs, results: PlanResults) -> str:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-
-    path = EXPORT_DIR / f"plan_{plan_id}.pdf"
-    c = canvas.Canvas(str(path), pagesize=A4)
-    width, height = A4
-    y = height - 50
-    company = inputs.company.name.strip() or "Sans nom"
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, y, _pdf_safe(f"Business Plan — {company}"))
-    y -= 28
-    c.setFont("Helvetica", 11)
-    lines = [
-        f"Forme juridique: {inputs.company.legalForm}",
-        f"Investissement total: {results.totalInvestment:,.0f} TND",
-        f"VAN (10%): {results.indicators.van:,.0f} TND",
-        f"TRI: {(results.indicators.tri or 0) * 100:.2f}%",
-        f"DRCI: {results.indicators.drciYears or 'N/A'} ans",
-        f"Bilan equilibre: {'Oui' if results.balanceSheetBalanced else 'Non'}",
-        f"BFR coherent: {'Oui' if results.bfrCoherent else 'Non'}",
-    ]
-    for line in lines:
-        y -= 18
-        c.drawString(50, y, _pdf_safe(line))
-
-    y -= 24
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, _pdf_safe("Projection 7 ans — Resultat net (TND)"))
-    y -= 18
-    c.setFont("Helvetica", 10)
-    for i, val in enumerate(results.netProfit.years[:7]):
-        y -= 14
-        if y < 60:
-            c.showPage()
-            y = height - 50
-            c.setFont("Helvetica", 10)
-        rev = results.revenue.years[i] if i < len(results.revenue.years) else 0
-        c.drawString(
-            50,
-            y,
-            _pdf_safe(f"An {i + 1}: CA {rev:,.0f} | RN {val:,.0f}"),
-        )
-
-    c.save()
-    return str(path.resolve())
+    return build_export_pdf(
+        plan_id, inputs, results, EXPORT_DIR, plan_title=plan_title
+    )
