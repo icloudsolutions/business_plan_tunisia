@@ -21,6 +21,7 @@ import {
 import { formatApproveBlockedMessage } from "@/lib/api-errors";
 import { runExpertApprove } from "@/lib/expert-approve";
 import { useExportJobs } from "@/context/ExportJobsContext";
+import { ALL_EXPORT_FORMATS } from "@/lib/export-formats";
 import SubmitBlockedModal from "@/components/completion/SubmitBlockedModal";
 import type { PlanCompletion } from "@/lib/completion";
 import { extractSector } from "@/lib/plan-completion";
@@ -70,6 +71,7 @@ export default function PlanOverviewCard({
     try {
       const jobId = await startExport(plan.id, format, {
         planTitle: plan.title,
+        formats: ALL_EXPORT_FORMATS,
         onComplete: (formats) => {
           setExportFormats(formats);
           setExportJobId(jobId);

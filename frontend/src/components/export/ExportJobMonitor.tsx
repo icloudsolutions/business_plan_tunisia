@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Download, RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { downloadExport, exportPlan, type ExportFormat } from "@/lib/api";
+import { ALL_EXPORT_FORMATS } from "@/lib/export-formats";
 import {
   exportDownloadUrl,
   getExportJob,
@@ -125,7 +126,7 @@ export default function ExportJobMonitor({
     setErrorMessage("");
     completedRef.current = false;
     try {
-      const job = await exportPlan(planId, [format]);
+      const job = await exportPlan(planId, ALL_EXPORT_FORMATS);
       setActiveJobId(job.id);
     } catch (e) {
       setStatus("error");

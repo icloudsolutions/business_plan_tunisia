@@ -91,25 +91,22 @@ export default function ExportSplitButton({
             align="end"
           >
             <DropdownMenu.Item
-              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
-              onSelect={onDownloadPdf}
-              disabled={!canPdf}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onSelect={() => (canPdf ? onDownloadPdf() : onGenerate())}
             >
               <FileText className="h-4 w-4 text-indigo-600" aria-hidden />
               {pdfLabel}
             </DropdownMenu.Item>
             <DropdownMenu.Item
-              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
-              onSelect={onDownloadXlsx}
-              disabled={!canXlsx}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onSelect={() => (canXlsx ? onDownloadXlsx() : onGenerate())}
             >
               <FileSpreadsheet className="h-4 w-4 text-indigo-600" aria-hidden />
               {xlsxLabel}
             </DropdownMenu.Item>
             <DropdownMenu.Item
-              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
-              onSelect={onDownloadDocx}
-              disabled={!canDocx}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onSelect={() => (canDocx ? onDownloadDocx() : onGenerate())}
             >
               <FileType className="h-4 w-4 text-indigo-600" aria-hidden />
               {docxLabel}

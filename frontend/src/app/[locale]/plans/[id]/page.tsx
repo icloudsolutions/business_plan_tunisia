@@ -46,6 +46,8 @@ import {
   type SimulationItem,
 } from "@/lib/api";
 import { useExportJobs } from "@/context/ExportJobsContext";
+import { ALL_EXPORT_FORMATS } from "@/lib/export-formats";
+import { listPlanExports } from "@/lib/export-job-api";
 
 function PlanContent() {
   const params = useParams();
@@ -99,6 +101,25 @@ function PlanContent() {
       setRefreshPlan(null);
     };
   }, [id, load, setPlanTitle, setPlanId, setPlanCompletion, setRefreshPlan]);
+
+  useEffect(() => {
+    if (plan?.status !== "VALIDATED") return;
+    let cancelled = false;
+    void listPlanExports(id).then((jobs) => {
+      if (cancelled) return;
+      const latest = jobs.find(
+        (j) =>
+          (j.status === "COMPLETED" || j.status === "SUCCESS") &&
+          (j.formats?.length ?? 0) > 0
+      );
+      if (!latest) return;
+      setExportJobId(latest.id);
+      setExportFormats(latest.formats);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, plan?.status]);
 
   const refreshPlanRef = useRef(load);
   refreshPlanRef.current = load;
@@ -167,6 +188,7 @@ function PlanContent() {
     try {
       const jobId = await startExport(id, format, {
         planTitle: plan?.title,
+        formats: ALL_EXPORT_FORMATS,
         onComplete: (formats) => {
           setExportFormats(formats);
           setExportJobId(jobId);
@@ -377,9 +399,9 @@ function PlanContent() {
           onExportXlsx: () => void requestExport("xlsx"),
           onExportDocx: () => void requestExport("docx"),
           onExportGenerate: () =>
-            void startExport(id, "docx", {
+            void startExport(id, "pdf", {
               planTitle: plan?.title,
-              formats: ["pdf", "xlsx", "docx"],
+              formats: ALL_EXPORT_FORMATS,
               onComplete: (formats) => {
                 setExportFormats(formats);
               },
