@@ -123,6 +123,7 @@ def _add_table(
     rows: list[list[Any]],
     *,
     caption: str | None = None,
+    note: str | None = None,
     total_row: bool = False,
 ) -> None:
     if caption:
@@ -130,6 +131,7 @@ def _add_table(
         for r in cap.runs:
             r.bold = True
             r.font.name = "Arial"
+            r.font.size = Pt(11)
     if not rows:
         rows = [["—", "—"]]
     table = doc.add_table(rows=1 + len(rows), cols=len(headers))
@@ -143,6 +145,14 @@ def _add_table(
                 table.rows[ri + 1].cells[ci].text = str(val)
     if total_row and len(rows) > 0:
         _style_total_row(table, len(rows), len(headers))
+    if note:
+        np = doc.add_paragraph(note)
+        np.paragraph_format.space_before = Pt(4)
+        for r in np.runs:
+            r.font.name = "Arial"
+            r.font.size = Pt(9)
+            r.font.italic = True
+            r.font.color.rgb = RGBColor(102, 102, 102)
     doc.add_paragraph()
 
 
@@ -236,6 +246,36 @@ def _add_centered_picture(doc: Document, path: str, width_in: float = 6.0) -> No
         return
     doc.add_picture(path, width=Inches(width_in))
     doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+def _add_figure_block(
+    doc: Document,
+    path: str | None,
+    *,
+    figure_num: int,
+    title: str,
+    comment: str | None = None,
+    width_in: float = 6.0,
+) -> None:
+    cap = doc.add_paragraph(f"Figure {figure_num} — {title}")
+    for r in cap.runs:
+        r.bold = True
+        r.font.name = "Arial"
+        r.font.size = Pt(11)
+    if path and Path(path).is_file():
+        _add_centered_picture(doc, path, width_in)
+    else:
+        _add_red_placeholder(doc, f"[Graphique {figure_num} — donnees indisponibles]")
+    lines = ["Source : moteur de calcul bp_calc (donnees du plan valide)."]
+    if comment:
+        lines.append(comment)
+    note = doc.add_paragraph(" ".join(lines))
+    for r in note.runs:
+        r.font.name = "Arial"
+        r.font.size = Pt(9)
+        r.font.italic = True
+        r.font.color.rgb = RGBColor(102, 102, 102)
+    doc.add_paragraph()
 
 
 class WordReportBuilder:
@@ -547,7 +587,8 @@ class WordReportBuilder:
                 ["BFR initial", _fmt(bfr0), _pct(_safe_div(bfr0, total + bfr0))],
                 ["Investissement + BFR", _fmt(total + bfr0), "—"],
             ],
-            caption="Total investissement",
+            caption="Tableau 4 — Total investissement et BFR",
+            note="BFR = besoin en fonds de roulement initial (An 1).",
             total_row=True,
         )
         fin = self.ctx.inputs.financing
@@ -561,7 +602,8 @@ class WordReportBuilder:
                 ["Credit moyen terme", _fmt(debt), _pct(fin.debtRatio)],
                 ["Subventions", _fmt(float(self.plan_data.get("subsidies") or 0)), "—"],
             ],
-            caption="Schema de financement",
+            caption="Tableau 5 — Schema de financement",
+            note="Repartition fonds propres, credit moyen terme et subventions eventuelles.",
         )
         loan = fin.loan
         _add_table(
@@ -724,7 +766,13 @@ class WordReportBuilder:
                 total_line += v
             row = [label] + [_fmt(v) for v in vals] + [_pct(_safe_div(total_line, rev_total))]
             rows.append(row)
-        _add_table(doc, headers, rows, caption="Compte de resultat previsionnel (DT)")
+        _add_table(
+            doc,
+            headers,
+            rows,
+            caption="Tableau 6 — Compte de resultat previsionnel (DT)",
+            note="Montants en dinars tunisiens ; colonne % Revenu = part du poste sur le total CA sur 7 ans.",
+        )
 
     def section7_charts(self, doc: Document, chart_dir: Path) -> None:
         _add_heading(doc, "SECTION 7 — GRAPHIQUES", 1)
@@ -760,18 +808,36 @@ class WordReportBuilder:
         chart_data["values"] = [achats, personnel, dap, autres]
 
         paths = generate_all_charts(chart_data, chart_dir)
-        titles = {
-            "results_evolution": "Graphique 1 — Evolution CA, resultat exploitation et net",
-            "cumulative_treasury": "Graphique 2 — Tresorerie cumulee et DRCI",
-            "cost_structure": "Graphique 3 — Structure des couts (moyenne 7 ans)",
-            "ca_by_product": "Graphique 4 — CA par produit",
-        }
-        for key, title in titles.items():
-            _add_body(doc, title)
-            ppath = paths.get(key)
-            if ppath:
-                _add_centered_picture(doc, ppath)
-            doc.add_paragraph()
+        figures = [
+            (
+                "results_evolution",
+                "Evolution du chiffre d'affaires, du resultat d'exploitation et du resultat net",
+                "Courbes sur 7 ans ; resultat d'exploitation = EBE − dotations.",
+            ),
+            (
+                "cumulative_treasury",
+                "Tresorerie cumulee et delai de recuperation (DRCI)",
+                "Barres vertes/rouges selon signe ; trait pointille = investissement initial.",
+            ),
+            (
+                "cost_structure",
+                "Structure des couts (moyenne sur 7 ans)",
+                "Repartition achats, personnel, amortissements et autres charges.",
+            ),
+            (
+                "ca_by_product",
+                "Chiffre d'affaires par produit",
+                "Histogramme empile par annee et par ligne de produit.",
+            ),
+        ]
+        for i, (key, title, comment) in enumerate(figures, start=1):
+            _add_figure_block(
+                doc,
+                paths.get(key),
+                figure_num=i,
+                title=title,
+                comment=comment,
+            )
 
     def section8_indicators(self, doc: Document) -> None:
         _add_heading(doc, "SECTION 8 — INDICATEURS DE RENTABILITE", 1)
@@ -799,7 +865,8 @@ class WordReportBuilder:
                 ],
                 ["Taux d'actualisation", _pct(ind.discountRate), "Hypothese retenue"],
             ],
-            caption="Synthese des indicateurs",
+            caption="Tableau 7 — Synthese des indicateurs de rentabilite",
+            note="VAN et TRI calcules avec le taux d'actualisation indique ; DRCI = annee de recuperation du flux cumule.",
         )
         disc = ind.discountRate
         ocf = self.ctx.ocf()

@@ -43,6 +43,7 @@ C_SECONDARY = RGBColor(0x33, 0x66, 0x99)
 C_ACCENT = RGBColor(0xCC, 0x99, 0x00)
 C_WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 C_GREY = RGBColor(0xF5, 0xF5, 0xF5)
+C_CARD_BG = RGBColor(0xE8, 0xEE, 0xF5)
 C_TEXT = RGBColor(0x33, 0x33, 0x33)
 C_SLIDE_NUM = RGBColor(0x99, 0x99, 0x99)
 
@@ -58,6 +59,33 @@ SLIDE_H = Inches(7.5)
 FOOTER_H = Inches(0.07)
 
 CHART_DPI = 300
+
+
+def _mpl_readability() -> None:
+    plt.rcParams.update(
+        {
+            "text.color": "#333333",
+            "axes.labelcolor": "#333333",
+            "axes.edgecolor": "#333333",
+            "xtick.color": "#333333",
+            "ytick.color": "#333333",
+            "legend.labelcolor": "#333333",
+            "figure.facecolor": "white",
+            "axes.facecolor": "white",
+        }
+    )
+
+
+def _style_pie_labels(ax) -> None:
+    for t in ax.texts:
+        t.set_color("#333333")
+    for child in ax.get_children():
+        if hasattr(child, "get_text") and child.get_text() and "%" in child.get_text():
+            try:
+                child.set_color("white")
+                child.set_fontweight("bold")
+            except Exception:
+                pass
 
 
 def _fmt(n: float | None, *, digits: int = 0) -> str:
@@ -98,6 +126,7 @@ def _save_chart(fig, path: Path) -> str:
 
 
 def _chart_ca_bars(revenue: list[float], growth: list[float], path: Path) -> str:
+    _mpl_readability()
     years = list(range(1, HORIZON + 1))
     fig, ax = plt.subplots(figsize=(10, 5))
     bars = ax.bar(years, revenue[:HORIZON], color=MPL_PRIMARY, alpha=0.9)
@@ -114,11 +143,13 @@ def _chart_ca_bars(revenue: list[float], growth: list[float], path: Path) -> str
             ha="center",
             va="bottom",
             fontsize=7,
+            color="#333333",
         )
     return _save_chart(fig, path)
 
 
 def _chart_results_lines(revenue, ebit, net, path: Path) -> str:
+    _mpl_readability()
     years = list(range(1, HORIZON + 1))
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(years, revenue, "o-", color=MPL_PRIMARY, label="CA HT", linewidth=2)
@@ -132,14 +163,24 @@ def _chart_results_lines(revenue, ebit, net, path: Path) -> str:
 
 
 def _chart_financing_pie(labels, values, path: Path) -> str:
+    _mpl_readability()
     fig, ax = plt.subplots(figsize=(6, 6))
     colors = [MPL_PRIMARY, MPL_SECONDARY, MPL_ACCENT]
-    ax.pie(values, labels=labels, autopct="%1.1f%%", colors=colors[: len(values)], startangle=90)
+    ax.pie(
+        values,
+        labels=labels,
+        autopct="%1.1f%%",
+        colors=colors[: len(values)],
+        startangle=90,
+        textprops={"color": "#333333", "fontsize": 10},
+    )
+    _style_pie_labels(ax)
     ax.set_title("Schema de financement", fontsize=12, color=MPL_PRIMARY, fontweight="bold")
     return _save_chart(fig, path)
 
 
 def _chart_cashflow_debt(ocf, loan_rows, path: Path) -> str:
+    _mpl_readability()
     years = list(range(1, HORIZON + 1))
     closing = [r["closing"] for r in loan_rows]
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -154,15 +195,18 @@ def _chart_cashflow_debt(ocf, loan_rows, path: Path) -> str:
 
 
 def _chart_cost_donut(values, labels, path: Path) -> str:
+    _mpl_readability()
     fig, ax = plt.subplots(figsize=(7, 7))
-    wedges, _texts, autotexts = ax.pie(
+    ax.pie(
         values,
         labels=labels,
         autopct="%1.1f%%",
         colors=[MPL_PRIMARY, MPL_TEAL, MPL_ORANGE, MPL_GREEN],
         pctdistance=0.75,
         startangle=90,
+        textprops={"color": "#333333", "fontsize": 9},
     )
+    _style_pie_labels(ax)
     centre = plt.Circle((0, 0), 0.55, fc="white")
     ax.add_artist(centre)
     ax.set_title("Structure des couts (moy. 7 ans)", fontsize=12, color=MPL_PRIMARY, fontweight="bold")
@@ -173,6 +217,7 @@ MPL_TEAL = "#336699"
 
 
 def _chart_ipc_mini(ipc_data: dict, path: Path) -> str:
+    _mpl_readability()
     years = ipc_data.get("years") or [2018, 2019, 2020, 2021, 2022]
     cats = ipc_data.get("categories") or {"Secteur": [3, 3.5, 4, 4.2, 4.5]}
     fig, ax = plt.subplots(figsize=(5, 3))
@@ -185,6 +230,7 @@ def _chart_ipc_mini(ipc_data: dict, path: Path) -> str:
 
 
 def _chart_investment_bars(items: list[tuple[str, float]], total: float, path: Path) -> str:
+    _mpl_readability()
     names = [x[0][:25] for x in items]
     vals = [x[1] for x in items]
     fig, ax = plt.subplots(figsize=(9, max(3, len(items) * 0.4)))
@@ -193,7 +239,7 @@ def _chart_investment_bars(items: list[tuple[str, float]], total: float, path: P
     ax.set_yticks(y_pos)
     ax.set_yticklabels(names, fontsize=8)
     for i, v in enumerate(vals):
-        ax.text(v, i, f" {_fmt(v)} ({_pct(_safe_div(v, total))})", va="center", fontsize=8)
+        ax.text(v, i, f" {_fmt(v)} ({_pct(_safe_div(v, total))})", va="center", fontsize=8, color="#333333")
     ax.set_title("Plan d'investissement (DT)", fontsize=11, color=MPL_PRIMARY, fontweight="bold")
     return _save_chart(fig, path)
 
@@ -236,6 +282,40 @@ class PptxDeck:
         self.site = str(plan_data.get("site") or "Tunisie")
         self.logo = plan_data.get("logo_path")
         self.chart_dir: Path | None = None
+        self._figure_no = 0
+
+    def _next_figure(self) -> int:
+        self._figure_no += 1
+        return self._figure_no
+
+    def _figure_caption(self, slide, text: str, left, top, *, width=Inches(12)) -> None:
+        n = self._next_figure()
+        self._body(
+            slide,
+            f"Figure {n} — {text} (source : moteur bp_calc, donnees du plan)",
+            left,
+            top,
+            width,
+            Inches(0.45),
+            size=10,
+            italic=True,
+            color=C_SLIDE_NUM,
+        )
+
+    def _table_caption(self, slide, text: str, left=Inches(0.4), top=None, *, width=Inches(12)) -> None:
+        if top is None:
+            top = Inches(6.5)
+        self._body(
+            slide,
+            f"Tableau — {text} (source : moteur bp_calc)",
+            left,
+            top,
+            width,
+            Inches(0.35),
+            size=10,
+            italic=True,
+            color=C_SLIDE_NUM,
+        )
 
     def _blank_slide(self):
         layout = self.prs.slide_layouts[6]
@@ -293,19 +373,32 @@ class PptxDeck:
         if Path(path).is_file():
             slide.shapes.add_picture(path, left, top, width=width)
 
-    def _kpi_card(self, slide, left, top, w, h, icon: str, label: str, value: str) -> None:
-        shape = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, left, top, w, h)
+    def _fill_kpi_card(self, shape, icon: str, label: str, value: str) -> None:
         shape.fill.solid()
-        shape.fill.fore_color.rgb = C_GREY
-        shape.line.color.rgb = C_SECONDARY
+        shape.fill.fore_color.rgb = C_CARD_BG
+        shape.line.color.rgb = C_PRIMARY
+        shape.line.width = Pt(1.25)
         tf = shape.text_frame
         tf.word_wrap = True
         tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        p = tf.paragraphs[0]
-        p.text = f"{icon}\n{label}\n{value}"
-        p.font.size = Pt(14)
-        p.font.name = "Calibri"
-        p.alignment = PP_ALIGN.CENTER
+        tf.clear()
+        lines = [
+            (icon, Pt(20), False, C_SECONDARY),
+            (label, Pt(11), False, C_TEXT),
+            (value, Pt(20), True, C_PRIMARY),
+        ]
+        for i, (text, size, bold, color) in enumerate(lines):
+            p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+            p.text = text
+            p.font.size = size
+            p.font.bold = bold
+            p.font.name = "Calibri"
+            p.font.color.rgb = color
+            p.alignment = PP_ALIGN.CENTER
+
+    def _kpi_card(self, slide, left, top, w, h, icon: str, label: str, value: str) -> None:
+        shape = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, left, top, w, h)
+        self._fill_kpi_card(shape, icon, label, value)
 
     def slide01_cover(self) -> None:
         slide = self._blank_slide()
@@ -413,6 +506,11 @@ class PptxDeck:
         ]
         for (l, t, v), (x, y) in zip(cards, positions):
             self._kpi_card(slide, x, y, Inches(3.6), Inches(1.8), l, t, v)
+        self._table_caption(
+            slide,
+            "Synthese du projet — investissement, emplois et CA an 1",
+            top=Inches(5.6),
+        )
         self._footer(slide)
 
     def slide05_market(self) -> None:
@@ -433,6 +531,7 @@ class PptxDeck:
             p = self.chart_dir / "ipc.png"
             _chart_ipc_mini(ipc if isinstance(ipc, dict) else {}, p)
             self._add_picture(slide, str(p), Inches(0.5), Inches(3.2), Inches(4))
+            self._figure_caption(slide, "Evolution IPC du secteur", Inches(0.5), Inches(5.9), width=Inches(4.5))
         quote = self.market.get("quote") or "La consommation evolue vers des produits prêts a l'emploi de qualite."
         self._body(slide, f'"{quote}"', Inches(5), Inches(4.5), Inches(7.5), Inches(0.8), size=14, italic=True)
         self._footer(slide)
@@ -512,6 +611,7 @@ class PptxDeck:
         p = self.chart_dir / "invest.png"
         _chart_investment_bars(items, total, p)
         self._add_picture(slide, str(p), Inches(0.4), Inches(1.1), Inches(8.5))
+        self._figure_caption(slide, "Repartition du plan d'investissement (DT)", Inches(0.4), Inches(5.85))
         self._body(
             slide,
             f"TOTAL : {_fmt(total)} DT",
@@ -537,6 +637,7 @@ class PptxDeck:
             p,
         )
         self._add_picture(slide, str(p), Inches(0.4), Inches(1.1), Inches(4.5))
+        self._figure_caption(slide, "Schema de financement (fonds propres, dette, subventions)", Inches(0.4), Inches(5.5), width=Inches(4.8))
         loan = fin.loan
         box = slide.shapes.add_shape(
             MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(5.2), Inches(1.2), Inches(7.5), Inches(2.2)
@@ -569,6 +670,7 @@ class PptxDeck:
         p = self.chart_dir / "ca.png"
         _chart_ca_bars(rev, growth, p)
         self._add_picture(slide, str(p), Inches(0.5), Inches(1.05), Inches(12))
+        self._figure_caption(slide, "Chiffre d'affaires previsionnel sur 7 ans (DT)", Inches(0.5), Inches(5.75))
         cap = self.plan_data.get("capacity_pct") or "93"
         self._body(
             slide,
@@ -592,6 +694,7 @@ class PptxDeck:
         p = self.chart_dir / "results.png"
         _chart_results_lines(self.ctx.rev(), ebit, self.ctx.net(), p)
         self._add_picture(slide, str(p), Inches(0.4), Inches(1.05), Inches(12))
+        self._figure_caption(slide, "Evolution CA, resultat d'exploitation et resultat net", Inches(0.4), Inches(5.75))
         self._footer(slide)
 
     def slide12_kpis(self) -> None:
@@ -628,17 +731,14 @@ class PptxDeck:
             card = slide.shapes.add_shape(
                 MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, x, Inches(1.15), Inches(3), Inches(2.5)
             )
-            card.fill.solid()
-            card.fill.fore_color.rgb = C_WHITE
             card.line.color.rgb = C_ACCENT if label == "VAN" else C_PRIMARY
-            tf = card.text_frame
-            tf.text = f"{label}\n{val}\n{sub}"
-            for i, p in enumerate(tf.paragraphs):
-                p.font.size = Pt(22 if i == 1 else 12)
-                p.font.bold = i == 1
-                p.font.name = "Calibri"
-                p.alignment = PP_ALIGN.CENTER
+            self._fill_kpi_card(card, label, val, sub)
             x += Inches(3.15)
+        self._table_caption(
+            slide,
+            "Indicateurs de rentabilite (TRI, VAN, DRCI, marge) — lecture banque / investisseur",
+            top=Inches(4.0),
+        )
         self._footer(slide)
 
     def slide13_cashflow(self) -> None:
@@ -648,6 +748,7 @@ class PptxDeck:
         p = self.chart_dir / "cashflow.png"
         _chart_cashflow_debt(self.ctx.ocf(), loan_rows, p)
         self._add_picture(slide, str(p), Inches(0.4), Inches(1.05), Inches(9))
+        self._figure_caption(slide, "Cash-flows d'exploitation et capital restant du", Inches(0.4), Inches(5.7), width=Inches(9))
         msg = "Capacite de remboursement demontree"
         if self.audience == "investisseur":
             msg = "Tresorerie soutenant la croissance"
@@ -685,6 +786,7 @@ class PptxDeck:
         self._body(slide, f"Total interets : {_fmt(total_int)} DT", Inches(0.4), y + Inches(0.15), Inches(6), Inches(0.4), size=14, bold=True)
         if grace:
             self._body(slide, "* Periode de grace sur principal", Inches(0.4), y + Inches(0.45), Inches(5), Inches(0.3), size=11, italic=True)
+        self._table_caption(slide, "Tableau d'amortissement annuel (resume)", top=y + Inches(0.75))
         self._footer(slide)
 
     def slide15_costs(self) -> None:
@@ -700,6 +802,7 @@ class PptxDeck:
         p = self.chart_dir / "costs.png"
         _chart_cost_donut(vals, labels, p)
         self._add_picture(slide, str(p), Inches(0.5), Inches(1.05), Inches(6))
+        self._figure_caption(slide, "Structure des couts (moyenne 7 ans)", Inches(0.5), Inches(5.7), width=Inches(6.5))
         self._body(
             slide,
             f"Structure maitrisee — {var_pct} de couts variables (achats)",
@@ -727,6 +830,7 @@ class PptxDeck:
         rev_avg = sum(rev) / HORIZON
         margin_rate = _safe_div(rev_avg - var_avg, rev_avg)
         be = _safe_div(fix_avg, margin_rate) if margin_rate else 0
+        _mpl_readability()
         fig, ax = plt.subplots(figsize=(6, 4))
         x = [0, rev_avg * 1.5]
         ax.plot(x, [fix_avg + margin_rate * xi for xi in x], color=MPL_PRIMARY, label="Couts totaux")
@@ -737,6 +841,7 @@ class PptxDeck:
         p = self.chart_dir / "breakeven.png"
         _save_chart(fig, p)
         self._add_picture(slide, str(p), Inches(0.4), Inches(1.1), Inches(6))
+        self._figure_caption(slide, "Seuil de rentabilite (point mort)", Inches(0.4), Inches(5.5), width=Inches(6.5))
         sens = _sensitivity_mini(self.ctx)
         self._body(slide, "VAN (±10% CA / couts)", Inches(7), Inches(1.2), Inches(5.5), Inches(0.35), size=14, bold=True)
         hdr = "     ".join(["CA 90%", "100%", "110%"])

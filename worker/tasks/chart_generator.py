@@ -18,6 +18,26 @@ CLR_TEAL = "#336699"
 CLR_RED = "#CC3333"
 
 
+def _mpl_readability() -> None:
+    plt.rcParams.update(
+        {
+            "text.color": "#333333",
+            "axes.labelcolor": "#333333",
+            "axes.edgecolor": "#333333",
+            "xtick.color": "#333333",
+            "ytick.color": "#333333",
+            "legend.labelcolor": "#333333",
+            "figure.facecolor": "white",
+            "axes.facecolor": "white",
+        }
+    )
+
+
+def _style_pie_labels(ax) -> None:
+    for t in ax.texts:
+        t.set_color("#333333")
+
+
 def _fmt_axis(n: float) -> str:
     if abs(n) >= 1_000_000:
         return f"{n / 1_000_000:.1f} M"
@@ -55,6 +75,7 @@ def create_chart_png(data: dict[str, Any], chart_type: str, output_path: str) ->
 
 
 def _chart_results_evolution(data: dict, path: Path) -> None:
+    _mpl_readability()
     years = list(range(1, HORIZON + 1))
     revenue = data.get("revenue", [0] * HORIZON)[:HORIZON]
     net = data.get("net_profit", [0] * HORIZON)[:HORIZON]
@@ -77,10 +98,11 @@ def _chart_results_evolution(data: dict, path: Path) -> None:
     ax.grid(True, alpha=0.3)
     ax.set_xticks(years)
     plt.tight_layout()
-    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
 
 
 def _chart_cumulative_treasury(data: dict, path: Path) -> None:
+    _mpl_readability()
     years = list(range(1, HORIZON + 1))
     cum = data.get("cumulative_treasury", [0] * HORIZON)[:HORIZON]
     investment = float(data.get("total_investment", 0))
@@ -108,10 +130,11 @@ def _chart_cumulative_treasury(data: dict, path: Path) -> None:
     ax.legend(loc="best", fontsize=9)
     ax.grid(True, axis="y", alpha=0.3)
     plt.tight_layout()
-    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
 
 
 def _chart_cost_structure(data: dict, path: Path) -> None:
+    _mpl_readability()
     labels = data.get("labels", ["Achats", "Personnel", "DAP", "Autres"])
     values = data.get("values", [1, 1, 1, 1])
     if not any(values):
@@ -126,13 +149,16 @@ def _chart_cost_structure(data: dict, path: Path) -> None:
         startangle=90,
         explode=explode,
         colors=[CLR_BLUE, CLR_TEAL, CLR_ORANGE, CLR_GREEN],
+        textprops={"color": "#333333", "fontsize": 9},
     )
+    _style_pie_labels(ax)
     ax.set_title("Structure des couts (moyenne 7 ans)", fontsize=12, color=CLR_BLUE, fontweight="bold")
     plt.tight_layout()
-    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
 
 
 def _chart_ca_by_product(data: dict, path: Path) -> None:
+    _mpl_readability()
     years = list(range(1, HORIZON + 1))
     products: dict[str, list[float]] = data.get("by_product", {})
     if not products:
@@ -151,7 +177,7 @@ def _chart_ca_by_product(data: dict, path: Path) -> None:
     ax.legend(loc="upper left", fontsize=8)
     ax.set_xticks(years)
     plt.tight_layout()
-    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.savefig(path, dpi=150, bbox_inches="tight", facecolor="white")
 
 
 def generate_all_charts(plan_chart_data: dict[str, Any], out_dir: str | Path) -> dict[str, str]:
