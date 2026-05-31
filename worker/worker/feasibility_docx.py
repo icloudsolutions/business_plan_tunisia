@@ -240,10 +240,11 @@ def build_feasibility_docx(
 
     doc.add_paragraph()
     foot = doc.add_paragraph()
-    foot.add_run(
+    foot_run = foot.add_run(
         "Document généré automatiquement par Business Plan Tunisie — "
         "à compléter par les parties narratives (marché, technique, environnement) si requis par le guichet."
-    ).italic = True
+    )
+    foot_run.italic = True
 
     slug = "".join(c if c.isalnum() else "_" for c in company)[:40].strip("_") or "projet"
     path = export_dir / f"etude_faisabilite_{plan_id}_{slug}.docx"
