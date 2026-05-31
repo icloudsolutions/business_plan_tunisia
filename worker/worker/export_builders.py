@@ -154,16 +154,23 @@ def build_export_xlsx(
     plan_title: str | None = None,
     extra_inputs: dict | None = None,
 ) -> str:
-    from worker.feasibility_study_render import build_feasibility_xlsx
+    from tasks.export_excel import build_plan_data, generate_excel_report
 
-    return build_feasibility_xlsx(
-        plan_id,
-        inputs,
-        results,
-        path,
-        plan_title=plan_title,
-        extra_inputs=extra_inputs,
+    company = inputs.company.name.strip() or "projet"
+    slug = "".join(c if c.isalnum() else "_" for c in company)[:40].strip("_") or "projet"
+    out = path / f"business_plan_{plan_id}_{slug}.xlsx"
+    plan_data = build_plan_data(
+        inputs=inputs,
+        results=results,
+        plan_id=plan_id,
+        title=plan_title,
     )
+    if extra_inputs:
+        raw = plan_data.get("inputs") or {}
+        if isinstance(raw, dict):
+            plan_data["inputs"] = {**raw, **extra_inputs}
+    generate_excel_report(plan_data, str(out))
+    return str(out.resolve())
 
 
 def _pdf_table(data: list[list], col_widths: list[float] | None = None) -> Table:
