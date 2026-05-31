@@ -10,13 +10,13 @@ import {
 } from "react";
 import ExportJobMonitor from "@/components/export/ExportJobMonitor";
 import { ToastProvider, ToastViewport } from "@/components/ui/toast";
-import { exportPlan } from "@/lib/api";
+import { exportPlan, type ExportFormat } from "@/lib/api";
 
 export type ActiveExportJob = {
   key: string;
   planId: string;
   jobId: string;
-  format: "pdf" | "xlsx";
+  format: ExportFormat;
   planTitle?: string;
   onComplete?: (formats: string[]) => void;
 };
@@ -24,10 +24,11 @@ export type ActiveExportJob = {
 type ExportJobsContextValue = {
   startExport: (
     planId: string,
-    format: "pdf" | "xlsx",
+    format: ExportFormat,
     options?: {
       planTitle?: string;
       jobId?: string;
+      formats?: ExportFormat[];
       onComplete?: (formats: string[]) => void;
     }
   ) => Promise<string>;
@@ -50,15 +51,17 @@ export function ExportJobsProvider({ children }: { children: ReactNode }) {
   const startExport = useCallback(
     async (
       planId: string,
-      format: "pdf" | "xlsx",
+      format: ExportFormat,
       options?: {
         planTitle?: string;
         jobId?: string;
+        formats?: ExportFormat[];
         onComplete?: (formats: string[]) => void;
       }
     ) => {
       const jobId =
-        options?.jobId ?? (await exportPlan(planId, [format])).id;
+        options?.jobId ??
+        (await exportPlan(planId, options?.formats ?? [format])).id;
       const key = jobKey(planId, jobId, format);
       setJobs((prev) => {
         if (prev.some((j) => j.key === key)) return prev;

@@ -21,6 +21,7 @@ export type PlanAction =
   | "resubmit"
   | "export_pdf"
   | "export_xlsx"
+  | "export_docx"
   | "export_generate"
   | "cancel"
   | "delete";
@@ -64,6 +65,7 @@ function busyFor(action: PlanAction): PlanActionBusy | null {
       return "resubmit";
     case "export_pdf":
     case "export_xlsx":
+    case "export_docx":
     case "export_generate":
       return "export";
     case "delete":
@@ -190,6 +192,7 @@ export default function ActionBar({
   const disabled = busy !== "";
   const canPdf = exportFormats.includes("pdf");
   const canXlsx = exportFormats.includes("xlsx");
+  const canDocx = exportFormats.includes("docx");
 
   const exportSplit = (variant: "primary" | "secondary") =>
     canExport ? (
@@ -199,13 +202,16 @@ export default function ActionBar({
         label={t("exportMenu")}
       pdfLabel={t("exportPdf")}
       xlsxLabel={t("exportXlsx")}
+      docxLabel={t("exportDocx")}
       regenerateLabel={t("exportGenerate")}
       busy={busy === "export"}
       canPdf={canPdf}
       canXlsx={canXlsx}
+      canDocx={canDocx}
       onGenerate={() => onAction("export_generate")}
       onDownloadPdf={() => onAction("export_pdf")}
       onDownloadXlsx={() => onAction("export_xlsx")}
+      onDownloadDocx={() => onAction("export_docx")}
       />
     ) : null;
 

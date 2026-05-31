@@ -18,6 +18,7 @@ export type PlanActionHandlers = {
   onResubmit?: () => void | Promise<void>;
   onExportPdf?: () => void | Promise<void>;
   onExportXlsx?: () => void | Promise<void>;
+  onExportDocx?: () => void | Promise<void>;
   onExportGenerate?: () => void | Promise<void>;
   onCancel?: () => void;
   onDelete?: () => void | Promise<void>;
@@ -50,6 +51,8 @@ function dispatchAction(action: PlanAction, handlers: PlanActionHandlers) {
       return handlers.onExportPdf?.();
     case "export_xlsx":
       return handlers.onExportXlsx?.();
+    case "export_docx":
+      return handlers.onExportDocx?.();
     case "export_generate":
       return handlers.onExportGenerate?.() ?? handlers.onExportPdf?.();
     case "cancel":

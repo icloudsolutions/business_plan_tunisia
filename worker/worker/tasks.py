@@ -432,6 +432,16 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                 files["pdf"] = _export_pdf(plan_id, inputs, results)
             if "xlsx" in formats:
                 files["xlsx"] = _export_xlsx(plan_id, inputs, results)
+            if "docx" in formats:
+                from worker.feasibility_docx import build_feasibility_docx
+
+                files["docx"] = build_feasibility_docx(
+                    plan_id,
+                    inputs,
+                    results,
+                    export_dir=EXPORT_DIR,
+                    plan_title=plan.title,
+                )
 
             if not files:
                 _fail_export_job(db, job, "Aucun format demandé")

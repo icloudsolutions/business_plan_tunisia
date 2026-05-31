@@ -1,7 +1,14 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, FileSpreadsheet, FileText, Loader2, RefreshCw } from "lucide-react";
+import {
+  ChevronDown,
+  FileSpreadsheet,
+  FileText,
+  FileType,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import {
   btnSplitMainPrimary,
   btnSplitMainSecondary,
@@ -14,13 +21,16 @@ type Props = {
   label: string;
   pdfLabel: string;
   xlsxLabel: string;
+  docxLabel: string;
   regenerateLabel: string;
   busy?: boolean;
   canPdf: boolean;
   canXlsx: boolean;
+  canDocx: boolean;
   onGenerate: () => void;
   onDownloadPdf: () => void;
   onDownloadXlsx: () => void;
+  onDownloadDocx: () => void;
 };
 
 export default function ExportSplitButton({
@@ -28,13 +38,16 @@ export default function ExportSplitButton({
   label,
   pdfLabel,
   xlsxLabel,
+  docxLabel,
   regenerateLabel,
   busy,
   canPdf,
   canXlsx,
+  canDocx,
   onGenerate,
   onDownloadPdf,
   onDownloadXlsx,
+  onDownloadDocx,
 }: Props) {
   const mainClass =
     variant === "secondary" ? btnSplitMainSecondary : btnSplitMainPrimary;
@@ -43,7 +56,8 @@ export default function ExportSplitButton({
 
   const handleMain = () => {
     if (busy) return;
-    if (canPdf) onDownloadPdf();
+    if (canDocx) onDownloadDocx();
+    else if (canPdf) onDownloadPdf();
     else if (canXlsx) onDownloadXlsx();
     else onGenerate();
   };
@@ -91,6 +105,14 @@ export default function ExportSplitButton({
             >
               <FileSpreadsheet className="h-4 w-4 text-indigo-600" aria-hidden />
               {xlsxLabel}
+            </DropdownMenu.Item>
+            <DropdownMenu.Item
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
+              onSelect={onDownloadDocx}
+              disabled={!canDocx}
+            >
+              <FileType className="h-4 w-4 text-indigo-600" aria-hidden />
+              {docxLabel}
             </DropdownMenu.Item>
             <DropdownMenu.Separator className="my-1 h-px bg-navy-100" />
             <DropdownMenu.Item

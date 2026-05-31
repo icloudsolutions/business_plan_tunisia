@@ -27,7 +27,7 @@ docker compose up --build -d
 
 **Migrations** : `RUN_MIGRATIONS=true` (default in Docker) applies Alembic at API startup. Set `RUN_MIGRATIONS=false` only for local dev without Alembic.
 
-**Exports** : après validation, `GET /api/plans/{id}/exports/{jobId}/download` (JWT requis).
+**Exports** : après validation, PDF + Excel + **étude de faisabilité Word (.docx)** via `POST /api/plans/{id}/export` ; téléchargement `GET .../download?format=pdf|xlsx|docx`.
 
 **Scénarios** : `GET/POST /api/plans/{id}/scenarios` — pessimiste / base / optimiste + scénarios personnalisés ; calcul Celery ; comparaison VAN/TRI/DRCI ; expert « Recommander » pour export PDF/Excel. Migration `006_plan_scenarios`.
 

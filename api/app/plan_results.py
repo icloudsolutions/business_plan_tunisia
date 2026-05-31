@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import BusinessPlan, PlanScenario
+from app.state_machine import is_locked
 
 
 async def hydrate_plan_results_from_scenarios(
@@ -38,6 +39,9 @@ async def hydrate_plan_results_from_scenarios(
 
     if not row or not row.results:
         return None
+
+    if is_locked(plan.status):
+        return plan.results or row.results
 
     plan.results = row.results
     if plan.official_scenario_id != row.id:

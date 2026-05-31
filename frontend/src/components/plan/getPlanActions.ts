@@ -12,7 +12,8 @@ export type PlanActionId =
   | "edit"
   | "resubmit"
   | "export_pdf"
-  | "export_xlsx";
+  | "export_xlsx"
+  | "export_docx";
 
 export type PlanActions = {
   primary: PlanActionId | null;
@@ -46,7 +47,7 @@ export function getActions(status: PlanStatus, role: PlanRole): PlanActions {
       return {
         primary: null,
         secondary: [],
-        exports: ["export_pdf", "export_xlsx"],
+        exports: ["export_pdf", "export_xlsx", "export_docx"],
       };
     }
     return EMPTY;
@@ -71,7 +72,7 @@ export function getActions(status: PlanStatus, role: PlanRole): PlanActions {
     return {
       primary: null,
       secondary: [],
-      exports: ["export_pdf", "export_xlsx"],
+      exports: ["export_pdf", "export_xlsx", "export_docx"],
     };
   }
 

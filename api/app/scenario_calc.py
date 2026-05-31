@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models import BusinessPlan, CalcJob, PlanScenario
+from app.state_machine import is_locked
 
 
 def compute_scenario_results(plan_inputs: dict, multipliers: dict | None) -> dict:
@@ -35,7 +36,9 @@ async def apply_scenario_results(
     )
     scenario.results = dump
     scenario.calc_status = "COMPLETED"
-    if scenario.is_official or plan.official_scenario_id == scenario.id:
+    if not is_locked(plan.status) and (
+        scenario.is_official or plan.official_scenario_id == scenario.id
+    ):
         plan.results = dump
 
     if job is not None:

@@ -12,6 +12,7 @@ from bp_schema.liasse import PlanInputs
 
 from app.access_control import get_plan_for_user
 from app.auth import get_current_user, require_role
+from app.state_machine import is_locked
 from app.celery_client import celery_app
 from app.collaboration import log_activity
 from app.config import settings
@@ -217,7 +218,8 @@ async def set_official_scenario(
     row.is_official = True
     row.recommended_by_id = user.id
     plan.official_scenario_id = row.id
-    plan.results = row.results
+    if not is_locked(plan.status):
+        plan.results = row.results
 
     await log_activity(
         db,

@@ -135,6 +135,7 @@
     "exportGenerate": "Generate PDF / Excel",
     "exportPdf": "Download PDF",
     "exportXlsx": "Download Excel",
+    "exportDocx": "Feasibility study (Word)",
     "calcFailed": "Calculation failed",
     "simFailed": "Simulation failed",
     "exportFailed": "Export failed",

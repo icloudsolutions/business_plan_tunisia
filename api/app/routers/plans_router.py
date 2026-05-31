@@ -667,7 +667,7 @@ async def get_export_job(
 async def download_export(
     plan_id: UUID,
     job_id: UUID,
-    format: str = Query("pdf", pattern="^(pdf|xlsx)$"),
+    format: str = Query("pdf", pattern="^(pdf|xlsx|docx)$"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -693,6 +693,9 @@ async def download_export(
     if format == "pdf":
         media = "application/pdf"
         filename = f"business-plan-{plan_id}.pdf"
+    elif format == "docx":
+        media = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        filename = f"etude-faisabilite-{plan_id}.docx"
     else:
         media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         filename = f"business-plan-{plan_id}.xlsx"

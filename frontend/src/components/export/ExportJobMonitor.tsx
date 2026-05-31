@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Download, RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { downloadExport, exportPlan } from "@/lib/api";
+import { downloadExport, exportPlan, type ExportFormat } from "@/lib/api";
 import {
   exportDownloadUrl,
   getExportJob,
@@ -25,7 +25,7 @@ const FAKE_PROGRESS_CAP = 85;
 export type ExportJobMonitorProps = {
   planId: string;
   jobId: string;
-  format: "pdf" | "xlsx";
+  format: ExportFormat;
   planTitle?: string;
   onComplete?: (formats: string[]) => void;
   onDismiss?: () => void;
@@ -50,7 +50,8 @@ export default function ExportJobMonitor({
   const [activeJobId, setActiveJobId] = useState(jobId);
   const completedRef = useRef(false);
 
-  const formatLabel = format === "pdf" ? "PDF" : "Excel";
+  const formatLabel =
+    format === "pdf" ? "PDF" : format === "docx" ? "Word" : "Excel";
   const downloadUrl = exportDownloadUrl(planId, activeJobId, format);
 
   const statusLabel: Record<MonitorStatus, string> = {

@@ -120,6 +120,15 @@ export default function PlanExportHistory({ planId, active }: Props) {
                     Excel
                   </button>
                 )}
+                {job.formats.includes("docx") && (
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-indigo-600 hover:underline"
+                    onClick={() => void downloadExport(planId, job.id, "docx")}
+                  >
+                    Étude Word
+                  </button>
+                )}
               </div>
             )}
           </li>

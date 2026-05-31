@@ -34,6 +34,7 @@ import { useAuth } from "@/context/AuthContext";
 import { userHasRole } from "@/lib/auth-roles";
 import {
   downloadExport,
+  type ExportFormat,
   getPlan,
   listSimulations,
   resubmitPlan,
@@ -157,7 +158,7 @@ function PlanContent() {
     );
   })();
 
-  const requestExport = async (format: "pdf" | "xlsx") => {
+  const requestExport = async (format: ExportFormat) => {
     if (exportJobId && exportFormats.includes(format)) {
       await downloadExport(id, exportJobId, format);
       return;
@@ -374,7 +375,15 @@ function PlanContent() {
           },
           onExportPdf: () => void requestExport("pdf"),
           onExportXlsx: () => void requestExport("xlsx"),
-          onExportGenerate: () => void requestExport("pdf"),
+          onExportDocx: () => void requestExport("docx"),
+          onExportGenerate: () =>
+            void startExport(id, "docx", {
+              planTitle: plan?.title,
+              formats: ["pdf", "xlsx", "docx"],
+              onComplete: (formats) => {
+                setExportFormats(formats);
+              },
+            }).then((jobId) => setExportJobId(jobId)),
         }}
       />
 

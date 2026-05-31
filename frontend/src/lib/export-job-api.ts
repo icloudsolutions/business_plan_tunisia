@@ -47,7 +47,7 @@ export async function getExportJob(
 export function exportDownloadUrl(
   planId: string,
   jobId: string,
-  format: "pdf" | "xlsx"
+  format: "pdf" | "xlsx" | "docx"
 ): string {
   return `${API_BASE}/plans/${planId}/exports/${jobId}/download?format=${format}`;
 }

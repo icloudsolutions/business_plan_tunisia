@@ -364,7 +364,7 @@ class JobResponse(BaseModel):
 
 
 class ExportRequest(BaseModel):
-    formats: list[str] = Field(default=["pdf", "xlsx"])
+    formats: list[str] = Field(default=["pdf", "xlsx", "docx"])
 
 
 class ExportJobSummary(BaseModel):

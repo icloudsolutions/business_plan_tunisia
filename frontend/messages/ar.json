@@ -135,6 +135,7 @@
     "exportGenerate": "إنشاء PDF / Excel",
     "exportPdf": "تحميل PDF",
     "exportXlsx": "تحميل Excel",
+    "exportDocx": "دراسة الجدوى (Word)",
     "calcFailed": "فشل الحساب",
     "simFailed": "فشلت المحاكاة",
     "exportFailed": "فشل التصدير",

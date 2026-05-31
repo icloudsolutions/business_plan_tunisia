@@ -61,7 +61,7 @@ export default function PlanOverviewCard({
 
   const openPlan = () => router.push(`/plans/${plan.id}`);
 
-  const requestExport = async (format: "pdf" | "xlsx") => {
+  const requestExport = async (format: import("@/lib/api").ExportFormat) => {
     if (exportJobId && exportFormats.includes(format)) {
       await downloadExport(plan.id, exportJobId, format);
       return;
@@ -155,6 +155,7 @@ export default function PlanOverviewCard({
         },
         onExportPdf: () => void requestExport("pdf"),
         onExportXlsx: () => void requestExport("xlsx"),
+        onExportDocx: () => void requestExport("docx"),
       }}
     />
   );

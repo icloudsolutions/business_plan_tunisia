@@ -308,9 +308,11 @@ export async function transitionPlan(
   });
 }
 
+export type ExportFormat = "pdf" | "xlsx" | "docx";
+
 export async function exportPlan(
   id: string,
-  formats: ("pdf" | "xlsx")[] = ["pdf", "xlsx"]
+  formats: ExportFormat[] = ["pdf", "xlsx", "docx"]
 ) {
   return api<{ id: string }>(`/plans/${id}/export`, {
     method: "POST",
@@ -321,7 +323,7 @@ export async function exportPlan(
 export async function downloadExport(
   planId: string,
   jobId: string,
-  format: "pdf" | "xlsx"
+  format: ExportFormat
 ): Promise<void> {
   const token = getToken();
   const res = await fetch(
@@ -336,7 +338,10 @@ export async function downloadExport(
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `business-plan-${planId}.${format}`;
+  a.download =
+    format === "docx"
+      ? `etude-faisabilite-${planId}.docx`
+      : `business-plan-${planId}.${format}`;
   a.click();
   URL.revokeObjectURL(url);
 }
