@@ -655,19 +655,30 @@ async def get_export_job(
     if not job:
         raise HTTPException(status_code=404, detail="Export introuvable")
     files = parse_export_files(job.file_path)
-    return {
+    payload: dict = {
         "id": str(job.id),
         "status": job.status,
         "formats": list(files.keys()),
         "files": files,
     }
+    if (job.format or "").strip().lower() == "all":
+        from app.export_progress import get_export_progress_from_redis
+
+        prog = get_export_progress_from_redis(str(job.id))
+        payload["progress_pct"] = int(prog.get("progress_pct") or 0)
+        payload["files_ready"] = prog.get("files_ready") or []
+        if files.get("zip"):
+            payload["zip_url"] = files["zip"]
+        if job.status == "COMPLETED":
+            payload["progress_pct"] = 100
+    return payload
 
 
 @router.get("/{plan_id}/exports/{job_id}/download")
 async def download_export(
     plan_id: UUID,
     job_id: UUID,
-    format: str = Query("pdf", pattern="^(pdf|xlsx|docx)$"),
+    format: str = Query("pdf", pattern="^(pdf|xlsx|docx|pptx|zip)$"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -696,6 +707,12 @@ async def download_export(
     elif format == "docx":
         media = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         filename = f"etude-faisabilite-{plan_id}.docx"
+    elif format == "pptx":
+        media = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        filename = f"presentation-{plan_id}.pptx"
+    elif format == "zip":
+        media = "application/zip"
+        filename = f"export-pack-{plan_id}.zip"
     else:
         media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         filename = f"business-plan-{plan_id}.xlsx"

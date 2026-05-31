@@ -33,6 +33,9 @@ async def seed():
                     )
                 )
             await db.commit()
+            from app.seeds.templates_seed import seed_document_templates
+
+            await seed_document_templates(db)
         except Exception:
             await db.rollback()
             raise

@@ -10,6 +10,19 @@ export type ExportJobStatus = {
   error?: string;
   /** Present when the job completed successfully (authenticated download path). */
   downloadUrl?: string;
+  /** Export pack « all » (Excel + Word + PPTX → ZIP) */
+  progress_pct?: number;
+  files_ready?: string[];
+  zip_url?: string;
+};
+
+export type ExportPackStatus = {
+  job_id: string;
+  status: string;
+  progress_pct: number;
+  files_ready: string[];
+  zip_url: string | null;
+  files?: Record<string, string>;
 };
 
 /** Maps API / Celery statuses to monitor phases. */
@@ -47,7 +60,24 @@ export async function getExportJob(
 export function exportDownloadUrl(
   planId: string,
   jobId: string,
-  format: "pdf" | "xlsx" | "docx"
+  format: "pdf" | "xlsx" | "docx" | "pptx" | "zip"
 ): string {
   return `${API_BASE}/plans/${planId}/exports/${jobId}/download?format=${format}`;
+}
+
+export async function startExportAll(
+  planId: string,
+  audience: "banque" | "investisseur" | "client" = "banque"
+): Promise<{ job_id: string; status: string; celery_task_id?: string }> {
+  return api(`/plans/${planId}/exports/all`, {
+    method: "POST",
+    body: JSON.stringify({ audience }),
+  });
+}
+
+export async function getExportPackStatus(
+  planId: string,
+  jobId: string
+): Promise<ExportPackStatus> {
+  return api<ExportPackStatus>(`/plans/${planId}/exports/${jobId}/status`);
 }

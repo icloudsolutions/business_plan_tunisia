@@ -398,6 +398,7 @@ function PlanContent() {
           onExportPdf: () => void requestExport("pdf"),
           onExportXlsx: () => void requestExport("xlsx"),
           onExportDocx: () => void requestExport("docx"),
+          onExportPptx: () => void requestExport("pptx"),
           onExportGenerate: () =>
             void startExport(id, "pdf", {
               planTitle: plan?.title,

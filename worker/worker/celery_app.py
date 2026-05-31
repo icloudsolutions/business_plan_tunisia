@@ -20,4 +20,4 @@ celery_app.conf.update(
     task_default_retry_delay=30,
     task_max_retries=3,
 )
-celery_app.conf.imports = ("worker.tasks",)
+celery_app.conf.imports = ("worker.tasks", "tasks.export_all")

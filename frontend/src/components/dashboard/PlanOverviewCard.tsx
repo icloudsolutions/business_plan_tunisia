@@ -158,6 +158,7 @@ export default function PlanOverviewCard({
         onExportPdf: () => void requestExport("pdf"),
         onExportXlsx: () => void requestExport("xlsx"),
         onExportDocx: () => void requestExport("docx"),
+        onExportPptx: () => void requestExport("pptx"),
       }}
     />
   );

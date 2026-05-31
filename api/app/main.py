@@ -17,6 +17,7 @@ from app.routers import (
     copilot_router,
     jobs_router,
     plans_router,
+    exports_router,
     projections_router,
     scenarios_router,
     history_router,
@@ -33,6 +34,7 @@ from app.routers import (
     timeline_router,
     financing_structure_router,
     pricing_router,
+    templates_router,
     ws_router,
 )
 
@@ -92,6 +94,9 @@ app.add_middleware(
 app.include_router(auth_router.router, prefix="/api")
 app.include_router(admin_router.router, prefix="/api")
 app.include_router(plans_router.router, prefix="/api")
+app.include_router(exports_router.router, prefix="/api")
+app.include_router(templates_router.router, prefix="/api")
+app.include_router(templates_router.admin_router, prefix="/api")
 app.include_router(projections_router.router, prefix="/api")
 app.include_router(scenarios_router.router, prefix="/api")
 app.include_router(history_router.router, prefix="/api")

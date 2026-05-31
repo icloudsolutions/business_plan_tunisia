@@ -470,6 +470,45 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                 files["docx"] = build_feasibility_docx_from_plan_data(
                     plan_data, EXPORT_DIR
                 )
+            if "pptx" in formats:
+                from tasks.export_excel import build_plan_data
+                from tasks.export_pptx import build_pptx_from_plan
+
+                pptx_plan_data = build_plan_data(
+                    inputs=inputs,
+                    results=results,
+                    plan_id=plan_id,
+                    title=plan.title,
+                )
+                if extra_inputs:
+                    raw = pptx_plan_data.get("inputs") or {}
+                    if isinstance(raw, dict):
+                        pptx_plan_data["inputs"] = {**raw, **extra_inputs}
+                    for key in (
+                        "market_study",
+                        "swot",
+                        "logo_path",
+                        "sector",
+                        "promoter",
+                        "cabinet",
+                        "site",
+                        "team",
+                        "planning",
+                        "presentation_audience",
+                    ):
+                        if key in extra_inputs:
+                            pptx_plan_data[key] = extra_inputs[key]
+                audience = str(
+                    extra_inputs.get("presentation_audience")
+                    or pptx_plan_data.get("presentation_audience")
+                    or "banque"
+                )
+                if audience not in ("banque", "investisseur", "client"):
+                    audience = "banque"
+                pptx_plan_data["presentation_audience"] = audience
+                files["pptx"] = build_pptx_from_plan(
+                    pptx_plan_data, EXPORT_DIR, audience=audience
+                )
 
             if not files:
                 _fail_export_job(db, job, "Aucun format demandé")
@@ -528,3 +567,7 @@ def _export_pdf(
         plan_title=plan_title,
         extra_inputs=extra_inputs,
     )
+
+
+# Enregistre les tâches chord (export pack Excel + Word + PPTX)
+import tasks.export_all  # noqa: E402, F401

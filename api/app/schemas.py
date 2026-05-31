@@ -364,7 +364,26 @@ class JobResponse(BaseModel):
 
 
 class ExportRequest(BaseModel):
-    formats: list[str] = Field(default=["pdf", "xlsx", "docx"])
+    formats: list[str] = Field(default=["pdf", "xlsx", "docx", "pptx"])
+
+
+class ExportAllRequest(BaseModel):
+    audience: str = Field(default="banque", pattern="^(banque|investisseur|client)$")
+
+
+class ExportAllResponse(BaseModel):
+    job_id: UUID
+    status: str
+    celery_task_id: str | None = None
+
+
+class ExportStatusResponse(BaseModel):
+    job_id: UUID
+    status: str
+    progress_pct: int = 0
+    files_ready: list[str] = Field(default_factory=list)
+    zip_url: str | None = None
+    files: dict[str, str] | None = None
 
 
 class ExportJobSummary(BaseModel):
@@ -1068,6 +1087,77 @@ class TimelinePhaseUpdate(BaseModel):
 
 class TimelineProjectionResponse(BaseModel):
     projection: dict
+
+
+class TemplateSummary(BaseModel):
+    id: UUID
+    code: str | None = None
+    name: str
+    version: str
+    secteur: str
+    sous_secteur: str
+    type_entreprise: str
+    type_financement: str
+    document_type: str
+    usage_count: int = 0
+    is_public: bool = True
+    hypotheses_preview: dict = Field(default_factory=dict)
+
+
+class TemplateDetail(TemplateSummary):
+    hypotheses: dict = Field(default_factory=dict)
+    sections_incluses: list[str] = Field(default_factory=list)
+    description: str | None = None
+    is_active: bool = True
+    created_at: str | None = None
+    hypothesis_rows: list[dict] = Field(default_factory=list)
+
+
+class PlanFromTemplateRequest(BaseModel):
+    template_id: UUID
+    plan_name: str
+    project_description: str | None = None
+
+
+class PlanFromTemplateResponse(BaseModel):
+    plan_id: UUID
+    pre_filled_data: dict
+
+
+class SavePlanAsTemplateRequest(BaseModel):
+    name: str
+    secteur: str
+    sous_secteur: str
+    is_public: bool = False
+    type_entreprise: str = "PME"
+    type_financement: str = "MIXTE"
+    document_type: str = "ALL"
+
+
+class AdminTemplateCreate(BaseModel):
+    code: str | None = None
+    name: str
+    version: str = "v1.0"
+    secteur: str
+    sous_secteur: str
+    type_entreprise: str = "PME"
+    type_financement: str = "MIXTE"
+    document_type: str = "ALL"
+    hypotheses: dict = Field(default_factory=dict)
+    sections_incluses: list[str] = Field(default_factory=list)
+    description: str | None = None
+    is_active: bool = True
+    is_public: bool = True
+
+
+class AdminTemplateUpdate(BaseModel):
+    name: str | None = None
+    version: str | None = None
+    hypotheses: dict | None = None
+    sections_incluses: list[str] | None = None
+    description: str | None = None
+    is_active: bool | None = None
+    is_public: bool | None = None
 
 
 PlanPatchResponse.model_rebuild()

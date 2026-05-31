@@ -308,11 +308,11 @@ export async function transitionPlan(
   });
 }
 
-export type ExportFormat = "pdf" | "xlsx" | "docx";
+export type ExportFormat = "pdf" | "xlsx" | "docx" | "pptx";
 
 export async function exportPlan(
   id: string,
-  formats: ExportFormat[] = ["pdf", "xlsx", "docx"]
+  formats: ExportFormat[] = ["pdf", "xlsx", "docx", "pptx"]
 ) {
   return api<{ id: string }>(`/plans/${id}/export`, {
     method: "POST",
@@ -341,7 +341,9 @@ export async function downloadExport(
   a.download =
     format === "docx"
       ? `etude-faisabilite-${planId}.docx`
-      : `business-plan-${planId}.${format}`;
+      : format === "pptx"
+        ? `presentation-${planId}.pptx`
+        : `business-plan-${planId}.${format}`;
   a.click();
   URL.revokeObjectURL(url);
 }

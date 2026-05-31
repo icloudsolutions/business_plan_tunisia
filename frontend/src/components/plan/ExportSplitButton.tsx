@@ -7,6 +7,7 @@ import {
   FileText,
   FileType,
   Loader2,
+  Presentation,
   RefreshCw,
 } from "lucide-react";
 import {
@@ -22,15 +23,18 @@ type Props = {
   pdfLabel: string;
   xlsxLabel: string;
   docxLabel: string;
+  pptxLabel: string;
   regenerateLabel: string;
   busy?: boolean;
   canPdf: boolean;
   canXlsx: boolean;
   canDocx: boolean;
+  canPptx: boolean;
   onGenerate: () => void;
   onDownloadPdf: () => void;
   onDownloadXlsx: () => void;
   onDownloadDocx: () => void;
+  onDownloadPptx: () => void;
 };
 
 export default function ExportSplitButton({
@@ -39,15 +43,18 @@ export default function ExportSplitButton({
   pdfLabel,
   xlsxLabel,
   docxLabel,
+  pptxLabel,
   regenerateLabel,
   busy,
   canPdf,
   canXlsx,
   canDocx,
+  canPptx,
   onGenerate,
   onDownloadPdf,
   onDownloadXlsx,
   onDownloadDocx,
+  onDownloadPptx,
 }: Props) {
   const mainClass =
     variant === "secondary" ? btnSplitMainSecondary : btnSplitMainPrimary;
@@ -57,6 +64,7 @@ export default function ExportSplitButton({
   const handleMain = () => {
     if (busy) return;
     if (canDocx) onDownloadDocx();
+    else if (canPptx) onDownloadPptx();
     else if (canPdf) onDownloadPdf();
     else if (canXlsx) onDownloadXlsx();
     else onGenerate();
@@ -110,6 +118,13 @@ export default function ExportSplitButton({
             >
               <FileType className="h-4 w-4 text-indigo-600" aria-hidden />
               {docxLabel}
+            </DropdownMenu.Item>
+            <DropdownMenu.Item
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-navy-800 outline-none hover:bg-indigo-50 focus:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
+              onSelect={() => (canPptx ? onDownloadPptx() : onGenerate())}
+            >
+              <Presentation className="h-4 w-4 text-indigo-600" aria-hidden />
+              {pptxLabel}
             </DropdownMenu.Item>
             <DropdownMenu.Separator className="my-1 h-px bg-navy-100" />
             <DropdownMenu.Item

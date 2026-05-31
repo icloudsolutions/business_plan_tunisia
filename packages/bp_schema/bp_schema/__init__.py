@@ -15,6 +15,12 @@ from bp_schema.loan_plan import PlanLoan, CombinedLoanProjection, LoanFrequency,
 from bp_schema.balance_sheet import BalanceSheetProjection, BalanceSheetYear
 from bp_schema.completion import compute_plan_completion, get_required_missing_paths
 from bp_schema.validation import validate_draft_inputs
+from bp_schema.templates import (
+    SECTEURS_ACTIVITE,
+    SOUS_SECTEUR_LABELS,
+    list_taxonomy,
+    hypotheses_preview,
+)
 
 __all__ = [
     "AuditDecision",
@@ -52,4 +58,8 @@ __all__ = [
     "validate_draft_inputs",
     "compute_plan_completion",
     "get_required_missing_paths",
+    "SECTEURS_ACTIVITE",
+    "SOUS_SECTEUR_LABELS",
+    "list_taxonomy",
+    "hypotheses_preview",
 ]

@@ -129,6 +129,15 @@ export default function PlanExportHistory({ planId, active }: Props) {
                     Étude Word
                   </button>
                 )}
+                {job.formats.includes("pptx") && (
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-indigo-600 hover:underline"
+                    onClick={() => void downloadExport(planId, job.id, "pptx")}
+                  >
+                    PowerPoint
+                  </button>
+                )}
               </div>
             )}
           </li>

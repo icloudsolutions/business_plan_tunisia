@@ -19,6 +19,7 @@ export type PlanActionHandlers = {
   onExportPdf?: () => void | Promise<void>;
   onExportXlsx?: () => void | Promise<void>;
   onExportDocx?: () => void | Promise<void>;
+  onExportPptx?: () => void | Promise<void>;
   onExportGenerate?: () => void | Promise<void>;
   onCancel?: () => void;
   onDelete?: () => void | Promise<void>;
@@ -53,6 +54,8 @@ function dispatchAction(action: PlanAction, handlers: PlanActionHandlers) {
       return handlers.onExportXlsx?.();
     case "export_docx":
       return handlers.onExportDocx?.();
+    case "export_pptx":
+      return handlers.onExportPptx?.();
     case "export_generate":
       return handlers.onExportGenerate?.() ?? handlers.onExportPdf?.();
     case "cancel":

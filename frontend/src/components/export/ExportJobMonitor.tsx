@@ -52,7 +52,13 @@ export default function ExportJobMonitor({
   const completedRef = useRef(false);
 
   const formatLabel =
-    format === "pdf" ? "PDF" : format === "docx" ? "Word" : "Excel";
+    format === "pdf"
+      ? "PDF"
+      : format === "docx"
+        ? "Word"
+        : format === "pptx"
+          ? "PowerPoint"
+          : "Excel";
   const downloadUrl = exportDownloadUrl(planId, activeJobId, format);
 
   const statusLabel: Record<MonitorStatus, string> = {
@@ -74,7 +80,10 @@ export default function ExportJobMonitor({
     if (status === "done" || status === "error") return;
 
     const timer = window.setInterval(() => {
-      setFakeProgress((p) => Math.min(p + FAKE_PROGRESS_STEP, FAKE_PROGRESS_CAP));
+      setFakeProgress((p) => {
+        if (p >= FAKE_PROGRESS_CAP) return p;
+        return Math.min(p + FAKE_PROGRESS_STEP, FAKE_PROGRESS_CAP);
+      });
     }, FAKE_PROGRESS_STEP_MS);
 
     return () => window.clearInterval(timer);
@@ -103,6 +112,14 @@ export default function ExportJobMonitor({
           onComplete?.(list);
         }
         return;
+      }
+
+      if (
+        typeof job.progress_pct === "number" &&
+        job.progress_pct > 0 &&
+        phase === "running"
+      ) {
+        setFakeProgress(Math.min(job.progress_pct, 100));
       }
 
       setStatus(phase === "running" ? "running" : "pending");

@@ -22,6 +22,7 @@ export type PlanAction =
   | "export_pdf"
   | "export_xlsx"
   | "export_docx"
+  | "export_pptx"
   | "export_generate"
   | "cancel"
   | "delete";
@@ -193,6 +194,7 @@ export default function ActionBar({
   const canPdf = exportFormats.includes("pdf");
   const canXlsx = exportFormats.includes("xlsx");
   const canDocx = exportFormats.includes("docx");
+  const canPptx = exportFormats.includes("pptx");
 
   const exportSplit = (variant: "primary" | "secondary") =>
     canExport ? (
@@ -203,15 +205,18 @@ export default function ActionBar({
       pdfLabel={t("exportPdf")}
       xlsxLabel={t("exportXlsx")}
       docxLabel={t("exportDocx")}
+      pptxLabel={t("exportPptx")}
       regenerateLabel={t("exportGenerate")}
       busy={busy === "export"}
       canPdf={canPdf}
       canXlsx={canXlsx}
       canDocx={canDocx}
+      canPptx={canPptx}
       onGenerate={() => onAction("export_generate")}
       onDownloadPdf={() => onAction("export_pdf")}
       onDownloadXlsx={() => onAction("export_xlsx")}
       onDownloadDocx={() => onAction("export_docx")}
+      onDownloadPptx={() => onAction("export_pptx")}
       />
     ) : null;
 

@@ -41,6 +41,8 @@ function dispatchAction(action: PlanAction, handlers: PlanActionHandlers) {
       return handlers.onExportXlsx?.();
     case "export_docx":
       return handlers.onExportDocx?.();
+    case "export_pptx":
+      return handlers.onExportPptx?.();
     case "export_generate":
       return handlers.onExportGenerate?.() ?? handlers.onExportPdf?.();
     default:

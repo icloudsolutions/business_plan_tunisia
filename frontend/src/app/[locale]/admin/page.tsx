@@ -30,6 +30,12 @@ function AdminPanel() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/admin/templates"
+              className="hidden text-sm text-slate-600 hover:text-slate-900 sm:inline"
+            >
+              Templates
+            </Link>
+            <Link
               href="/"
               className="hidden items-center gap-1 text-sm text-slate-600 hover:text-slate-900 sm:flex"
             >
