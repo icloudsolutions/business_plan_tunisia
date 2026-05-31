@@ -714,5 +714,5 @@ class AiSuggestion(Base):
 
 
 
-from app.models.document_templates import DocumentTemplate, TemplateHypothese  # noqa: E402, F401
+from app.document_template_models import DocumentTemplate, TemplateHypothese  # noqa: E402, F401
 
