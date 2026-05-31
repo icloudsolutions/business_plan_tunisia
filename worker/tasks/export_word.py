@@ -19,7 +19,7 @@ from typing import Any
 from bp_calc.capex import annual_depreciation_schedule
 from bp_calc.engine import HORIZON
 from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Inches, Pt, RGBColor
@@ -45,6 +45,23 @@ CLR_SWOT = {
     "opportunities": "BBDEFB",
     "threats": "FFCDD2",
 }
+
+# Static table of contents (always rendered; Word TOC fields are often empty until updated).
+WORD_REPORT_TOC: list[tuple[str, int]] = [
+    ("SECTION 1 — PRESENTATION DU PROJET", 1),
+    ("SECTION 2 — ETUDE DE MARCHE", 1),
+    ("2.1 Situation actuelle du secteur en Tunisie", 2),
+    ("2.2 Clientele cible", 2),
+    ("2.3 Concurrence", 2),
+    ("2.4 Strategie commerciale", 2),
+    ("SECTION 3 — ANALYSE SWOT", 1),
+    ("SECTION 4 — INVESTISSEMENT ET FINANCEMENT", 1),
+    ("SECTION 5 — ANALYSE DE RENTABILITE (tableaux detailles)", 1),
+    ("SECTION 6 — ETAT DE RESULTAT PREVISIONNEL", 1),
+    ("SECTION 7 — GRAPHIQUES", 1),
+    ("SECTION 8 — INDICATEURS DE RENTABILITE", 1),
+    ("Conclusion", 2),
+]
 
 
 def _fmt(n: float | None, *, digits: int = 0) -> str:
@@ -178,29 +195,54 @@ def _add_year_table(
     _add_table(doc, headers, rows, caption=caption or title)
 
 
-def _insert_toc(doc: Document) -> None:
-    doc.add_paragraph()
-    _add_heading(doc, "SOMMAIRE", 1)
+def _enable_update_fields_on_open(doc: Document) -> None:
+    """Ask Word to refresh field codes (TOC, PAGE) when the document opens."""
+    settings = doc.settings.element
+    update_fields = OxmlElement("w:updateFields")
+    update_fields.set(qn("w:val"), "true")
+    settings.append(update_fields)
+
+
+def _add_toc_line(doc: Document, title: str, level: int) -> None:
     p = doc.add_paragraph()
-    run = p.add_run()
-    fld_begin = OxmlElement("w:fldChar")
-    fld_begin.set(qn("w:fldCharType"), "begin")
-    instr = OxmlElement("w:instrText")
-    instr.set(qn("xml:space"), "preserve")
-    instr.text = ' TOC \\o "1-3" \\h \\z \\u '
-    fld_sep = OxmlElement("w:fldChar")
-    fld_sep.set(qn("w:fldCharType"), "separate")
-    fld_end = OxmlElement("w:fldChar")
-    fld_end.set(qn("w:fldCharType"), "end")
-    run._r.append(fld_begin)
-    run._r.append(instr)
-    run._r.append(fld_sep)
-    run._r.append(fld_end)
-    hint = doc.add_paragraph(
-        "(Mettre a jour la table des matieres dans Word : clic droit > Mettre a jour les champs.)"
+    p.paragraph_format.line_spacing = 1.25
+    p.paragraph_format.space_after = Pt(4)
+    p.paragraph_format.left_indent = Cm(0.6 * (level - 1))
+    p.paragraph_format.tab_stops.add_tab_stop(
+        Cm(15.5), WD_TAB_ALIGNMENT.RIGHT, WD_TAB_LEADER.DOTS
     )
-    hint.runs[0].font.size = Pt(9)
-    hint.runs[0].italic = True
+    run = p.add_run(title)
+    run.font.name = "Arial"
+    run.font.size = Pt(12 if level == 1 else 10)
+    run.bold = level == 1
+    if level == 1:
+        run.font.color.rgb = RGBColor(0, 51, 102)
+    p.add_run("\t")
+
+
+def _insert_toc(doc: Document) -> None:
+    """Sommaire page after cover: static entries (always visible) + Word TOC field."""
+    title = doc.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    tr = title.add_run("SOMMAIRE")
+    tr.bold = True
+    tr.font.name = "Arial"
+    tr.font.size = Pt(18)
+    tr.font.color.rgb = RGBColor(0, 51, 102)
+    doc.add_paragraph()
+
+    for entry_title, level in WORD_REPORT_TOC:
+        _add_toc_line(doc, entry_title, level)
+
+    hint = doc.add_paragraph(
+        "Numeros de page : sous Microsoft Word, inserer une table des matieres automatique "
+        "(References > Table des matieres) ou mettre a jour les champs si vous en ajoutez une."
+    )
+    for r in hint.runs:
+        r.font.size = Pt(9)
+        r.font.italic = True
+        r.font.name = "Arial"
+        r.font.color.rgb = RGBColor(102, 102, 102)
     doc.add_page_break()
 
 
@@ -899,6 +941,7 @@ class WordReportBuilder:
 def generate_word_report(plan_data: dict, output_path: str) -> None:
     """Build the complete Word feasibility report."""
     doc = Document()
+    _enable_update_fields_on_open(doc)
     builder = WordReportBuilder(plan_data)
     _setup_header_footer(doc, builder.ctx.company)
     builder.build_cover(doc)
