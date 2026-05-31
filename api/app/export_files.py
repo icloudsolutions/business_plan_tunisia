@@ -24,4 +24,10 @@ def parse_export_files(file_path: str | None) -> dict[str, str]:
             out["pdf"] = p
         elif suf in (".xlsx", ".xls"):
             out["xlsx"] = p
+        elif suf == ".docx":
+            out["docx"] = p
+        elif suf == ".pptx":
+            out["pptx"] = p
+        elif suf == ".zip":
+            out["zip"] = p
     return out

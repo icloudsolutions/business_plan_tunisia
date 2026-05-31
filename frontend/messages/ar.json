@@ -114,6 +114,7 @@
     "inProgress": "حساب السنوات السبع…",
     "ready": "التنزيل جاهز",
     "download": "تنزيل {format}",
+    "downloadAll": "تنزيل الكل (PDF وExcel وWord وPowerPoint)",
     "retry": "إعادة المحاولة",
     "failed": "فشل التصدير",
     "formatUnavailable": "التنسيق غير متوفر لهذا التصدير",

@@ -159,6 +159,23 @@ export default function PlanOverviewCard({
         onExportXlsx: () => void requestExport("xlsx"),
         onExportDocx: () => void requestExport("docx"),
         onExportPptx: () => void requestExport("pptx"),
+        onExportGenerate: async () => {
+          setMessage("");
+          try {
+            const jobId = await startExport(plan.id, "pdf", {
+              planTitle: plan.title,
+              formats: ALL_EXPORT_FORMATS,
+              autoDownloadAll: true,
+              onComplete: (formats) => {
+                setExportFormats(formats);
+                setExportJobId(jobId);
+              },
+            });
+            setExportJobId(jobId);
+          } catch (e) {
+            setMessage(e instanceof Error ? e.message : "Erreur");
+          }
+        },
       }}
     />
   );

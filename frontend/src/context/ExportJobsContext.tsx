@@ -19,6 +19,8 @@ export type ActiveExportJob = {
   format: ExportFormat;
   planTitle?: string;
   onComplete?: (formats: string[]) => void;
+  /** After a full-pack export, download every ready format (not only the monitor format). */
+  autoDownloadAll?: boolean;
 };
 
 type ExportJobsContextValue = {
@@ -30,6 +32,7 @@ type ExportJobsContextValue = {
       jobId?: string;
       formats?: ExportFormat[];
       onComplete?: (formats: string[]) => void;
+      autoDownloadAll?: boolean;
     }
   ) => Promise<string>;
   dismissJob: (key: string) => void;
@@ -57,6 +60,7 @@ export function ExportJobsProvider({ children }: { children: ReactNode }) {
         jobId?: string;
         formats?: ExportFormat[];
         onComplete?: (formats: string[]) => void;
+        autoDownloadAll?: boolean;
       }
     ) => {
       const jobId =
@@ -74,6 +78,7 @@ export function ExportJobsProvider({ children }: { children: ReactNode }) {
             format,
             planTitle: options?.planTitle,
             onComplete: options?.onComplete,
+            autoDownloadAll: options?.autoDownloadAll,
           },
         ];
       });
@@ -99,6 +104,7 @@ export function ExportJobsProvider({ children }: { children: ReactNode }) {
             format={job.format}
             planTitle={job.planTitle}
             onComplete={job.onComplete}
+            autoDownloadAll={job.autoDownloadAll}
             onDismiss={() => dismissJob(job.key)}
           />
         ))}

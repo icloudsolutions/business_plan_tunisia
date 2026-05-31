@@ -320,6 +320,23 @@ export async function exportPlan(
   });
 }
 
+const _EXPORT_DOWNLOAD_ORDER: ExportFormat[] = ["pdf", "xlsx", "docx", "pptx"];
+
+export async function downloadAllExports(
+  planId: string,
+  jobId: string,
+  formats: string[],
+  delayMs = 450
+): Promise<void> {
+  const wanted = _EXPORT_DOWNLOAD_ORDER.filter((f) => formats.includes(f));
+  for (let i = 0; i < wanted.length; i++) {
+    await downloadExport(planId, jobId, wanted[i]);
+    if (i < wanted.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 export async function downloadExport(
   planId: string,
   jobId: string,

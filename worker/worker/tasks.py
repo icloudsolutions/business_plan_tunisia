@@ -434,25 +434,10 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                 if k not in PlanInputs.model_fields
             }
             files: dict[str, str] = {}
-            if "pdf" in formats:
-                files["pdf"] = _export_pdf(
-                    plan_id,
-                    inputs,
-                    results,
-                    plan_title=plan.title,
-                    extra_inputs=extra_inputs,
-                )
-            if "xlsx" in formats:
-                files["xlsx"] = _export_xlsx(
-                    plan_id,
-                    inputs,
-                    results,
-                    plan_title=plan.title,
-                    extra_inputs=extra_inputs,
-                )
-            if "docx" in formats:
+            format_errors: list[str] = []
+
+            def _plan_data_for_exports() -> dict:
                 from tasks.export_excel import build_plan_data
-                from tasks.export_word import build_feasibility_docx_from_plan_data
 
                 plan_data = build_plan_data(
                     inputs=inputs,
@@ -464,26 +449,6 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                     raw = plan_data.get("inputs") or {}
                     if isinstance(raw, dict):
                         plan_data["inputs"] = {**raw, **extra_inputs}
-                    for key in ("market_study", "swot", "logo_path", "sector", "promoter", "cabinet"):
-                        if key in extra_inputs:
-                            plan_data[key] = extra_inputs[key]
-                files["docx"] = build_feasibility_docx_from_plan_data(
-                    plan_data, EXPORT_DIR
-                )
-            if "pptx" in formats:
-                from tasks.export_excel import build_plan_data
-                from tasks.export_pptx import build_pptx_from_plan
-
-                pptx_plan_data = build_plan_data(
-                    inputs=inputs,
-                    results=results,
-                    plan_id=plan_id,
-                    title=plan.title,
-                )
-                if extra_inputs:
-                    raw = pptx_plan_data.get("inputs") or {}
-                    if isinstance(raw, dict):
-                        pptx_plan_data["inputs"] = {**raw, **extra_inputs}
                     for key in (
                         "market_study",
                         "swot",
@@ -495,24 +460,69 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                         "team",
                         "planning",
                         "presentation_audience",
+                        "project_description",
                     ):
                         if key in extra_inputs:
-                            pptx_plan_data[key] = extra_inputs[key]
-                audience = str(
-                    extra_inputs.get("presentation_audience")
-                    or pptx_plan_data.get("presentation_audience")
-                    or "banque"
-                )
-                if audience not in ("banque", "investisseur", "client"):
-                    audience = "banque"
-                pptx_plan_data["presentation_audience"] = audience
-                files["pptx"] = build_pptx_from_plan(
-                    pptx_plan_data, EXPORT_DIR, audience=audience
-                )
+                            plan_data[key] = extra_inputs[key]
+                return plan_data
+
+            if "pdf" in formats:
+                try:
+                    files["pdf"] = _export_pdf(
+                        plan_id,
+                        inputs,
+                        results,
+                        plan_title=plan.title,
+                        extra_inputs=extra_inputs,
+                    )
+                except Exception as exc:
+                    format_errors.append(f"pdf: {exc}")
+
+            if "xlsx" in formats:
+                try:
+                    files["xlsx"] = _export_xlsx(
+                        plan_id,
+                        inputs,
+                        results,
+                        plan_title=plan.title,
+                        extra_inputs=extra_inputs,
+                    )
+                except Exception as exc:
+                    format_errors.append(f"xlsx: {exc}")
+
+            if "docx" in formats:
+                try:
+                    from tasks.export_word import build_feasibility_docx_from_plan_data
+
+                    files["docx"] = build_feasibility_docx_from_plan_data(
+                        _plan_data_for_exports(), EXPORT_DIR
+                    )
+                except Exception as exc:
+                    format_errors.append(f"docx: {exc}")
+
+            if "pptx" in formats:
+                try:
+                    from tasks.export_pptx import build_pptx_from_plan
+
+                    pptx_plan_data = _plan_data_for_exports()
+                    audience = str(
+                        extra_inputs.get("presentation_audience")
+                        or pptx_plan_data.get("presentation_audience")
+                        or "banque"
+                    )
+                    if audience not in ("banque", "investisseur", "client"):
+                        audience = "banque"
+                    pptx_plan_data["presentation_audience"] = audience
+                    files["pptx"] = build_pptx_from_plan(
+                        pptx_plan_data, EXPORT_DIR, audience=audience
+                    )
+                except Exception as exc:
+                    format_errors.append(f"pptx: {exc}")
 
             if not files:
-                _fail_export_job(db, job, "Aucun format demandé")
-                return {"error": "no formats"}
+                detail = "; ".join(format_errors) if format_errors else "Aucun format demandé"
+                _fail_export_job(db, job, detail)
+                return {"error": "no formats", "detail": detail}
 
             if job:
                 job.status = "COMPLETED"

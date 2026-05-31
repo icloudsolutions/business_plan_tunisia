@@ -114,6 +114,7 @@
     "inProgress": "Computing 7-year projection…",
     "ready": "Download ready",
     "download": "Download {format}",
+    "downloadAll": "Download all (PDF, Excel, Word, PowerPoint)",
     "retry": "Retry",
     "failed": "Export failed",
     "formatUnavailable": "Format not available for this export",

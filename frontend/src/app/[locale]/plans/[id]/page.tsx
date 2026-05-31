@@ -399,14 +399,23 @@ function PlanContent() {
           onExportXlsx: () => void requestExport("xlsx"),
           onExportDocx: () => void requestExport("docx"),
           onExportPptx: () => void requestExport("pptx"),
-          onExportGenerate: () =>
-            void startExport(id, "pdf", {
-              planTitle: plan?.title,
-              formats: ALL_EXPORT_FORMATS,
-              onComplete: (formats) => {
-                setExportFormats(formats);
-              },
-            }).then((jobId) => setExportJobId(jobId)),
+          onExportGenerate: async () => {
+            setError("");
+            try {
+              const jobId = await startExport(id, "pdf", {
+                planTitle: plan?.title,
+                formats: ALL_EXPORT_FORMATS,
+                autoDownloadAll: true,
+                onComplete: (formats) => {
+                  setExportFormats(formats);
+                  setExportJobId(jobId);
+                },
+              });
+              setExportJobId(jobId);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : tPlan("exportFailed"));
+            }
+          },
         }}
       />
 

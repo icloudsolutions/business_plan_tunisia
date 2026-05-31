@@ -114,6 +114,7 @@
     "inProgress": "Calcul des 7 années…",
     "ready": "Téléchargement prêt",
     "download": "Télécharger {format}",
+    "downloadAll": "Télécharger tout (PDF, Excel, Word, PowerPoint)",
     "retry": "Réessayer",
     "failed": "Échec de l'export",
     "formatUnavailable": "Format non disponible pour cet export",

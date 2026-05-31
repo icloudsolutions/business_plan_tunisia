@@ -3,8 +3,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Download, RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { downloadExport, exportPlan, type ExportFormat } from "@/lib/api";
-import { ALL_EXPORT_FORMATS } from "@/lib/export-formats";
+import {
+  downloadAllExports,
+  downloadExport,
+  exportPlan,
+  type ExportFormat,
+} from "@/lib/api";
+import {
+  ALL_EXPORT_FORMATS,
+  exportFormatsReady,
+  isExportFormat,
+} from "@/lib/export-formats";
 import {
   exportDownloadUrl,
   getExportJob,
@@ -29,7 +38,15 @@ export type ExportJobMonitorProps = {
   format: ExportFormat;
   planTitle?: string;
   onComplete?: (formats: string[]) => void;
+  autoDownloadAll?: boolean;
   onDismiss?: () => void;
+};
+
+const FORMAT_LABELS: Record<ExportFormat, string> = {
+  pdf: "PDF",
+  xlsx: "Excel",
+  docx: "Word",
+  pptx: "PowerPoint",
 };
 
 type MonitorStatus = "pending" | "running" | "done" | "error";
@@ -40,6 +57,7 @@ export default function ExportJobMonitor({
   format,
   planTitle,
   onComplete,
+  autoDownloadAll = false,
   onDismiss,
 }: ExportJobMonitorProps) {
   const t = useTranslations("export");
@@ -51,15 +69,9 @@ export default function ExportJobMonitor({
   const [activeJobId, setActiveJobId] = useState(jobId);
   const completedRef = useRef(false);
 
-  const formatLabel =
-    format === "pdf"
-      ? "PDF"
-      : format === "docx"
-        ? "Word"
-        : format === "pptx"
-          ? "PowerPoint"
-          : "Excel";
+  const formatLabel = FORMAT_LABELS[format];
   const downloadUrl = exportDownloadUrl(planId, activeJobId, format);
+  const readyFormats = exportFormatsReady(formats);
 
   const statusLabel: Record<MonitorStatus, string> = {
     pending: t("statusPending"),
@@ -110,6 +122,14 @@ export default function ExportJobMonitor({
         if (!completedRef.current) {
           completedRef.current = true;
           onComplete?.(list);
+          if (autoDownloadAll) {
+            void downloadAllExports(planId, activeJobId, list).catch((err) => {
+              setStatus("error");
+              setErrorMessage(
+                err instanceof Error ? err.message : t("failed")
+              );
+            });
+          }
         }
         return;
       }
@@ -127,7 +147,7 @@ export default function ExportJobMonitor({
       setStatus("error");
       setErrorMessage(e instanceof Error ? e.message : t("failed"));
     }
-  }, [activeJobId, onComplete, planId, t]);
+  }, [activeJobId, autoDownloadAll, onComplete, planId, t]);
 
   useEffect(() => {
     if (status === "done" || status === "error") return;
@@ -145,6 +165,7 @@ export default function ExportJobMonitor({
     try {
       const job = await exportPlan(planId, ALL_EXPORT_FORMATS);
       setActiveJobId(job.id);
+      setFormats([]);
     } catch (e) {
       setStatus("error");
       setErrorMessage(e instanceof Error ? e.message : t("failed"));
@@ -186,7 +207,39 @@ export default function ExportJobMonitor({
                 <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
                 {t("ready")}
               </p>
-              {formats.includes(format) ? (
+              {readyFormats.length > 0 ? (
+                <div className="flex flex-col gap-1.5">
+                  {readyFormats.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void downloadAllExports(planId, activeJobId, formats)
+                      }
+                      className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                    >
+                      <Download className="h-4 w-4" aria-hidden />
+                      {t("downloadAll")}
+                    </button>
+                  ) : null}
+                  {readyFormats.map((fmt) => (
+                    <button
+                      key={fmt}
+                      type="button"
+                      onClick={() => void downloadExport(planId, activeJobId, fmt)}
+                      className={
+                        readyFormats.length > 1
+                          ? "inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm font-medium text-indigo-800 hover:bg-indigo-50"
+                          : "inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                      }
+                    >
+                      <Download className="h-4 w-4 shrink-0" aria-hidden />
+                      {t("download", {
+                        format: isExportFormat(fmt) ? FORMAT_LABELS[fmt] : fmt,
+                      })}
+                    </button>
+                  ))}
+                </div>
+              ) : formats.includes(format) ? (
                 <a
                   href={downloadUrl}
                   download
