@@ -176,7 +176,6 @@ BASE_TEMPLATES: list[dict] = [
             inv_target=80_000,
             corp_pct=25,
             bfr_pct=15,
-            intangible-heavy via corp split handled in service,
             growth=25,
             margin=55,
             bfr_days=25,
