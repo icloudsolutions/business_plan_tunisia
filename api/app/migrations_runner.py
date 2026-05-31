@@ -72,19 +72,32 @@ async def _stamp_head_direct(cfg: Config) -> str:
 
 
 async def _sync_existing_database(cfg: Config, current: str | None) -> None:
-    """Existing data: do not run upgrade (tables already present); stamp + create_all."""
+    """Existing data: apply pending Alembic revisions, or stamp if version table missing."""
     head = _alembic_head(cfg)
-    if current != head:
-        logger.warning(
-            "Existing database (revision=%s, head=%s). "
-            "Stamping head via SQL; create_all will add missing tables.",
+    if current == head:
+        logger.info("Existing database already at Alembic head (%s)", head)
+        return
+    if current is not None and current != head:
+        logger.info(
+            "Existing database behind head (revision=%s, head=%s) — running upgrade",
             current,
             head,
         )
-        await _stamp_head_direct(cfg)
-        logger.info("Database stamped at Alembic head (%s)", head)
-    else:
-        logger.info("Existing database already at Alembic head (%s)", head)
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                lambda sync_conn: _with_connection(
+                    sync_conn, cfg, lambda c: command.upgrade(c, "head")
+                )
+            )
+        logger.info("Alembic upgrade applied to %s", head)
+        return
+    logger.warning(
+        "Existing database without alembic_version (head=%s). "
+        "Stamping head; legacy patches will align column types.",
+        head,
+    )
+    await _stamp_head_direct(cfg)
+    logger.info("Database stamped at Alembic head (%s)", head)
 
 
 async def run_startup_migrations() -> None:

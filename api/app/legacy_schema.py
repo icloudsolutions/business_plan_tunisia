@@ -56,8 +56,29 @@ def _column_names(sync_conn, table: str) -> set[str]:
     return {c["name"] for c in inspect(sync_conn).get_columns(table)}
 
 
+def _patch_export_jobs_format_width(sync_conn) -> None:
+    """DBs stamped at Alembic head without running upgrade keep format VARCHAR(16)."""
+    if not inspect(sync_conn).has_table("export_jobs"):
+        return
+    for col in inspect(sync_conn).get_columns("export_jobs"):
+        if col["name"] != "format":
+            continue
+        col_type = col.get("type")
+        length = getattr(col_type, "length", None)
+        if length is not None and int(length) < 128:
+            sync_conn.execute(
+                text("ALTER TABLE export_jobs ALTER COLUMN format TYPE VARCHAR(128)")
+            )
+            logger.info(
+                "Legacy schema patch: export_jobs.format widened from VARCHAR(%s) to 128",
+                length,
+            )
+        return
+
+
 def apply_legacy_column_patches(sync_conn) -> None:
     """Align old databases with current ORM (migrations skipped at startup)."""
+    _patch_export_jobs_format_width(sync_conn)
     for table, column, ddl in _COLUMN_PATCHES:
         if column in _column_names(sync_conn, table):
             continue

@@ -10,20 +10,13 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.alter_column(
-        "export_jobs",
-        "format",
-        existing_type=sa.String(16),
-        type_=sa.String(128),
-        existing_nullable=True,
+    # Raw SQL: reliable on PostgreSQL when prior stamp skipped alter_column.
+    op.execute(
+        "ALTER TABLE export_jobs ALTER COLUMN format TYPE VARCHAR(128)"
     )
 
 
 def downgrade() -> None:
-    op.alter_column(
-        "export_jobs",
-        "format",
-        existing_type=sa.String(128),
-        type_=sa.String(16),
-        existing_nullable=True,
+    op.execute(
+        "ALTER TABLE export_jobs ALTER COLUMN format TYPE VARCHAR(16)"
     )
