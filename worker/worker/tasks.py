@@ -451,15 +451,24 @@ def generate_export(self, plan_id: str, job_id: str, formats: list):
                     extra_inputs=extra_inputs,
                 )
             if "docx" in formats:
-                from worker.feasibility_docx import build_feasibility_docx
+                from tasks.export_excel import build_plan_data
+                from tasks.export_word import build_feasibility_docx_from_plan_data
 
-                files["docx"] = build_feasibility_docx(
-                    plan_id,
-                    inputs,
-                    results,
-                    export_dir=EXPORT_DIR,
-                    plan_title=plan.title,
-                    extra_inputs=extra_inputs,
+                plan_data = build_plan_data(
+                    inputs=inputs,
+                    results=results,
+                    plan_id=plan_id,
+                    title=plan.title,
+                )
+                if extra_inputs:
+                    raw = plan_data.get("inputs") or {}
+                    if isinstance(raw, dict):
+                        plan_data["inputs"] = {**raw, **extra_inputs}
+                    for key in ("market_study", "swot", "logo_path", "sector", "promoter", "cabinet"):
+                        if key in extra_inputs:
+                            plan_data[key] = extra_inputs[key]
+                files["docx"] = build_feasibility_docx_from_plan_data(
+                    plan_data, EXPORT_DIR
                 )
 
             if not files:

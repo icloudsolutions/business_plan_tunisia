@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir /app/packages/bp_schema /app/packages/bp_calc
 
 COPY api/requirements.txt /app/api/requirements.txt
 RUN pip install --no-cache-dir -r /app/api/requirements.txt
-RUN pip install --no-cache-dir openpyxl reportlab python-docx redis
+RUN pip install --no-cache-dir openpyxl reportlab python-docx matplotlib redis
 
 COPY api/app /app/api/app
 COPY worker /app/worker
